@@ -83,7 +83,7 @@ header{
   background:var(--panel);border:1px solid var(--line);height:220px;cursor:pointer;
   position:relative;overflow:hidden;transition:border-color .15s, transform .15s;
 }
-.map-tile:hover{border-color:var(--amber);transform:translateY(-2px);}
+.map-tile:hover{border-color:#FFFFFF;transform:translateY(-2px);}
 .map-thumb{height:150px;position:relative;display:flex;align-items:center;justify-content:center;}
 .map-thumb .no-img{font-family:'JetBrains Mono',monospace;font-size:10px;color:#3A4048;letter-spacing:0.06em;}
 .map-tile:nth-child(6n+1) .map-thumb{background:linear-gradient(135deg,#26313F,#111820);}
@@ -164,6 +164,12 @@ header{
 }
 .overlay-close:hover{color:var(--red);border-color:var(--red);}
 .loading{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);padding:40px;text-align:center;}
+
+.site-footer{
+  text-align:center;padding:24px 32px;margin-top:20px;
+  border-top:1px solid var(--line);
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:#4A515B;letter-spacing:0.03em;
+}
 </style>
 </head>
 <body>
@@ -211,6 +217,10 @@ header{
     </div>
   </div>
 </div>
+
+<footer class="site-footer">
+  © 서든 아카이브 · 제작 혜나 · 무단 배포 및 상업적 사용을 금지합니다.
+</footer>
 
 <script>
 // ============================================================
