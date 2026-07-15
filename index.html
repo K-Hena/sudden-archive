@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>서든 아카이브</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Gothic+A1:wght@700;900&display=swap');
+
+@font-face {
+  font-family: 'Paperlogy';
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy-8ExtraBold.woff2') format('woff2'),
+       url('https://fastly.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-8ExtraBold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Paperlogy';
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy-9Black.woff2') format('woff2'),
+       url('https://fastly.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-9Black.woff2') format('woff2');
+}
+
+:root{
+  --bg:#0A0C0F;
+  --panel:#14171C;
+  --panel-hi:#1B1F26;
+  --line:#252A31;
+  --text:#E6E9ED;
+  --muted:#7E8792;
+  --red:#E4364A;
+  --red-dim:#3A1A20;
+  --blue:#3B7DE8;
+  --blue-dim:#152436;
+  --amber:#F2A93B;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  min-height:100vh;
+  padding-bottom:60px;
+}
+.mono{font-family:'JetBrains Mono',monospace;}
+.cut-sm{clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);}
+
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 32px;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,#0D1013,#0A0C0F);
+}
+.brand{display:flex;align-items:center;gap:12px;}
+.reticle{width:26px;height:26px;position:relative;border:2px solid #FFFFFF;border-radius:50%;}
+.reticle::before,.reticle::after{content:'';position:absolute;background:#FFFFFF;}
+.reticle::before{width:2px;height:10px;left:11px;top:-6px;}
+.reticle::after{width:10px;height:2px;top:11px;left:-6px;}
+.brand h1{font-family:'Paperlogy',sans-serif;font-weight:800;font-size:26px;letter-spacing:0;line-height:1.4;}
+.brand span{color:var(--red);}
+.status{font-size:12px;color:var(--muted);letter-spacing:0.08em;display:flex;align-items:center;gap:18px;}
+.status b{color:var(--text);}
+
+.subbar{
+  padding:14px 32px;display:flex;align-items:center;gap:10px;
+  font-size:12px;color:var(--muted);letter-spacing:0.06em;border-bottom:1px solid var(--line);
+}
+.subbar b{color:var(--text);cursor:pointer;}
+.subbar .sep{color:#3A4048;}
+
+.view{padding:28px 32px;display:none;}
+.view.active{display:block;}
+.section-label{
+  font-size:12px;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase;
+  margin-bottom:14px;display:flex;align-items:center;gap:8px;
+}
+.section-label::after{content:'';flex:1;height:1px;background:var(--line);}
+
+.map-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;}
+.map-tile{
+  background:var(--panel);border:1px solid var(--line);height:220px;cursor:pointer;
+  position:relative;overflow:hidden;transition:border-color .15s, transform .15s;
+}
+.map-tile:hover{border-color:var(--amber);transform:translateY(-2px);}
+.map-thumb{height:150px;position:relative;display:flex;align-items:center;justify-content:center;}
+.map-thumb .no-img{font-family:'JetBrains Mono',monospace;font-size:10px;color:#3A4048;letter-spacing:0.06em;}
+.map-tile:nth-child(6n+1) .map-thumb{background:linear-gradient(135deg,#26313F,#111820);}
+.map-tile:nth-child(6n+2) .map-thumb{background:linear-gradient(135deg,#2E1F1F,#150F10);}
+.map-tile:nth-child(6n+3) .map-thumb{background:linear-gradient(135deg,#1F2A24,#0F1512);}
+.map-tile:nth-child(6n+4) .map-thumb{background:linear-gradient(135deg,#2A2233,#131019);}
+.map-tile:nth-child(6n+5) .map-thumb{background:linear-gradient(135deg,#332A1B,#171208);}
+.map-tile:nth-child(6n+6) .map-thumb{background:linear-gradient(135deg,#1E2733,#0D1319);}
+.map-tile .info{padding:12px 14px;}
+.map-tile .name{font-family:'Paperlogy',sans-serif;font-weight:800;font-size:20px;}
+.map-tile .count{font-size:11px;color:var(--muted);margin-top:2px;}
+
+.detail-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:20px;}
+.detail-title{font-family:'Paperlogy',sans-serif;font-weight:800;font-size:26px;letter-spacing:0;color:var(--text);}
+.detail-title span{color:var(--muted);font-size:14px;font-weight:500;font-family:'Inter';margin-left:10px;}
+
+.team-toggle{display:flex;border:1px solid var(--line);}
+.team-toggle button{
+  font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:0.08em;
+  background:var(--panel);color:var(--muted);border:none;padding:9px 22px;cursor:pointer;font-size:13px;
+  border-right:1px solid var(--line);
+}
+.team-toggle button:last-child{border-right:none;}
+.team-toggle button.on-red{color:var(--red);background:var(--red-dim);}
+.team-toggle button.on-blue{color:var(--blue);background:var(--blue-dim);}
+
+.tag-section{margin-bottom:34px;}
+.tag-section .section-label{margin-bottom:16px;}
+.tag-section .section-label b{
+  color:var(--red);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.1em;
+}
+
+.card-grid-inner{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;}
+.card{background:var(--panel);border:1px solid var(--line);cursor:pointer;transition:border-color .15s;}
+.card:hover{border-color:var(--amber);}
+.thumb{
+  height:130px;position:relative;background:linear-gradient(135deg,#1A1E24,#0F1216);
+  display:flex;align-items:center;justify-content:center;
+}
+.thumb .badge{
+  position:absolute;top:8px;left:8px;font-family:'JetBrains Mono',monospace;font-size:9px;
+  letter-spacing:0.05em;padding:3px 7px;text-transform:uppercase;
+}
+.badge.vid{background:var(--red);color:#fff;}
+.badge.img{background:var(--blue);color:#fff;}
+.playicon{
+  width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.5);
+  display:flex;align-items:center;justify-content:center;color:#fff;
+}
+.playicon::before{content:'';border-left:12px solid #fff;border-top:7px solid transparent;border-bottom:7px solid transparent;margin-left:3px;}
+.card .meta{padding:10px 12px;}
+.card .title{font-size:13.5px;font-weight:500;margin-bottom:6px;}
+.card .note{font-size:11.5px;color:var(--muted);line-height:1.5;}
+
+.back-btn{
+  font-family:'Rajdhani',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.06em;
+  color:var(--muted);background:none;border:1px solid var(--line);padding:8px 16px;cursor:pointer;margin-bottom:18px;
+}
+.back-btn:hover{color:var(--amber);border-color:var(--amber);}
+
+.overlay{
+  display:none;position:fixed;inset:0;background:rgba(6,7,9,.92);z-index:50;
+  align-items:center;justify-content:center;padding:40px;
+}
+.overlay.active{display:flex;}
+.overlay-box{width:min(880px,90vw);}
+.overlay-media{
+  width:100%;aspect-ratio:16/9;background:linear-gradient(135deg,#1A1E24,#0F1216);
+  display:flex;align-items:center;justify-content:center;color:var(--muted);
+  font-family:'JetBrains Mono',monospace;font-size:12px;border:1px solid var(--line);overflow:hidden;
+}
+.overlay-media iframe{display:block;}
+.overlay-meta{padding:14px 2px;display:flex;justify-content:space-between;align-items:flex-start;}
+.overlay-meta .note{font-size:12.5px;color:var(--muted);max-width:70%;line-height:1.5;}
+.overlay-close{
+  color:var(--muted);cursor:pointer;font-family:'JetBrains Mono';font-size:12px;
+  border:1px solid var(--line);padding:6px 12px;
+}
+.overlay-close:hover{color:var(--red);border-color:var(--red);}
+.loading{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);padding:40px;text-align:center;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="reticle"></div>
+    <h1>서든 <span>아카이브</span></h1>
+  </div>
+  <div class="status">
+    <span class="mono"><b id="clipCount">-</b>&nbsp;CLIPS</span>
+    <span class="mono"><b id="tipCount">-</b>&nbsp;TIPS</span>
+  </div>
+</header>
+
+<div class="subbar">
+  <b onclick="showMapGrid()">전체 맵</b>
+  <span class="sep" id="crumbSep" style="display:none">/</span>
+  <b id="crumbMap" style="display:none"></b>
+</div>
+
+<div class="view active" id="viewGrid">
+  <div class="section-label">맵 선택</div>
+  <div class="map-grid" id="mapGrid"><div class="loading">불러오는 중...</div></div>
+</div>
+
+<div class="view" id="viewDetail">
+  <button class="back-btn" onclick="showMapGrid()">← 전체 맵으로</button>
+  <div class="detail-head">
+    <div class="detail-title" id="detailTitle">맵명 <span id="detailCount"></span></div>
+    <div class="team-toggle">
+      <button id="btnRed" onclick="setTeam('red')">RED</button>
+      <button id="btnBlue" onclick="setTeam('blue')">BLUE</button>
+    </div>
+  </div>
+  <div id="cardGrid"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-box">
+    <div class="overlay-media" id="overlayMedia">MEDIA PREVIEW</div>
+    <div class="overlay-meta">
+      <div class="note" id="overlayNote"></div>
+      <div class="overlay-close" onclick="closeOverlay()">닫기 ✕</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// TODO: 여기 두 줄만 채우면 됨
+// Supabase 프로젝트 대시보드 > Project Settings > API 에서 복사
+// ============================================================
+const SUPABASE_URL = 'https://mvyepqqstaipxqfesalv.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_Ig7a3XgfX1xpJbblRiol9A_lMbNXzs5';
+
+let sb;
+try {
+  if(!window.supabase){
+    throw new Error('supabase-js 라이브러리를 못 불러왔어요 (CDN 차단/네트워크 문제일 수 있어요)');
+  }
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch(e){
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('mapGrid').innerHTML =
+      `<div class="loading">초기화 실패: ${e.message}</div>`;
+  });
+}
+
+let maps = [];
+let items = [];
+let currentMap = null;   // 맵 id
+let currentMapName = '';
+let currentTeam = 'red';
+const tagOrder = ['맵 지명', '위폭', '팁'];
+
+async function loadAll(){
+  if(!sb) return; // 위에서 초기화 실패한 경우 여기서 중단
+  try {
+    const { data: mapRows, error: mapErr } = await sb
+      .from('maps').select('*').order('sort_order', { ascending: true });
+    const { data: itemRows, error: itemErr } = await sb
+      .from('items').select('*');
+
+    if(mapErr || itemErr){
+      document.getElementById('mapGrid').innerHTML =
+        `<div class="loading">데이터를 불러오지 못했어요.<br>${(mapErr||itemErr).message}</div>`;
+      return;
+    }
+    maps = mapRows;
+    items = itemRows;
+    document.getElementById('clipCount').textContent = items.filter(i=>i.type==='vid').length;
+    document.getElementById('tipCount').textContent = items.filter(i=>i.tag==='팁').length;
+    renderMapGrid();
+  } catch(e){
+    document.getElementById('mapGrid').innerHTML =
+      `<div class="loading">요청 중 오류가 발생했어요.<br>${e.message}</div>`;
+  }
+}
+
+function renderMapGrid(){
+  const grid = document.getElementById('mapGrid');
+  grid.innerHTML = maps.map(m => {
+    const count = items.filter(i => i.map_id === m.id).length;
+    return `
+    <div class="map-tile cut-sm" onclick="openMap('${m.id}','${m.name}')">
+      <div class="map-thumb" style="${m.img ? `background-image:url('${m.img}');background-size:cover;background-position:center;` : ''}">
+        ${m.img ? '' : '<span class="no-img">이미지 없음</span>'}
+      </div>
+      <div class="info">
+        <div class="name">${m.name}</div>
+        <div class="count mono">${count} ITEMS</div>
+      </div>
+    </div>
+  `;}).join('') || `<div class="loading">등록된 맵이 없어요.</div>`;
+}
+
+function showMapGrid(){
+  document.getElementById('viewGrid').classList.add('active');
+  document.getElementById('viewDetail').classList.remove('active');
+  document.getElementById('crumbMap').style.display = 'none';
+  document.getElementById('crumbSep').style.display = 'none';
+}
+
+function openMap(id, name){
+  currentMap = id;
+  currentMapName = name;
+  currentTeam = 'red';
+  document.getElementById('viewGrid').classList.remove('active');
+  document.getElementById('viewDetail').classList.add('active');
+  document.getElementById('crumbMap').style.display = 'inline';
+  document.getElementById('crumbSep').style.display = 'inline';
+  document.getElementById('crumbMap').textContent = name;
+  document.getElementById('detailTitle').innerHTML = name + ' <span id="detailCount"></span>';
+  setTeam('red');
+}
+
+function setTeam(t){
+  currentTeam = t;
+  document.getElementById('btnRed').className = t==='red' ? 'on-red' : '';
+  document.getElementById('btnBlue').className = t==='blue' ? 'on-blue' : '';
+  renderCards();
+}
+
+function ytThumb(url){
+  if(!url) return '';
+  const m = url.match(/(?:youtu\.be\/|v=|shorts\/)([A-Za-z0-9_-]{6,})/);
+  return m ? `https://img.youtube.com/vi/${m[1]}/hqdefault.jpg` : '';
+}
+
+function renderCards(){
+  const filtered = items.filter(i => i.map_id === currentMap && i.team === currentTeam);
+  document.getElementById('detailCount').textContent = '(' + filtered.length + ')';
+
+  const groups = {};
+  filtered.forEach(it => {
+    if(!groups[it.tag]) groups[it.tag] = [];
+    groups[it.tag].push(it);
+  });
+
+  const sortedTags = Object.keys(groups).sort((a, b) => {
+    const ai = tagOrder.indexOf(a), bi = tagOrder.indexOf(b);
+    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+  });
+
+  const container = document.getElementById('cardGrid');
+  container.innerHTML = sortedTags.map(tag => {
+    const list = groups[tag];
+    const isMapLabel = tag === '맵 지명';
+    return `
+    <div class="tag-section">
+      <div class="section-label"><b>${tag}</b></div>
+      <div class="card-grid-inner">
+        ${list.map(it => {
+          const thumbUrl = it.type === 'vid' ? ytThumb(it.video_url) : it.img_url;
+          return `
+          <div class="card" onclick="openOverlay('${it.id}')">
+            <div class="thumb" style="${thumbUrl ? `background-image:url('${thumbUrl}');background-size:cover;background-position:center;` : ''}">
+              <div class="badge ${it.type}">${it.type==='vid' ? '영상' : '이미지'}</div>
+              ${thumbUrl
+                ? (it.type==='vid' ? '<div class="playicon"></div>' : '')
+                : `<span class="mono" style="font-size:10px;color:#3A4048;">${it.type==='vid' ? '아직 등록된 영상 없음' : '아직 등록된 이미지 없음'}</span>`
+              }
+            </div>
+            ${isMapLabel ? '' : `
+            <div class="meta">
+              <div class="title">${it.title}</div>
+              ${it.note ? `<div class="note">${it.note}</div>` : ''}
+            </div>`}
+          </div>
+        `;}).join('')}
+      </div>
+    </div>
+  `;
+  }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">이 진영에 등록된 항목이 없어요.</div>`;
+}
+
+function openOverlay(id){
+  const it = items.find(i => i.id === id);
+  const media = document.getElementById('overlayMedia');
+  if(it.type === 'vid' && it.video_url){
+    const m = it.video_url.match(/(?:youtu\.be\/|v=|shorts\/)([A-Za-z0-9_-]{6,})/);
+    media.innerHTML = m
+      ? `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${m[1]}" frameborder="0" allowfullscreen></iframe>`
+      : `<span>유튜브 링크 형식을 확인해주세요</span>`;
+  } else if(it.type === 'img' && it.img_url){
+    media.innerHTML = `<img src="${it.img_url}" style="width:100%;height:100%;object-fit:contain;">`;
+  } else {
+    media.innerHTML = it.type==='vid'
+      ? '▶ 아직 등록된 영상 링크가 없어요 — ' + it.title
+      : '🔍 아직 등록된 이미지가 없어요 — ' + it.title;
+  }
+  document.getElementById('overlayNote').textContent = it.note ? it.title + ' — ' + it.note : it.title;
+  document.getElementById('overlay').classList.add('active');
+}
+function closeOverlay(){
+  document.getElementById('overlay').classList.remove('active');
+}
+
+loadAll();
+</script>
+</body>
+</html>
