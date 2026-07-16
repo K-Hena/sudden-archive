@@ -129,6 +129,7 @@ header{
 }
 .badge.vid{background:var(--red);color:#fff;}
 .badge.img{background:var(--blue);color:#fff;}
+.badge.short{background:#8B5CF6;color:#fff;}
 .playicon{
   width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.5);
   display:flex;align-items:center;justify-content:center;color:#fff;
@@ -149,14 +150,16 @@ header{
   align-items:center;justify-content:center;padding:40px;
 }
 .overlay.active{display:flex;}
-.overlay-box{width:min(880px,90vw);}
+.overlay-box{display:flex;flex-direction:column;align-items:center;}
 .overlay-media{
-  width:100%;aspect-ratio:16/9;background:linear-gradient(135deg,#1A1E24,#0F1216);
+  background:#000;border:1px solid var(--line);overflow:hidden;
   display:flex;align-items:center;justify-content:center;color:var(--muted);
-  font-family:'JetBrains Mono',monospace;font-size:12px;border:1px solid var(--line);overflow:hidden;
+  font-family:'JetBrains Mono',monospace;font-size:12px;
 }
-.overlay-media iframe{display:block;}
-.overlay-meta{padding:14px 2px;display:flex;justify-content:space-between;align-items:flex-start;}
+.overlay-media.wide{width:min(880px,90vw);aspect-ratio:16/9;}
+.overlay-media.tall{height:min(80vh,720px);aspect-ratio:9/16;}
+.overlay-media iframe,.overlay-media img{width:100%;height:100%;display:block;object-fit:contain;border:0;}
+.overlay-meta{width:100%;max-width:880px;padding:14px 2px;display:flex;justify-content:space-between;align-items:flex-start;}
 .overlay-meta .note{font-size:12.5px;color:var(--muted);max-width:70%;line-height:1.5;}
 .overlay-close{
   color:var(--muted);cursor:pointer;font-family:'JetBrains Mono';font-size:12px;
@@ -210,7 +213,7 @@ header{
 
 <div class="overlay" id="overlay">
   <div class="overlay-box">
-    <div class="overlay-media" id="overlayMedia">MEDIA PREVIEW</div>
+    <div class="overlay-media wide" id="overlayMedia">MEDIA PREVIEW</div>
     <div class="overlay-meta">
       <div class="note" id="overlayNote"></div>
       <div class="overlay-close" onclick="closeOverlay()">닫기 ✕</div>
@@ -318,11 +321,27 @@ function setTeam(t){
   renderCards();
 }
 
-function ytThumb(url){
-  if(!url) return '';
-  const m = url.match(/(?:youtu\.be\/|v=|shorts\/)([A-Za-z0-9_-]{6,})/);
-  return m ? `https://img.youtube.com/vi/${m[1]}/hqdefault.jpg` : '';
+function parseYouTube(url){
+  if(!url) return null;
+  const short = url.match(/shorts\/([A-Za-z0-9_-]{6,})/);
+  if(short) return { id: short[1], isShort: true };
+  const normal = url.match(/(?:youtu\.be\/|v=)([A-Za-z0-9_-]{6,})/);
+  if(normal) return { id: normal[1], isShort: false };
+  return null;
 }
+function ytThumb(url){
+  const p = parseYouTube(url);
+  return p ? `https://img.youtube.com/vi/${p.id}/hqdefault.jpg` : '';
+}
+
+// 유튜브 IFrame API 로드 (클립 구간 제어용)
+let ytReady = false, ytPlayer = null;
+(function(){
+  const s = document.createElement('script');
+  s.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(s);
+})();
+window.onYouTubeIframeAPIReady = function(){ ytReady = true; };
 
 function renderCards(){
   const filtered = items.filter(i => i.map_id === currentMap && i.team === currentTeam);
@@ -348,11 +367,14 @@ function renderCards(){
       <div class="section-label"><b>${tag}</b></div>
       <div class="card-grid-inner">
         ${list.map(it => {
+          const p = it.type === 'vid' ? parseYouTube(it.video_url) : null;
           const thumbUrl = it.type === 'vid' ? ytThumb(it.video_url) : it.img_url;
+          const shortBadge = (p && p.isShort) ? '<div class="badge short" style="left:auto;right:8px;">쇼츠</div>' : '';
           return `
           <div class="card" onclick="openOverlay('${it.id}')">
             <div class="thumb" style="${thumbUrl ? `background-image:url('${thumbUrl}');background-size:cover;background-position:center;` : ''}">
               <div class="badge ${it.type}">${it.type==='vid' ? '영상' : '이미지'}</div>
+              ${shortBadge}
               ${thumbUrl
                 ? (it.type==='vid' ? '<div class="playicon"></div>' : '')
                 : `<span class="mono" style="font-size:10px;color:#3A4048;">${it.type==='vid' ? '아직 등록된 영상 없음' : '아직 등록된 이미지 없음'}</span>`
@@ -371,25 +393,71 @@ function renderCards(){
   }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">이 진영에 등록된 항목이 없어요.</div>`;
 }
 
+let clipTimer = null;
 function openOverlay(id){
   const it = items.find(i => i.id === id);
   const media = document.getElementById('overlayMedia');
+
+  // 이전 플레이어/타이머 정리
+  if(clipTimer){ clearInterval(clipTimer); clipTimer = null; }
+  if(ytPlayer && ytPlayer.destroy){ ytPlayer.destroy(); ytPlayer = null; }
+
   if(it.type === 'vid' && it.video_url){
-    const m = it.video_url.match(/(?:youtu\.be\/|v=|shorts\/)([A-Za-z0-9_-]{6,})/);
-    media.innerHTML = m
-      ? `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${m[1]}" frameborder="0" allowfullscreen></iframe>`
-      : `<span>유튜브 링크 형식을 확인해주세요</span>`;
+    const p = parseYouTube(it.video_url);
+    if(p){
+      media.className = 'overlay-media ' + (p.isShort ? 'tall' : 'wide');
+      const hasClip = (it.clip_start != null || it.clip_end != null);
+
+      if(hasClip){
+        // 클립 구간이 있으면 JS 플레이어로 제어 (쇼츠도 구간 적용됨)
+        const mount = document.createElement('div');
+        media.innerHTML = '';
+        media.appendChild(mount);
+        const start = it.clip_start != null ? it.clip_start : 0;
+        const end = it.clip_end != null ? it.clip_end : null;
+        const build = () => {
+          ytPlayer = new YT.Player(mount, {
+            videoId: p.id,
+            playerVars: { autoplay:1, playsinline:1, controls:1, rel:0, start:start, origin:location.origin },
+            events: {
+              onReady: (e) => { e.target.seekTo(start, true); e.target.playVideo(); },
+              onStateChange: (e) => {
+                if(e.data === YT.PlayerState.PLAYING && end != null){
+                  if(clipTimer) clearInterval(clipTimer);
+                  clipTimer = setInterval(() => {
+                    if(ytPlayer && ytPlayer.getCurrentTime && ytPlayer.getCurrentTime() >= end){
+                      ytPlayer.seekTo(start, true); // 구간 반복
+                    }
+                  }, 250);
+                }
+              }
+            }
+          });
+        };
+        if(ytReady && window.YT && YT.Player){ build(); }
+        else { const iv = setInterval(() => { if(window.YT && YT.Player){ clearInterval(iv); ytReady=true; build(); } }, 200); }
+      } else {
+        // 구간 없으면 일반 임베드
+        media.innerHTML = `<iframe src="https://www.youtube.com/embed/${p.id}?rel=0&autoplay=1&playsinline=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+      }
+    } else {
+      media.className = 'overlay-media wide';
+      media.innerHTML = `<span>유튜브 링크 형식을 확인해주세요</span>`;
+    }
   } else if(it.type === 'img' && it.img_url){
-    media.innerHTML = `<img src="${it.img_url}" style="width:100%;height:100%;object-fit:contain;">`;
+    media.className = 'overlay-media wide';
+    media.innerHTML = `<img src="${it.img_url}">`;
   } else {
-    media.innerHTML = it.type==='vid'
-      ? '▶ 아직 등록된 영상 링크가 없어요 — ' + it.title
-      : '🔍 아직 등록된 이미지가 없어요 — ' + it.title;
+    media.className = 'overlay-media wide';
+    media.innerHTML = it.type==='vid' ? '<span>아직 등록된 영상이 없어요</span>' : '<span>아직 등록된 이미지가 없어요</span>';
   }
   document.getElementById('overlayNote').textContent = it.note ? it.title + ' — ' + it.note : it.title;
   document.getElementById('overlay').classList.add('active');
 }
 function closeOverlay(){
+  if(clipTimer){ clearInterval(clipTimer); clipTimer = null; }
+  if(ytPlayer && ytPlayer.destroy){ ytPlayer.destroy(); ytPlayer = null; }
+  document.getElementById('overlayMedia').innerHTML = '';
   document.getElementById('overlay').classList.remove('active');
 }
 
