@@ -41,6 +41,8 @@
   --blue:#3B7DE8;
   --blue-dim:#152436;
   --amber:#F2A93B;
+  --edit-accent:#FF5C9E;
+  --edit-accent-ink:#2A0A18;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{
@@ -213,12 +215,21 @@ header{
   letter-spacing:0.06em;
   cursor:pointer;
 }
-.editmode-btn:hover{border-color:var(--amber);color:var(--amber);}
+.editmode-btn:hover{border-color:var(--edit-accent);color:var(--edit-accent);}
 .editmode-btn.on{
-  background:var(--amber);
-  color:#1a1408;
-  border-color:var(--amber);
+  background:var(--edit-accent);
+  color:var(--edit-accent-ink);
+  border-color:var(--edit-accent);
 }
+.map-tile .tile-actions{position:absolute;top:6px;right:6px;display:flex;gap:5px;opacity:0;transition:opacity .15s;z-index:2;}
+.map-tile:hover .tile-actions{opacity:1;}
+.tile-actions span{width:24px;height:24px;background:rgba(6,7,9,.8);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);cursor:pointer;}
+.tile-actions span:hover{color:var(--edit-accent);}
+.tile-actions span.del:hover{color:var(--red);}
+.add-tile{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;border:1px dashed var(--line);color:var(--muted);cursor:pointer;min-height:130px;}
+.add-tile:hover{color:var(--edit-accent);border-color:var(--edit-accent);}
+.add-tile .plus{font-size:28px;font-family:'Rajdhani';}
+.add-tile .label{font-size:12px;letter-spacing:0.06em;}
 </style>
 </head>
 <body>
@@ -267,6 +278,8 @@ header{
     </div>
   </div>
 </div>
+
+<input type="file" id="mapImgInput" accept="image/*" style="display:none">
 
 <footer class="site-footer">
   © 서든 아카이브 · 제작 혜나 · 무단 배포 및 상업적 사용을 금지합니다.
@@ -326,10 +339,18 @@ async function loadAll(){
 
 function renderMapGrid(){
   const grid = document.getElementById('mapGrid');
-  grid.innerHTML = maps.map(m => {
+  const tilesHtml = maps.map(m => {
     const count = items.filter(i => i.map_id === m.id).length;
+    const safe = m.name.replace(/'/g,"\\'");
+    const actions = editMode ? `
+      <div class="tile-actions">
+        <span onclick="pickMapImage(event,'${m.id}')" title="이미지 변경">🖼</span>
+        <span onclick="renameMap(event,'${m.id}','${safe}')" title="이름 변경">✎</span>
+        <span class="del" onclick="deleteMap(event,'${m.id}','${safe}')" title="맵 삭제">✕</span>
+      </div>` : '';
     return `
-    <div class="map-tile cut-sm" onclick="openMap('${m.id}','${m.name}')">
+    <div class="map-tile cut-sm" onclick="openMap('${m.id}','${safe}')">
+      ${actions}
       <div class="map-thumb" style="${m.img ? `background-image:url('${m.img}');background-size:cover;background-position:center;` : ''}">
         ${m.img ? '' : '<span class="no-img">이미지 없음</span>'}
       </div>
@@ -338,8 +359,53 @@ function renderMapGrid(){
         <div class="count mono">${count} ITEMS</div>
       </div>
     </div>
-  `;}).join('') || `<div class="loading">등록된 맵이 없어요.</div>`;
+  `;}).join('');
+  const addTile = editMode ? `<div class="map-tile add-tile cut-sm" onclick="addMap()"><div class="plus">+</div><div class="label">맵 추가</div></div>` : '';
+  grid.innerHTML = (tilesHtml || (editMode ? '' : `<div class="loading">등록된 맵이 없어요.</div>`)) + addTile;
 }
+
+async function addMap(){
+  const name = prompt('추가할 맵 이름을 입력하세요');
+  if(!name || !name.trim()) return;
+  if(maps.some(m => m.name === name.trim())){ alert('이미 있는 맵 이름이에요.'); return; }
+  const maxOrder = maps.reduce((mx,m) => Math.max(mx, m.sort_order||0), 0);
+  const { error } = await sb.from('maps').insert({ name: name.trim(), sort_order: maxOrder+1 });
+  if(error){ alert('추가 실패: ' + error.message); return; }
+  await loadAll();
+}
+async function renameMap(e,id,oldName){
+  e.stopPropagation();
+  const name = prompt('새 맵 이름', oldName);
+  if(!name || !name.trim() || name.trim() === oldName) return;
+  const { error } = await sb.from('maps').update({ name: name.trim() }).eq('id', id);
+  if(error){ alert('변경 실패: ' + error.message); return; }
+  await loadAll();
+}
+async function deleteMap(e,id,name){
+  e.stopPropagation();
+  const count = items.filter(i => i.map_id === id).length;
+  const warn = count > 0
+    ? `⚠️ "${name}" 맵을 삭제하면 이 맵에 등록된 ${count}개 항목(영상·이미지)도 함께 영구 삭제됩니다.\n\n정말 삭제하시겠어요? 되돌릴 수 없어요.`
+    : `⚠️ "${name}" 맵을 삭제하시겠어요? 되돌릴 수 없어요.`;
+  if(!confirm(warn)) return;
+  const { error } = await sb.from('maps').delete().eq('id', id);
+  if(error){ alert('삭제 실패: ' + error.message); return; }
+  await loadAll();
+}
+
+let pendingMapId = null;
+function pickMapImage(e,id){ e.stopPropagation(); pendingMapId = id; document.getElementById('mapImgInput').click(); }
+document.getElementById('mapImgInput').addEventListener('change', async function(e){
+  const file = e.target.files[0]; if(!file || !pendingMapId) return;
+  const ext = (file.name.split('.').pop() || 'jpg').replace(/[^A-Za-z0-9]/g,'').toLowerCase() || 'jpg';
+  const path = `maps/${pendingMapId}-${Date.now()}.${ext}`;
+  const { error: up } = await sb.storage.from('media').upload(path, file);
+  if(up){ alert('업로드 실패: ' + up.message); return; }
+  const { data: pub } = sb.storage.from('media').getPublicUrl(path);
+  const { error: upd } = await sb.from('maps').update({ img: pub.publicUrl }).eq('id', pendingMapId);
+  if(upd){ alert('저장 실패: ' + upd.message); return; }
+  pendingMapId = null; e.target.value = ''; await loadAll();
+});
 
 function showMapGrid(){
   document.getElementById('viewGrid').classList.add('active');
@@ -516,6 +582,7 @@ function toggleEditMode(){
     btn.classList.toggle('on', editMode);
     btn.textContent = editMode ? '편집모드 ON' : '편집모드';
   }
+  renderMapGrid();
 }
 
 async function renderAuthArea(session){
@@ -544,6 +611,7 @@ async function renderAuthArea(session){
     }
   } else {
     editMode = false;
+    renderMapGrid();
     el.innerHTML = `<button id="discordLoginBtn" class="discord-btn">디스코드로 로그인</button>`;
     document.getElementById('discordLoginBtn').onclick = async () => {
       const { error } = await sb.auth.signInWithOAuth({ provider: 'discord' });
