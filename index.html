@@ -191,6 +191,34 @@ header{
   cursor:pointer;
 }
 .discord-btn:hover{background:var(--red);color:#fff;}
+.admin-badge{
+  background:var(--red-dim);
+  color:var(--red);
+  border:1px solid var(--red);
+  padding:3px 8px;
+  font-family:'Rajdhani',sans-serif;
+  font-weight:700;
+  font-size:10px;
+  letter-spacing:0.08em;
+}
+.editmode-btn{
+  background:none;
+  color:var(--muted);
+  border:1px solid var(--line);
+  border-radius:0;
+  padding:7px 16px;
+  font-family:'Rajdhani',sans-serif;
+  font-weight:600;
+  font-size:12px;
+  letter-spacing:0.06em;
+  cursor:pointer;
+}
+.editmode-btn:hover{border-color:var(--amber);color:var(--amber);}
+.editmode-btn.on{
+  background:var(--amber);
+  color:#1a1408;
+  border-color:var(--amber);
+}
 </style>
 </head>
 <body>
@@ -480,18 +508,42 @@ function closeOverlay(){
   document.getElementById('overlay').classList.remove('active');
 }
 
-function renderAuthArea(session){
+let editMode = false;
+function toggleEditMode(){
+  editMode = !editMode;
+  const btn = document.getElementById('editModeBtn');
+  if(btn){
+    btn.classList.toggle('on', editMode);
+    btn.textContent = editMode ? '편집모드 ON' : '편집모드';
+  }
+}
+
+async function renderAuthArea(session){
   const el = document.getElementById('authArea');
   if(session){
     const nickname = session.user.user_metadata.full_name || session.user.user_metadata.name || '사용자';
+    let isAdmin = false;
+    try {
+      const { data } = await sb.from('admins').select('user_id').eq('user_id', session.user.id).maybeSingle();
+      isAdmin = !!data;
+    } catch(e){
+      isAdmin = false;
+    }
+
     el.innerHTML = `
       <span class="mono" style="font-size:12px;color:var(--text);">${nickname}</span>
+      ${isAdmin ? '<span class="admin-badge">관리자</span>' : ''}
+      ${isAdmin ? '<button id="editModeBtn" class="editmode-btn">편집모드</button>' : ''}
       <button id="logoutBtn" class="discord-btn">로그아웃</button>
     `;
     document.getElementById('logoutBtn').onclick = async () => {
       await sb.auth.signOut();
     };
+    if(isAdmin){
+      document.getElementById('editModeBtn').onclick = toggleEditMode;
+    }
   } else {
+    editMode = false;
     el.innerHTML = `<button id="discordLoginBtn" class="discord-btn">디스코드로 로그인</button>`;
     document.getElementById('discordLoginBtn').onclick = async () => {
       const { error } = await sb.auth.signInWithOAuth({ provider: 'discord' });
@@ -502,7 +554,7 @@ function renderAuthArea(session){
 
 async function initAuth(){
   const { data: { session } } = await sb.auth.getSession();
-  renderAuthArea(session);
+  await renderAuthArea(session);
   sb.auth.onAuthStateChange((event, session) => {
     renderAuthArea(session);
   });
