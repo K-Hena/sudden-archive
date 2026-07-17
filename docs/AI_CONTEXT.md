@@ -95,7 +95,7 @@ Infrastructure
 
 # AI 협업 방식
 
-## ChatGPT
+## Claude (Chat)
 
 역할
 
@@ -109,14 +109,14 @@ Technical Lead
 - DB 구조 검토
 - 코드 리뷰
 - 버그 원인 분석
-- Claude 프롬프트 작성
+- Claude Code 작업 지시 작성
 - 구현 방향 결정
 
-구현 전에 항상 ChatGPT와 설계를 먼저 진행한다.
+구현 전에 항상 Claude와 설계를 먼저 진행한다.
 
 ---
 
-## Claude
+## Claude Code
 
 역할
 
@@ -129,8 +129,8 @@ Developer
 - 리팩터링
 - Git 작업
 
-Claude는 구현을 담당하며,
-설계 변경은 ChatGPT와 협의 후 진행한다.
+Claude Code는 구현을 담당하며,
+설계 변경은 Claude(Chat)와 협의 후 진행한다.
 
 ---
 
@@ -166,15 +166,15 @@ Claude는 구현을 담당하며,
 
 ↓
 
-ChatGPT와 설계
+Claude와 설계
 
 ↓
 
-Claude 구현
+Claude Code 구현
 
 ↓
 
-ChatGPT 코드 리뷰
+Claude 코드 리뷰
 
 ↓
 
