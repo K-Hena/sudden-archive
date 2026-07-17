@@ -185,6 +185,7 @@ header{
   <div class="status">
     <span class="mono"><b id="clipCount">-</b>&nbsp;CLIPS</span>
     <span class="mono"><b id="tipCount">-</b>&nbsp;TIPS</span>
+    <button id="testDiscordBtn" style="margin-left:10px;">디스코드 로그인 테스트</button>
   </div>
 </header>
 
@@ -462,6 +463,20 @@ function closeOverlay(){
 }
 
 loadAll();
+
+// ===== 임시 테스트 코드 (확인 후 삭제 예정) =====
+document.getElementById('testDiscordBtn').addEventListener('click', async () => {
+  const { error } = await sb.auth.signInWithOAuth({ provider: 'discord' });
+  if (error) alert('로그인 시작 실패: ' + error.message);
+});
+
+sb.auth.onAuthStateChange((event, session) => {
+  console.log('Auth 상태 변경:', event, session);
+  if (session) {
+    alert('로그인 성공!\n디스코드 닉네임: ' + (session.user.user_metadata.full_name || session.user.user_metadata.name) + '\nuser_id: ' + session.user.id);
+  }
+});
+// ===== 여기까지 =====
 </script>
 </body>
 </html>
