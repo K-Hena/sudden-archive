@@ -125,8 +125,15 @@ header{
 }
 
 .card-grid-inner{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;}
-.card{background:var(--panel);border:1px solid var(--line);cursor:pointer;transition:border-color .15s;}
+.card{background:var(--panel);border:1px solid var(--line);cursor:pointer;transition:border-color .15s;position:relative;}
 .card:hover{border-color:#FFFFFF;}
+.card .card-del{
+  position:absolute;top:6px;right:6px;width:24px;height:24px;background:rgba(6,7,9,.8);
+  display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);
+  cursor:pointer;opacity:0;transition:opacity .15s;z-index:2;
+}
+.card:hover .card-del{opacity:1;}
+.card .card-del:hover{color:var(--red);}
 .thumb{
   height:130px;position:relative;background:linear-gradient(135deg,#1A1E24,#0F1216);
   display:flex;align-items:center;justify-content:center;
@@ -243,6 +250,8 @@ header{
 .modal-body label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;letter-spacing:0.03em;}
 .modal-body input[type=text], .modal-body input[type=url], .modal-body textarea{width:100%;background:#0D1013;border:1px solid var(--line);color:var(--text);padding:9px 10px;font-family:'Inter',sans-serif;font-size:13px;margin-bottom:14px;}
 .modal-body textarea{resize:vertical;min-height:44px;}
+.modal-body input[type=file]{width:100%;background:#0D1013;border:1px solid var(--line);color:var(--text);padding:9px 10px;font-family:'Inter',sans-serif;font-size:12px;margin-bottom:10px;}
+.img-preview img{max-width:100%;max-height:180px;display:block;border:1px solid var(--line);margin-bottom:14px;}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:6px;}
 .btn-primary{font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:0.06em;font-size:13px;background:var(--edit-accent);color:var(--edit-accent-ink);border:none;padding:10px 22px;cursor:pointer;}
 .btn-primary:disabled{opacity:.4;cursor:not-allowed;}
@@ -313,8 +322,16 @@ header{
         <textarea id="mNote" placeholder="비워둬도 됨"></textarea>
       </div>
 
-      <label>유튜브 링크 (풀영상 / 쇼츠 모두 가능)</label>
-      <input type="url" id="mVideoUrl" placeholder="https://youtube.com/watch?v=... 또는 /shorts/...">
+      <div id="videoWrap">
+        <label>유튜브 링크 (풀영상 / 쇼츠 모두 가능)</label>
+        <input type="url" id="mVideoUrl" placeholder="https://youtube.com/watch?v=... 또는 /shorts/...">
+      </div>
+
+      <div id="imageWrap" style="display:none;">
+        <label>이미지 (파일 선택 또는 모달 안에서 Ctrl+V로 붙여넣기)</label>
+        <input type="file" id="mImageFile" accept="image/*">
+        <div id="mImagePreview" class="img-preview"></div>
+      </div>
 
       <div class="msg-modal" id="modalMsg"></div>
       <div class="modal-actions">
@@ -439,6 +456,15 @@ async function deleteMap(e,id,name){
   await loadAll();
 }
 
+async function deleteItem(e,id){
+  e.stopPropagation();
+  if(!confirm('이 항목을 삭제하시겠어요? 되돌릴 수 없어요.')) return;
+  const { error } = await sb.from('items').delete().eq('id', id);
+  if(error){ alert('삭제 실패: ' + error.message); return; }
+  await loadAll();
+  renderCards();
+}
+
 let pendingMapId = null;
 function pickMapImage(e,id){ e.stopPropagation(); pendingMapId = id; document.getElementById('mapImgInput').click(); }
 document.getElementById('mapImgInput').addEventListener('change', async function(e){
@@ -535,6 +561,7 @@ function renderCards(){
           const shortBadge = (p && p.isShort) ? '<div class="badge short" style="left:auto;right:8px;">쇼츠</div>' : '';
           return `
           <div class="card" onclick="openOverlay('${it.id}')">
+            ${editMode ? `<span class="card-del" onclick="deleteItem(event,'${it.id}')" title="삭제">✕</span>` : ''}
             <div class="thumb" style="${thumbUrl ? `background-image:url('${thumbUrl}');background-size:cover;background-position:center;` : ''}">
               <div class="badge ${it.type}">${it.type==='vid' ? '영상' : '이미지'}</div>
               ${shortBadge}
@@ -625,16 +652,50 @@ function closeOverlay(){
 }
 
 let modalTag = null;
+let pendingItemImageFile = null;
+let pendingItemImagePreviewUrl = null;
+
+function showItemImagePreview(file){
+  if(pendingItemImagePreviewUrl){ URL.revokeObjectURL(pendingItemImagePreviewUrl); }
+  pendingItemImagePreviewUrl = URL.createObjectURL(file);
+  document.getElementById('mImagePreview').innerHTML = `<img src="${pendingItemImagePreviewUrl}">`;
+}
+
+document.getElementById('mImageFile').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  pendingItemImageFile = file;
+  showItemImagePreview(file);
+});
+
+document.addEventListener('paste', function(e){
+  if(modalTag !== '맵 지명') return;
+  if(!document.getElementById('addModal').classList.contains('active')) return;
+  const clipboardItems = (e.clipboardData || window.clipboardData).items;
+  for(const item of clipboardItems){
+    if(item.type.indexOf('image') !== -1){
+      const file = item.getAsFile();
+      if(file){ pendingItemImageFile = file; showItemImagePreview(file); }
+      break;
+    }
+  }
+});
+
 function openAddModal(tag){
   modalTag = tag;
   document.getElementById('mTitle').value = '';
   document.getElementById('mNote').value = '';
   document.getElementById('mVideoUrl').value = '';
+  document.getElementById('mImageFile').value = '';
+  document.getElementById('mImagePreview').innerHTML = '';
   document.getElementById('modalMsg').textContent = '';
+  pendingItemImageFile = null;
 
   const isMapLabel = (tag === '맵 지명');
   document.getElementById('modalTitle').textContent = tag + '에 추가';
   document.getElementById('titleWrap').style.display = isMapLabel ? 'none' : 'block';
+  document.getElementById('videoWrap').style.display = isMapLabel ? 'none' : 'block';
+  document.getElementById('imageWrap').style.display = isMapLabel ? 'block' : 'none';
 
   document.getElementById('addModal').classList.add('active');
 }
@@ -652,11 +713,39 @@ async function submitItem(){
   const note = isMapLabel ? '' : document.getElementById('mNote').value.trim();
   if(!isMapLabel && !title){ setModalMsg('제목을 입력해주세요.', 'err'); return; }
 
+  const saveBtn = document.getElementById('modalSaveBtn');
+
+  if(isMapLabel){
+    if(!pendingItemImageFile){ setModalMsg('이미지를 선택하거나 붙여넣어주세요.', 'err'); return; }
+
+    saveBtn.disabled = true;
+    setModalMsg('업로드 중...');
+
+    const path = `items/${Date.now()}.jpg`;
+    const { error: upErr } = await sb.storage.from('media').upload(path, pendingItemImageFile);
+    if(upErr){ setModalMsg('업로드 실패: ' + upErr.message, 'err'); saveBtn.disabled = false; return; }
+    const { data: pub } = sb.storage.from('media').getPublicUrl(path);
+
+    setModalMsg('저장 중...');
+    const { error } = await sb.from('items').insert({
+      map_id: currentMap, team: currentTeam, type: 'img', tag: modalTag,
+      title, note: null, img_url: pub.publicUrl, video_url: null, clip_start: null, clip_end: null
+    });
+
+    if(error){
+      setModalMsg('저장 실패: ' + error.message, 'err');
+      saveBtn.disabled = false;
+      return;
+    }
+    setModalMsg('추가 완료!', 'ok');
+    setTimeout(async () => { closeModal(); saveBtn.disabled = false; await loadAll(); renderCards(); }, 500);
+    return;
+  }
+
   const url = document.getElementById('mVideoUrl').value.trim();
   const p = parseYouTube(url);
   if(!p){ setModalMsg('유튜브 링크를 확인해주세요.', 'err'); return; }
 
-  const saveBtn = document.getElementById('modalSaveBtn');
   saveBtn.disabled = true;
   setModalMsg('저장 중...');
 
@@ -671,7 +760,7 @@ async function submitItem(){
     return;
   }
   setModalMsg('추가 완료!', 'ok');
-  setTimeout(async () => { closeModal(); saveBtn.disabled = false; await loadAll(); }, 500);
+  setTimeout(async () => { closeModal(); saveBtn.disabled = false; await loadAll(); renderCards(); }, 500);
 }
 
 let editMode = false;
