@@ -30,6 +30,7 @@
 - **"맵 지명" 항목 추가 버그 수정** — 모달이 태그와 무관하게 항상 유튜브 링크 입력을 노출하던 문제를 고쳐, "맵 지명" 태그는 이미지 업로드(파일 선택/Ctrl+V 붙여넣기, 크롭 없이 원본 그대로 Storage `items/{timestamp}.jpg`에 업로드)만 가능하도록 분리. "위폭"/"팁"은 기존처럼 영상만 지원
 - **편집모드 항목(카드) 개별 삭제 기능** 추가 — 레거시 Admin의 `deleteItem()`을 이식, 카드 호버 시 ✕ 아이콘으로 confirm 후 삭제
 - **"위폭"/"팁" 태그 이미지 유형 추가 + 전체 이미지 업로드 크롭 도입** — 항목 추가 모달에 영상/이미지 유형 토글(`typeToggle`)을 복원해 `submitItem()`을 `modalType` 기준으로 일반화. Cropper.js(`cropperjs@1.6.1`, 레거시 Admin과 동일 CDN) 도입으로 맵 지명/위폭/팁 이미지 업로드 모두 크롭 후 jpg 업로드하도록 교체(원본 그대로 업로드하던 이전 로직 제거). `docs/MAINTENANCE.md`의 오래된 "문서 통합" 서술도 함께 정리
+- **영상 클립 구간(`clip_start`/`clip_end`) 마킹 기능** 추가 — 레거시 Admin의 `loadClipPlayer()`/`markClipStart()`/`markClipEnd()`/`clearClip()`을 버튼 방식 그대로 이식하고, 그 위에 `<input type="range">` 슬라이더 2개(시작/끝)를 추가 도입해 드래그로도 구간을 지정할 수 있게 했다. 버튼과 슬라이더는 같은 `clipStart`/`clipEnd` 변수를 공유해 항상 동기화된다. `submitItem()`이 이제 실제 클립 값을 저장한다(이전엔 항상 `null`)
 
 ---
 

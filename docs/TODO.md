@@ -19,10 +19,7 @@
 - **편집모드 항목(카드) 개별 삭제** — 레거시 Admin의 `deleteItem()` 이식, 카드 호버 시 ✕ 아이콘으로 confirm 후 삭제
 - **"위폭"/"팁" 태그 이미지 유형 추가** — 항목 추가 모달에 영상/이미지 유형 토글(`typeToggle`)을 다시 노출, `submitItem()`을 `modalType` 기준으로 일반화. "맵 지명"은 기존처럼 토글 없이 이미지 고정 유지
 - **이미지 업로드 크롭 기능** — Cropper.js(`cropperjs@1.6.1`, 레거시 Admin과 동일 CDN) 도입, 맵 지명/위폭/팁 이미지 업로드 모두 크롭 후 jpg로 업로드하도록 교체 (원본 그대로 업로드하던 이전 로직은 제거)
-
-# 진행 중 (뼈대만 있고 미완성)
-
-- **항목 추가 모달**: 클립 구간(`clip_start`/`clip_end`) 마킹 UI 없음 — 현재 항상 `null`로 저장. 레거시 Admin에는 유튜브 플레이어로 시작/끝 지점을 찍는 UI가 있음
+- **영상 클립 구간(`clip_start`/`clip_end`) 마킹** — 레거시 Admin의 `loadClipPlayer()`/`markClipStart()`/`markClipEnd()`/`clearClip()`을 이식(버튼 방식), 여기에 더해 `<input type="range">` 두 개로 구간을 드래그로 지정하는 슬라이더 UI를 추가 도입. 버튼과 슬라이더는 같은 `clipStart`/`clipEnd` 전역 변수를 공유해 항상 동기화된다. `submitItem()`이 이제 실제 `clipStart`/`clipEnd` 값을 저장한다(이전엔 항상 `null`)
 
 # 예정 (AI_CONTEXT.md 기준)
 

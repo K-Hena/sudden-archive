@@ -39,7 +39,7 @@ URL: `https://mvyepqqstaipxqfesalv.supabase.co` (User/Admin 두 사이트가 동
 | note | 설명, null 가능 | |
 | video_url | 유튜브 URL (`type==='vid'`일 때) | 전체 영상 또는 `/shorts/` 모두 지원 |
 | img_url | 이미지 URL (`type==='img'`일 때) | Storage 공개 URL |
-| clip_start / clip_end | 유튜브 클립 재생 구간(초), null이면 전체 재생 | User 사이트의 항목 추가 모달(뼈대)은 현재 항상 `null`로 저장 — 실제 마킹 UI는 admin 레거시 사이트에만 있고 아직 이식되지 않음 |
+| clip_start / clip_end | 유튜브 클립 재생 구간(초), null이면 전체 재생 | User 사이트 항목 추가 모달에서 버튼(`markClipStart`/`markClipEnd`) 또는 슬라이더로 지정한 값을 저장. 지정하지 않으면 둘 다 `null` (전체 재생) |
 
 ## admins
 

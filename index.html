@@ -259,6 +259,20 @@ header{
 .type-toggle button.on{background:var(--edit-accent);color:var(--edit-accent-ink);}
 .cropper-wrap{max-height:340px;margin-bottom:14px;display:none;}
 .cropper-wrap img{max-width:100%;display:block;}
+.clip-tools{margin-bottom:14px;}
+.clip-player{width:100%;aspect-ratio:16/9;background:#000;margin-bottom:10px;}
+.clip-player.tall{aspect-ratio:9/16;max-height:360px;margin:0 auto 10px;}
+.clip-player iframe{width:100%;height:100%;border:0;}
+.clip-sliders{margin-bottom:10px;}
+.clip-sliders label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px;letter-spacing:0.03em;}
+.clip-sliders label span{color:var(--edit-accent);font-family:'JetBrains Mono',monospace;}
+.clip-sliders input[type=range]{width:100%;margin-bottom:10px;accent-color:var(--edit-accent);}
+.clip-btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}
+.clip-btns button{font-family:'JetBrains Mono',monospace;font-size:11px;background:#0D1013;color:var(--text);border:1px solid var(--line);padding:8px 12px;cursor:pointer;}
+.clip-btns button:hover{border-color:var(--edit-accent);color:var(--edit-accent);}
+.clip-range{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-left:auto;}
+.clip-range b{color:var(--edit-accent);}
+.hint{font-size:10.5px;color:#5A626D;margin-bottom:14px;line-height:1.5;}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:6px;}
 .btn-primary{font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:0.06em;font-size:13px;background:var(--edit-accent);color:var(--edit-accent-ink);border:none;padding:10px 22px;cursor:pointer;}
 .btn-primary:disabled{opacity:.4;cursor:not-allowed;}
@@ -337,6 +351,26 @@ header{
       <div id="videoWrap">
         <label>유튜브 링크 (풀영상 / 쇼츠 모두 가능)</label>
         <input type="url" id="mVideoUrl" placeholder="https://youtube.com/watch?v=... 또는 /shorts/...">
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+          <button class="btn-ghost" onclick="loadClipPlayer()">불러오기</button>
+        </div>
+
+        <div class="clip-tools" id="clipTools" style="display:none;">
+          <div class="clip-player" id="clipPlayerWrap"><div id="clipPlayer"></div></div>
+          <div class="clip-sliders" id="clipSliders">
+            <label>시작 <span id="clipStartLabel">0:00</span></label>
+            <input type="range" id="clipStartRange" min="0" max="0" step="1" value="0" oninput="onClipStartInput()" onchange="onClipStartChange()">
+            <label>끝 <span id="clipEndLabel">0:00</span></label>
+            <input type="range" id="clipEndRange" min="0" max="0" step="1" value="0" oninput="onClipEndInput()" onchange="onClipEndChange()">
+          </div>
+          <div class="clip-btns">
+            <button onclick="markClipStart()">⏮ 지금부터 (시작)</button>
+            <button onclick="markClipEnd()">여기까지 (끝) ⏭</button>
+            <button onclick="clearClip()">구간 초기화</button>
+            <span class="clip-range" id="clipRange">전체 재생</span>
+          </div>
+          <div class="hint">구간을 지정하지 않으면 전체 영상이 재생돼요. 시작·끝을 정하면 그 부분만 잘라서 보여줘요.</div>
+        </div>
       </div>
 
       <div id="imageWrap" style="display:none;">
@@ -668,6 +702,111 @@ function closeOverlay(){
 let modalTag = null;
 let modalType = 'vid';
 let cropper = null;
+let clipStart = null, clipEnd = null, clipYtPlayer = null;
+
+function fmtClip(s){
+  if(s === null) return '—';
+  const m = Math.floor(s / 60), ss = Math.floor(s % 60);
+  return `${m}:${String(ss).padStart(2, '0')}`;
+}
+function updateClipLabel(){
+  const el = document.getElementById('clipRange');
+  if(clipStart === null && clipEnd === null){ el.innerHTML = '전체 재생'; return; }
+  el.innerHTML = `구간 <b>${fmtClip(clipStart)}</b> ~ <b>${fmtClip(clipEnd)}</b>`;
+}
+function updateClipSliderLabels(){
+  document.getElementById('clipStartLabel').textContent = fmtClip(Number(document.getElementById('clipStartRange').value));
+  document.getElementById('clipEndLabel').textContent = fmtClip(Number(document.getElementById('clipEndRange').value));
+}
+function syncClipSliders(){
+  const startRange = document.getElementById('clipStartRange');
+  const endRange = document.getElementById('clipEndRange');
+  const duration = Number(startRange.max) || 0;
+  startRange.value = clipStart !== null ? clipStart : 0;
+  endRange.value = clipEnd !== null ? clipEnd : duration;
+  updateClipSliderLabels();
+}
+
+function loadClipPlayer(){
+  const url = document.getElementById('mVideoUrl').value.trim();
+  const p = parseYouTube(url);
+  if(!p){ setModalMsg('유튜브 링크를 확인해주세요.', 'err'); return; }
+  setModalMsg('');
+  clipStart = null; clipEnd = null; updateClipLabel();
+  document.getElementById('clipTools').style.display = 'block';
+  document.getElementById('clipPlayerWrap').className = 'clip-player' + (p.isShort ? ' tall' : '');
+
+  if(clipYtPlayer && clipYtPlayer.destroy){ clipYtPlayer.destroy(); clipYtPlayer = null; }
+  const mount = document.createElement('div');
+  mount.id = 'clipPlayer';
+  document.getElementById('clipPlayerWrap').innerHTML = '';
+  document.getElementById('clipPlayerWrap').appendChild(mount);
+
+  const build = () => {
+    clipYtPlayer = new YT.Player('clipPlayer', {
+      videoId: p.id,
+      playerVars: { playsinline: 1, enablejsapi: 1, origin: location.origin, rel: 0 },
+      events: {
+        onReady: (e) => {
+          const duration = Math.floor(e.target.getDuration()) || 0;
+          const startRange = document.getElementById('clipStartRange');
+          const endRange = document.getElementById('clipEndRange');
+          startRange.min = 0; startRange.max = duration; startRange.value = 0;
+          endRange.min = 0; endRange.max = duration; endRange.value = duration;
+          updateClipSliderLabels();
+        }
+      }
+    });
+  };
+  if(ytReady && window.YT && YT.Player){ build(); }
+  else { const iv = setInterval(() => { if(window.YT && YT.Player){ clearInterval(iv); ytReady = true; build(); } }, 200); }
+}
+function markClipStart(){
+  if(!clipYtPlayer || !clipYtPlayer.getCurrentTime) return;
+  clipStart = Math.floor(clipYtPlayer.getCurrentTime());
+  if(clipEnd !== null && clipEnd <= clipStart) clipEnd = null;
+  syncClipSliders();
+  updateClipLabel();
+}
+function markClipEnd(){
+  if(!clipYtPlayer || !clipYtPlayer.getCurrentTime) return;
+  const t = Math.floor(clipYtPlayer.getCurrentTime());
+  if(clipStart !== null && t <= clipStart){ setModalMsg('끝은 시작보다 뒤여야 해요.', 'err'); return; }
+  clipEnd = t; setModalMsg('');
+  syncClipSliders();
+  updateClipLabel();
+}
+function clearClip(){
+  clipStart = null; clipEnd = null;
+  syncClipSliders();
+  updateClipLabel();
+}
+function onClipStartInput(){
+  const startRange = document.getElementById('clipStartRange');
+  const endRange = document.getElementById('clipEndRange');
+  let s = Number(startRange.value);
+  let e = Number(endRange.value);
+  if(s >= e){ e = Math.min(s + 1, Number(startRange.max)); endRange.value = e; }
+  clipStart = s; clipEnd = e;
+  updateClipSliderLabels();
+  updateClipLabel();
+}
+function onClipStartChange(){
+  if(clipYtPlayer && clipYtPlayer.seekTo) clipYtPlayer.seekTo(clipStart, true);
+}
+function onClipEndInput(){
+  const startRange = document.getElementById('clipStartRange');
+  const endRange = document.getElementById('clipEndRange');
+  let e = Number(endRange.value);
+  let s = Number(startRange.value);
+  if(e <= s){ s = Math.max(e - 1, 0); startRange.value = s; }
+  clipStart = s; clipEnd = e;
+  updateClipSliderLabels();
+  updateClipLabel();
+}
+function onClipEndChange(){
+  if(clipYtPlayer && clipYtPlayer.seekTo) clipYtPlayer.seekTo(clipEnd, true);
+}
 
 function loadImageIntoCropper(file){
   const reader = new FileReader();
@@ -710,6 +849,11 @@ function openAddModal(tag){
   if(cropper){ cropper.destroy(); cropper = null; }
   document.getElementById('cropperWrap').style.display = 'none';
 
+  clipStart = null; clipEnd = null;
+  document.getElementById('clipTools').style.display = 'none';
+  if(clipYtPlayer && clipYtPlayer.destroy){ clipYtPlayer.destroy(); clipYtPlayer = null; }
+  updateClipLabel();
+
   const isMapLabel = (tag === '맵 지명');
   document.getElementById('modalTitle').textContent = tag + '에 추가';
   document.getElementById('titleWrap').style.display = isMapLabel ? 'none' : 'block';
@@ -721,6 +865,7 @@ function openAddModal(tag){
 function closeModal(){
   document.getElementById('addModal').classList.remove('active');
   if(cropper){ cropper.destroy(); cropper = null; }
+  if(clipYtPlayer && clipYtPlayer.destroy){ clipYtPlayer.destroy(); clipYtPlayer = null; }
 }
 function setModalType(t){
   modalType = t;
@@ -751,7 +896,7 @@ async function submitItem(){
 
     const { error } = await sb.from('items').insert({
       map_id: currentMap, team: currentTeam, type: 'vid', tag: modalTag,
-      title, note: note || null, video_url: url, clip_start: null, clip_end: null
+      title, note: note || null, video_url: url, clip_start: clipStart, clip_end: clipEnd
     });
     if(error){ setModalMsg('저장 실패: ' + error.message, 'err'); saveBtn.disabled = false; return; }
   } else {

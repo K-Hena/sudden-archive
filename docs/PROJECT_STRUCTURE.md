@@ -32,7 +32,7 @@ CDN으로 불러오는 외부 라이브러리: `@supabase/supabase-js@2`, `cropp
 
 ## CSS (`<style>`)
 - `:root`에 색상 변수 정의: `--bg/--panel/--line/--text/--muted` (베이스), `--red/--blue` (팀 컬러), `--amber` (기존 강조색, 편집모드에는 미사용), `--edit-accent/--edit-accent-ink` (편집모드 전용 강조색), `--green` (성공 메시지)
-- 컴포넌트별 스타일: 헤더/브랜드, 맵 그리드(`map-tile`), 카드 그리드(`card`, `card-del`), 재생 오버레이(`overlay`), 편집모드 UI(`tile-actions`, `add-tile`, `editmode-btn`, `admin-badge`), 항목 추가 모달(`modal`, `type-toggle`, `cropper-wrap`)
+- 컴포넌트별 스타일: 헤더/브랜드, 맵 그리드(`map-tile`), 카드 그리드(`card`, `card-del`), 재생 오버레이(`overlay`), 편집모드 UI(`tile-actions`, `add-tile`, `editmode-btn`, `admin-badge`), 항목 추가 모달(`modal`, `type-toggle`, `cropper-wrap`, `clip-tools`, `clip-sliders`, `clip-btns`, `clip-range`)
 
 ## HTML (`<body>`)
 - `header`: 로고, CLIPS/TIPS 카운트, `#authArea`(로그인 상태에 따라 JS가 채움)
@@ -40,15 +40,16 @@ CDN으로 불러오는 외부 라이브러리: `@supabase/supabase-js@2`, `cropp
 - `#viewGrid`: 맵 선택 화면 (`#mapGrid`)
 - `#viewDetail`: 맵 상세 화면 — RED/BLUE 팀 토글 + `#cardGrid`
 - `#overlay`: 영상/이미지 재생 오버레이
-- `#addModal`: 편집모드 항목 추가 모달 — 영상/이미지 유형 토글(`#typeToggle`), 이미지는 Cropper.js로 크롭 후 업로드. "맵 지명" 태그는 유형 토글 없이 이미지 고정
+- `#addModal`: 편집모드 항목 추가 모달 — 영상/이미지 유형 토글(`#typeToggle`), 이미지는 Cropper.js로 크롭 후 업로드, 영상은 `#clipTools`(버튼 + 슬라이더)로 클립 구간 지정. "맵 지명" 태그는 유형 토글 없이 이미지 고정
 - `#mapImgInput`: 맵 이미지 업로드용 숨김 `<input type=file>`
 
 ## JS (`<script>`)
 - Supabase 클라이언트 초기화 (`sb`)
-- 전역 상태: `maps`, `items`, `currentMap`, `currentMapName`, `currentTeam`, `editMode`, `modalTag`, `modalType`, `cropper`, `pendingMapId`
+- 전역 상태: `maps`, `items`, `currentMap`, `currentMapName`, `currentTeam`, `editMode`, `modalTag`, `modalType`, `cropper`, `pendingMapId`, `clipStart`, `clipEnd`, `clipYtPlayer`(재생 오버레이용 `ytPlayer`와는 별도 — `docs/DECISIONS.md` 참고)
 - 데이터 로드: `loadAll()` — `maps`/`items` 테이블을 조회해 전역 배열을 채우고 `renderMapGrid()` 호출
 - 맵 그리드: `renderMapGrid()`, 편집모드 전용 `addMap()/renameMap()/deleteMap()/pickMapImage()`
 - 상세 카드: `renderCards()`, 편집모드 전용 `openAddModal()/closeModal()/setModalType()/submitItem()/deleteItem()`, 이미지 크롭 `loadImageIntoCropper()`
+- 클립 구간 지정: `loadClipPlayer()/markClipStart()/markClipEnd()/clearClip()/updateClipLabel()`(버튼), `onClipStartInput()/onClipEndInput()/onClipStartChange()/onClipEndChange()/syncClipSliders()`(슬라이더) — 둘 다 `clipStart`/`clipEnd`를 공유
 - 재생: `openOverlay()/closeOverlay()` — 유튜브 IFrame API로 클립 구간 반복 재생 지원
 - 인증: `initAuth()/renderAuthArea()` — Discord OAuth 로그인, `admins` 테이블 조회로 관리자 판별, `toggleEditMode()`
 

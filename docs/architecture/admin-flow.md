@@ -40,9 +40,10 @@ Cropper.js(CDN, `cropperjs@1.6.1`)를 이미지 크롭에 사용 — User 사이
 - **모든 태그의 이미지 업로드** — 파일 선택 또는 모달 안 Ctrl+V 붙여넣기 → Cropper.js로 크롭 → jpg blob 변환 → Storage `media`의 `items/{timestamp}.jpg`에 업로드 → `img_url` 저장. "맵 지명"뿐 아니라 "위폭"/"팁"에도 동일하게 적용됨
 - `submitItem()`이 `isMapLabel` 전용 분기가 아니라 레거시처럼 `modalType`(vid/img) 기준으로 일반화됨
 - **개별 항목 삭제** — `deleteItem()`, 카드 호버 시 ✕ 아이콘(`card-del`) → confirm → `items` 행 삭제. 레거시 `deleteItem()`과 동일하게 confirm 한 번만 거침
+- **클립 구간(`clip_start`/`clip_end`) 마킹** — 레거시의 `loadClipPlayer()`/`markClipStart()`/`markClipEnd()`/`clearClip()`/`updateClipLabel()`을 버튼 방식 그대로 이식. 레거시에는 없던 **슬라이더 UI**(`<input type=range>` 2개, 시작/끝)를 추가로 도입해 드래그로도 구간 지정이 가능하다. 버튼/슬라이더 모두 같은 `clipStart`/`clipEnd` 전역 변수를 공유해 항상 동기화됨(`docs/DECISIONS.md` 참고). `submitItem()`이 `modalType==='vid'`일 때 이 값들을 그대로 저장한다(더 이상 항상 `null`이 아님)
+- 모달의 클립 플레이어는 오버레이 재생용 `ytPlayer`와 이름이 겹치지 않도록 `clipYtPlayer`라는 별도 변수로 분리 (재생 중인 유튜브 IFrame API 로드 자체는 오버레이 코드와 공유)
 
 ## 이식 안 됨 / 축소해서 이식
-- 항목 추가 모달의 클립 구간(`clip_start`/`clip_end`) 마킹 UI 없음 — 영상 유형은 항상 `null`로 저장 (레거시의 클립 마킹 플레이어 없음)
 - 클립보드 텍스트/이미지 붙여넣기 중 레거시의 `pasteVideoUrl()`/`pasteImage()` 버튼(권한 기반 `navigator.clipboard.read()`)은 이식하지 않았다 — 모달 안에서의 전역 `paste` 이벤트 리스너(Ctrl+V)만으로 이미지 붙여넣기를 지원
 
 ## 편집모드 On/Off에 따른 렌더링 차이
