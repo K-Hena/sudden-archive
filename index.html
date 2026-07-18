@@ -9,6 +9,8 @@
 <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon-180.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css" rel="stylesheet">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Gothic+A1:wght@700;900&display=swap');
 
@@ -251,7 +253,12 @@ header{
 .modal-body input[type=text], .modal-body input[type=url], .modal-body textarea{width:100%;background:#0D1013;border:1px solid var(--line);color:var(--text);padding:9px 10px;font-family:'Inter',sans-serif;font-size:13px;margin-bottom:14px;}
 .modal-body textarea{resize:vertical;min-height:44px;}
 .modal-body input[type=file]{width:100%;background:#0D1013;border:1px solid var(--line);color:var(--text);padding:9px 10px;font-family:'Inter',sans-serif;font-size:12px;margin-bottom:10px;}
-.img-preview img{max-width:100%;max-height:180px;display:block;border:1px solid var(--line);margin-bottom:14px;}
+.type-toggle{display:flex;gap:0;border:1px solid var(--line);margin-bottom:16px;}
+.type-toggle button{flex:1;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:13px;background:#0D1013;color:var(--muted);border:none;padding:10px;cursor:pointer;border-right:1px solid var(--line);}
+.type-toggle button:last-child{border-right:none;}
+.type-toggle button.on{background:var(--edit-accent);color:var(--edit-accent-ink);}
+.cropper-wrap{max-height:340px;margin-bottom:14px;display:none;}
+.cropper-wrap img{max-width:100%;display:block;}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:6px;}
 .btn-primary{font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:0.06em;font-size:13px;background:var(--edit-accent);color:var(--edit-accent-ink);border:none;padding:10px 22px;cursor:pointer;}
 .btn-primary:disabled{opacity:.4;cursor:not-allowed;}
@@ -315,6 +322,11 @@ header{
       <span class="x" onclick="closeModal()">✕</span>
     </div>
     <div class="modal-body">
+      <div class="type-toggle" id="typeToggle">
+        <button id="ttVid" onclick="setModalType('vid')">🎬 영상</button>
+        <button id="ttImg" onclick="setModalType('img')">🖼 이미지</button>
+      </div>
+
       <div id="titleWrap">
         <label>제목</label>
         <input type="text" id="mTitle" placeholder="예: 박스 뒤 몸샷 위폭">
@@ -330,7 +342,9 @@ header{
       <div id="imageWrap" style="display:none;">
         <label>이미지 (파일 선택 또는 모달 안에서 Ctrl+V로 붙여넣기)</label>
         <input type="file" id="mImageFile" accept="image/*">
-        <div id="mImagePreview" class="img-preview"></div>
+        <div class="cropper-wrap" id="cropperWrap">
+          <img id="cropperImg">
+        </div>
       </div>
 
       <div class="msg-modal" id="modalMsg"></div>
@@ -652,30 +666,35 @@ function closeOverlay(){
 }
 
 let modalTag = null;
-let pendingItemImageFile = null;
-let pendingItemImagePreviewUrl = null;
+let modalType = 'vid';
+let cropper = null;
 
-function showItemImagePreview(file){
-  if(pendingItemImagePreviewUrl){ URL.revokeObjectURL(pendingItemImagePreviewUrl); }
-  pendingItemImagePreviewUrl = URL.createObjectURL(file);
-  document.getElementById('mImagePreview').innerHTML = `<img src="${pendingItemImagePreviewUrl}">`;
+function loadImageIntoCropper(file){
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = document.getElementById('cropperImg');
+    img.src = ev.target.result;
+    document.getElementById('cropperWrap').style.display = 'block';
+    if(cropper) cropper.destroy();
+    cropper = new Cropper(img, { viewMode: 1, autoCropArea: 1, background: false });
+  };
+  reader.readAsDataURL(file);
 }
 
 document.getElementById('mImageFile').addEventListener('change', function(e){
   const file = e.target.files[0];
   if(!file) return;
-  pendingItemImageFile = file;
-  showItemImagePreview(file);
+  loadImageIntoCropper(file);
 });
 
 document.addEventListener('paste', function(e){
-  if(modalTag !== '맵 지명') return;
+  if(modalType !== 'img') return;
   if(!document.getElementById('addModal').classList.contains('active')) return;
   const clipboardItems = (e.clipboardData || window.clipboardData).items;
   for(const item of clipboardItems){
     if(item.type.indexOf('image') !== -1){
       const file = item.getAsFile();
-      if(file){ pendingItemImageFile = file; showItemImagePreview(file); }
+      if(file){ loadImageIntoCropper(file); }
       break;
     }
   }
@@ -687,20 +706,28 @@ function openAddModal(tag){
   document.getElementById('mNote').value = '';
   document.getElementById('mVideoUrl').value = '';
   document.getElementById('mImageFile').value = '';
-  document.getElementById('mImagePreview').innerHTML = '';
   document.getElementById('modalMsg').textContent = '';
-  pendingItemImageFile = null;
+  if(cropper){ cropper.destroy(); cropper = null; }
+  document.getElementById('cropperWrap').style.display = 'none';
 
   const isMapLabel = (tag === '맵 지명');
   document.getElementById('modalTitle').textContent = tag + '에 추가';
   document.getElementById('titleWrap').style.display = isMapLabel ? 'none' : 'block';
-  document.getElementById('videoWrap').style.display = isMapLabel ? 'none' : 'block';
-  document.getElementById('imageWrap').style.display = isMapLabel ? 'block' : 'none';
+  document.getElementById('typeToggle').style.display = isMapLabel ? 'none' : 'flex';
+  setModalType(isMapLabel ? 'img' : 'vid');
 
   document.getElementById('addModal').classList.add('active');
 }
 function closeModal(){
   document.getElementById('addModal').classList.remove('active');
+  if(cropper){ cropper.destroy(); cropper = null; }
+}
+function setModalType(t){
+  modalType = t;
+  document.getElementById('ttVid').className = t === 'vid' ? 'on' : '';
+  document.getElementById('ttImg').className = t === 'img' ? 'on' : '';
+  document.getElementById('videoWrap').style.display = t === 'vid' ? 'block' : 'none';
+  document.getElementById('imageWrap').style.display = t === 'img' ? 'block' : 'none';
 }
 function setModalMsg(t, cls){
   const el = document.getElementById('modalMsg');
@@ -714,51 +741,37 @@ async function submitItem(){
   if(!isMapLabel && !title){ setModalMsg('제목을 입력해주세요.', 'err'); return; }
 
   const saveBtn = document.getElementById('modalSaveBtn');
+  saveBtn.disabled = true;
+  setModalMsg('저장 중...');
 
-  if(isMapLabel){
-    if(!pendingItemImageFile){ setModalMsg('이미지를 선택하거나 붙여넣어주세요.', 'err'); return; }
+  if(modalType === 'vid'){
+    const url = document.getElementById('mVideoUrl').value.trim();
+    const p = parseYouTube(url);
+    if(!p){ setModalMsg('유튜브 링크를 확인해주세요.', 'err'); saveBtn.disabled = false; return; }
 
-    saveBtn.disabled = true;
+    const { error } = await sb.from('items').insert({
+      map_id: currentMap, team: currentTeam, type: 'vid', tag: modalTag,
+      title, note: note || null, video_url: url, clip_start: null, clip_end: null
+    });
+    if(error){ setModalMsg('저장 실패: ' + error.message, 'err'); saveBtn.disabled = false; return; }
+  } else {
+    if(!cropper){ setModalMsg('이미지를 선택하거나 붙여넣어주세요.', 'err'); saveBtn.disabled = false; return; }
+
     setModalMsg('업로드 중...');
-
+    const blob = await new Promise(res => cropper.getCroppedCanvas().toBlob(res, 'image/jpeg', 0.92));
     const path = `items/${Date.now()}.jpg`;
-    const { error: upErr } = await sb.storage.from('media').upload(path, pendingItemImageFile);
+    const { error: upErr } = await sb.storage.from('media').upload(path, blob, { contentType: 'image/jpeg' });
     if(upErr){ setModalMsg('업로드 실패: ' + upErr.message, 'err'); saveBtn.disabled = false; return; }
     const { data: pub } = sb.storage.from('media').getPublicUrl(path);
 
     setModalMsg('저장 중...');
     const { error } = await sb.from('items').insert({
       map_id: currentMap, team: currentTeam, type: 'img', tag: modalTag,
-      title, note: null, img_url: pub.publicUrl, video_url: null, clip_start: null, clip_end: null
+      title, note: note || null, img_url: pub.publicUrl, video_url: null, clip_start: null, clip_end: null
     });
-
-    if(error){
-      setModalMsg('저장 실패: ' + error.message, 'err');
-      saveBtn.disabled = false;
-      return;
-    }
-    setModalMsg('추가 완료!', 'ok');
-    setTimeout(async () => { closeModal(); saveBtn.disabled = false; await loadAll(); renderCards(); }, 500);
-    return;
+    if(error){ setModalMsg('저장 실패: ' + error.message, 'err'); saveBtn.disabled = false; return; }
   }
 
-  const url = document.getElementById('mVideoUrl').value.trim();
-  const p = parseYouTube(url);
-  if(!p){ setModalMsg('유튜브 링크를 확인해주세요.', 'err'); return; }
-
-  saveBtn.disabled = true;
-  setModalMsg('저장 중...');
-
-  const { error } = await sb.from('items').insert({
-    map_id: currentMap, team: currentTeam, type: 'vid', tag: modalTag,
-    title, note: note || null, video_url: url, clip_start: null, clip_end: null
-  });
-
-  if(error){
-    setModalMsg('저장 실패: ' + error.message, 'err');
-    saveBtn.disabled = false;
-    return;
-  }
   setModalMsg('추가 완료!', 'ok');
   setTimeout(async () => { closeModal(); saveBtn.disabled = false; await loadAll(); renderCards(); }, 500);
 }

@@ -29,6 +29,7 @@
 - AI 운영 문서 5종(README_AI/CODING_RULES/PROMPTS/CLAUDE_CODE_RULES/MAINTENANCE) 정비 — 존재하지 않는 문서 참조 제거, 라이브러리 추가 규칙 통일 (`d4b763f`)
 - **"맵 지명" 항목 추가 버그 수정** — 모달이 태그와 무관하게 항상 유튜브 링크 입력을 노출하던 문제를 고쳐, "맵 지명" 태그는 이미지 업로드(파일 선택/Ctrl+V 붙여넣기, 크롭 없이 원본 그대로 Storage `items/{timestamp}.jpg`에 업로드)만 가능하도록 분리. "위폭"/"팁"은 기존처럼 영상만 지원
 - **편집모드 항목(카드) 개별 삭제 기능** 추가 — 레거시 Admin의 `deleteItem()`을 이식, 카드 호버 시 ✕ 아이콘으로 confirm 후 삭제
+- **"위폭"/"팁" 태그 이미지 유형 추가 + 전체 이미지 업로드 크롭 도입** — 항목 추가 모달에 영상/이미지 유형 토글(`typeToggle`)을 복원해 `submitItem()`을 `modalType` 기준으로 일반화. Cropper.js(`cropperjs@1.6.1`, 레거시 Admin과 동일 CDN) 도입으로 맵 지명/위폭/팁 이미지 업로드 모두 크롭 후 jpg 업로드하도록 교체(원본 그대로 업로드하던 이전 로직 제거). `docs/MAINTENANCE.md`의 오래된 "문서 통합" 서술도 함께 정리
 
 ---
 

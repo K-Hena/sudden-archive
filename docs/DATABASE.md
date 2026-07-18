@@ -72,7 +72,7 @@ URL: `https://mvyepqqstaipxqfesalv.supabase.co` (User/Admin 두 사이트가 동
 | 경로 패턴 | 용도 | 코드 위치 |
 |---|---|---|
 | `maps/{mapId}-{timestamp}.{ext}` | 맵 썸네일 이미지 | User 사이트 `pickMapImage`/`mapImgInput` change 핸들러 |
-| `items/{timestamp}.jpg` | 항목 이미지 | 레거시 Admin 사이트 `submitItem`(Cropper.js로 크롭 후 jpg 저장), User 사이트 `submitItem`("맵 지명" 태그 전용, 크롭 없이 원본 그대로 저장 — `docs/DECISIONS.md` 참고) |
+| `items/{timestamp}.jpg` | 항목 이미지 (Cropper.js로 크롭 후 jpg로 저장) | 레거시 Admin 사이트 `submitItem`, User 사이트 `submitItem`(맵 지명/위폭/팁 태그 모두 동일하게 적용 — `docs/DECISIONS.md` 참고) |
 
 업로드 후 `getPublicUrl()`로 공개 URL을 받아 그대로 `maps.img` / `items.img_url`에 저장한다. 즉 버킷은 공개 읽기가 가능해야 현재 서비스가 동작한다.
 
