@@ -19,7 +19,8 @@
 - **편집모드 항목(카드) 개별 삭제** — 레거시 Admin의 `deleteItem()` 이식, 카드 호버 시 ✕ 아이콘으로 confirm 후 삭제
 - **"위폭"/"팁" 태그 이미지 유형 추가** — 항목 추가 모달에 영상/이미지 유형 토글(`typeToggle`)을 다시 노출, `submitItem()`을 `modalType` 기준으로 일반화. "맵 지명"은 기존처럼 토글 없이 이미지 고정 유지
 - **이미지 업로드 크롭 기능** — Cropper.js(`cropperjs@1.6.1`, 레거시 Admin과 동일 CDN) 도입, 맵 지명/위폭/팁 이미지 업로드 모두 크롭 후 jpg로 업로드하도록 교체 (원본 그대로 업로드하던 이전 로직은 제거)
-- **영상 클립 구간(`clip_start`/`clip_end`) 마킹** — 레거시 Admin의 `loadClipPlayer()`/`markClipStart()`/`markClipEnd()`/`clearClip()`을 이식(버튼 방식), 여기에 더해 `<input type="range">` 두 개로 구간을 드래그로 지정하는 슬라이더 UI를 추가 도입. 버튼과 슬라이더는 같은 `clipStart`/`clipEnd` 전역 변수를 공유해 항상 동기화된다. `submitItem()`이 이제 실제 `clipStart`/`clipEnd` 값을 저장한다(이전엔 항상 `null`)
+- **영상 클립 구간(`clip_start`/`clip_end`) 마킹** — 레거시 Admin의 `loadClipPlayer()`/`markClipStart()`/`markClipEnd()`/`clearClip()`을 이식(버튼 방식). `submitItem()`이 이제 실제 `clipStart`/`clipEnd` 값을 저장한다(이전엔 항상 `null`)
+- **구간 슬라이더 UI 개선: 단일 트랙 + 드래그 스크러빙** — 처음 도입했던 위/아래 분리형 슬라이더 2개를 하나의 트랙에 손잡이 2개가 겹쳐진 구간 바 형태로 교체(겹친 슬라이더의 클릭 우선순위는 트랙 `pointer-events:none` + thumb만 `pointer-events:auto`로 해결). "끝쪽 슬라이더가 뻑뻑하다" 버그를 원인 분석 후 수정(서로의 `.value`를 밀어내던 방식 → 각자 네이티브 `min`/`max`로 배타적 범위를 거는 방식). 드래그 중에는 재생을 멈추고 그 지점 정지 프레임을 계속 보여주는 스크러빙 미리보기(약 100ms 스로틀)를 추가했고, 손을 떼도 자동재생되지 않는다. 버튼 방식과는 여전히 같은 `clipStart`/`clipEnd`를 공유해 동기화됨
 - **클립 재생 오버레이 잠금 + 전체 영상 보기** — 클립 구간이 있는 영상은 `openOverlay()`에서 YouTube 컨트롤바를 숨겨(`controls:0`) 구간 밖으로 드래그 이탈할 수 없게 막고, 대신 커스텀 재생/일시정지 버튼(`toggleOverlayPlay()`)을 오버레이 위에 노출. 클립 항목에만 "전체 영상 보기" 버튼을 추가해 누르면 `showFullVideo()`가 같은 위치에서 이어서 `controls:1` 플레이어로 재생성한다. 오버레이를 닫았다 다시 열면 항상 클립 모드로 재시작(전체 모드 전환은 저장되지 않음)
 
 # 예정 (AI_CONTEXT.md 기준)
