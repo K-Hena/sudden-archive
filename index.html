@@ -696,7 +696,7 @@ function openOverlay(id){
             videoId: p.id,
             playerVars: { autoplay:1, playsinline:1, controls:0, rel:0, start:start, origin:location.origin, cc_load_policy:0 },
             events: {
-              onReady: (e) => { e.target.seekTo(start, true); e.target.playVideo(); },
+              onReady: (e) => { e.target.setVolume(50); e.target.seekTo(start, true); e.target.playVideo(); },
               onStateChange: (e) => {
                 if(e.data === YT.PlayerState.PLAYING){
                   playPauseBtn.textContent = '⏸';
@@ -764,7 +764,7 @@ function showFullVideo(){
       videoId: videoId,
       playerVars: { autoplay:1, playsinline:1, controls:1, rel:0, start: Math.floor(resumeAt), origin: location.origin, cc_load_policy:0 },
       events: {
-        onReady: (e) => { e.target.seekTo(resumeAt, true); e.target.playVideo(); }
+        onReady: (e) => { e.target.setVolume(50); e.target.seekTo(resumeAt, true); e.target.playVideo(); }
       }
     });
   };
@@ -846,6 +846,16 @@ function syncClipSliders(){
   updateClipRangeFill();
 }
 
+// 슬라이더의 min/max/value를 넘겨준 duration 기준으로 확정한다 (구간 재설정 시 공통으로 재사용)
+function applyClipDuration(duration){
+  clipDuration = duration;
+  const startRange = document.getElementById('clipStartRange');
+  const endRange = document.getElementById('clipEndRange');
+  startRange.min = 0; startRange.max = Math.max(clipDuration - 1, 0); startRange.value = 0;
+  endRange.min = Math.min(1, clipDuration); endRange.max = clipDuration; endRange.value = clipDuration;
+  updateClipSliderLabels();
+  updateClipRangeFill();
+}
 function loadClipPlayer(){
   const url = document.getElementById('mVideoUrl').value.trim();
   const p = parseYouTube(url);
@@ -854,6 +864,9 @@ function loadClipPlayer(){
   clipStart = null; clipEnd = null; updateClipLabel();
   document.getElementById('clipTools').style.display = 'block';
   document.getElementById('clipPlayerWrap').className = 'clip-player' + (p.isShort ? ' tall' : '');
+
+  // 이전 영상의 duration/슬라이더 상태가 새 영상 로딩 중에 잠깐이라도 남아있지 않도록 즉시 0으로 초기화
+  applyClipDuration(0);
 
   if(clipYtPlayer && clipYtPlayer.destroy){ clipYtPlayer.destroy(); clipYtPlayer = null; }
   const mount = document.createElement('div');
@@ -867,13 +880,25 @@ function loadClipPlayer(){
       playerVars: { playsinline: 1, enablejsapi: 1, origin: location.origin, rel: 0, cc_load_policy: 0 },
       events: {
         onReady: (e) => {
-          clipDuration = Math.floor(e.target.getDuration()) || 0;
-          const startRange = document.getElementById('clipStartRange');
-          const endRange = document.getElementById('clipEndRange');
-          startRange.min = 0; startRange.max = Math.max(clipDuration - 1, 0); startRange.value = 0;
-          endRange.min = Math.min(1, clipDuration); endRange.max = clipDuration; endRange.value = clipDuration;
-          updateClipSliderLabels();
-          updateClipRangeFill();
+          e.target.setVolume(50);
+          // onReady 시점의 getDuration()은 (특히 쇼츠에서) 메타데이터가 아직 다 안 실려서
+          // 0이거나 실제보다 작은 값을 반환할 수 있다. 두 번 연속 같은 값이 나올 때까지
+          // 짧게 재확인해서, duration이 실제로 "확정"된 시점에만 슬라이더에 반영한다.
+          let attempts = 0;
+          let lastDuration = -1;
+          const player = e.target;
+          const poll = () => {
+            const d = Math.floor(player.getDuration()) || 0;
+            attempts++;
+            const stable = d > 0 && d === lastDuration;
+            if(stable || attempts >= 20){
+              applyClipDuration(d);
+              return;
+            }
+            lastDuration = d;
+            setTimeout(poll, 150);
+          };
+          poll();
         }
       }
     });
@@ -979,7 +1004,8 @@ function openAddModal(tag){
   if(cropper){ cropper.destroy(); cropper = null; }
   document.getElementById('cropperWrap').style.display = 'none';
 
-  clipStart = null; clipEnd = null; clipDuration = 0;
+  clipStart = null; clipEnd = null;
+  applyClipDuration(0);
   document.getElementById('clipTools').style.display = 'none';
   if(clipYtPlayer && clipYtPlayer.destroy){ clipYtPlayer.destroy(); clipYtPlayer = null; }
   updateClipLabel();
