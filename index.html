@@ -812,8 +812,13 @@ function updateClipRangeFill(){
   if(clipDuration <= 0){ fill.style.left = '0%'; fill.style.width = '0%'; return; }
   const s = Number(document.getElementById('clipStartRange').value);
   const e = Number(document.getElementById('clipEndRange').value);
-  fill.style.left = (s / clipDuration * 100) + '%';
-  fill.style.width = (Math.max(e - s, 0) / clipDuration * 100) + '%';
+  const startFrac = s / clipDuration;
+  const endFrac = Math.max(e, s) / clipDuration;
+  // 네이티브 range 손잡이는 트랙 전체 폭이 아니라 (트랙폭 - 손잡이폭)만큼만 이동하고,
+  // 손잡이 중심은 항상 손잡이 반지름(8px, thumb width 16px의 절반)만큼 안쪽에서 시작한다.
+  // 퍼센트를 트랙 폭 그대로 써서 계산하면 채움 바가 실제 손잡이 위치보다 바깥으로 튀어나온다.
+  fill.style.left = `calc(8px + (100% - 16px) * ${startFrac})`;
+  fill.style.width = `calc((100% - 16px) * ${Math.max(endFrac - startFrac, 0)})`;
 }
 // 시작/끝 슬라이더가 서로 넘나들지 못하도록 각자의 min/max로 상호 배타적 범위를 걸어둔다.
 // (반대쪽 슬라이더의 .value를 직접 밀어내는 대신 자기 자신의 네이티브 범위로만 막아서,
