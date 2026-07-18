@@ -694,7 +694,7 @@ function openOverlay(id){
         const build = () => {
           ytPlayer = new YT.Player(mount, {
             videoId: p.id,
-            playerVars: { autoplay:1, playsinline:1, controls:0, rel:0, start:start, origin:location.origin },
+            playerVars: { autoplay:1, playsinline:1, controls:0, rel:0, start:start, origin:location.origin, cc_load_policy:0 },
             events: {
               onReady: (e) => { e.target.seekTo(start, true); e.target.playVideo(); },
               onStateChange: (e) => {
@@ -723,7 +723,7 @@ function openOverlay(id){
         fullBtn.style.display = 'inline-block';
       } else {
         // 구간 없으면 일반 임베드
-        media.innerHTML = `<iframe src="https://www.youtube.com/embed/${p.id}?rel=0&autoplay=1&playsinline=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+        media.innerHTML = `<iframe src="https://www.youtube.com/embed/${p.id}?rel=0&autoplay=1&playsinline=1&cc_load_policy=0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
       }
     } else {
       document.getElementById('overlayMedia').className = 'overlay-media wide';
@@ -762,7 +762,7 @@ function showFullVideo(){
   const build = () => {
     ytPlayer = new YT.Player(mount, {
       videoId: videoId,
-      playerVars: { autoplay:1, playsinline:1, controls:1, rel:0, start: Math.floor(resumeAt), origin: location.origin },
+      playerVars: { autoplay:1, playsinline:1, controls:1, rel:0, start: Math.floor(resumeAt), origin: location.origin, cc_load_policy:0 },
       events: {
         onReady: (e) => { e.target.seekTo(resumeAt, true); e.target.playVideo(); }
       }
@@ -859,7 +859,7 @@ function loadClipPlayer(){
   const build = () => {
     clipYtPlayer = new YT.Player('clipPlayer', {
       videoId: p.id,
-      playerVars: { playsinline: 1, enablejsapi: 1, origin: location.origin, rel: 0 },
+      playerVars: { playsinline: 1, enablejsapi: 1, origin: location.origin, rel: 0, cc_load_policy: 0 },
       events: {
         onReady: (e) => {
           clipDuration = Math.floor(e.target.getDuration()) || 0;
