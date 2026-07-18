@@ -39,7 +39,7 @@ CDN으로 불러오는 외부 라이브러리: `@supabase/supabase-js@2`, `cropp
 - `.subbar`: 전체 맵 / 현재 맵 이름 breadcrumb
 - `#viewGrid`: 맵 선택 화면 (`#mapGrid`)
 - `#viewDetail`: 맵 상세 화면 — RED/BLUE 팀 토글 + `#cardGrid`
-- `#overlay`: 영상/이미지 재생 오버레이
+- `#overlay`: 영상/이미지 재생 오버레이 — 실제 미디어(iframe/img)는 `#overlayMediaContent`에만 그리고, 그 위에 뜨는 재생/일시정지 버튼(`#overlayPlayPause`)과 클립 항목 전용 "전체 영상 보기" 버튼(`#overlayFullBtn`)은 형제 요소로 분리해 `innerHTML` 교체로 지워지지 않게 함
 - `#addModal`: 편집모드 항목 추가 모달 — 영상/이미지 유형 토글(`#typeToggle`), 이미지는 Cropper.js로 크롭 후 업로드, 영상은 `#clipTools`(버튼 + 슬라이더)로 클립 구간 지정. "맵 지명" 태그는 유형 토글 없이 이미지 고정
 - `#mapImgInput`: 맵 이미지 업로드용 숨김 `<input type=file>`
 
@@ -50,7 +50,7 @@ CDN으로 불러오는 외부 라이브러리: `@supabase/supabase-js@2`, `cropp
 - 맵 그리드: `renderMapGrid()`, 편집모드 전용 `addMap()/renameMap()/deleteMap()/pickMapImage()`
 - 상세 카드: `renderCards()`, 편집모드 전용 `openAddModal()/closeModal()/setModalType()/submitItem()/deleteItem()`, 이미지 크롭 `loadImageIntoCropper()`
 - 클립 구간 지정: `loadClipPlayer()/markClipStart()/markClipEnd()/clearClip()/updateClipLabel()`(버튼), `onClipStartInput()/onClipEndInput()/onClipStartChange()/onClipEndChange()/syncClipSliders()`(슬라이더) — 둘 다 `clipStart`/`clipEnd`를 공유
-- 재생: `openOverlay()/closeOverlay()` — 유튜브 IFrame API로 클립 구간 반복 재생 지원
+- 재생: `openOverlay()/closeOverlay()` — 유튜브 IFrame API로 클립 구간 반복 재생 지원, 클립 항목은 `controls:0`으로 컨트롤바를 숨기고 `toggleOverlayPlay()`(커스텀 재생/일시정지)와 `showFullVideo()`(같은 위치에서 이어서 `controls:1` 플레이어로 재생성, 구간 제한 해제)를 제공. 상태는 `overlayVideoId`/`overlayHasClip`에 저장되며 오버레이를 닫으면 초기화됨(전체 모드 전환은 세션 한정, `docs/DECISIONS.md` 참고)
 - 인증: `initAuth()/renderAuthArea()` — Discord OAuth 로그인, `admins` 테이블 조회로 관리자 판별, `toggleEditMode()`
 
 ---

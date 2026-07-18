@@ -169,13 +169,20 @@ header{
 .overlay.active{display:flex;}
 .overlay-box{display:flex;flex-direction:column;align-items:center;}
 .overlay-media{
-  background:#000;border:1px solid var(--line);overflow:hidden;
+  background:#000;border:1px solid var(--line);overflow:hidden;position:relative;
   display:flex;align-items:center;justify-content:center;color:var(--muted);
   font-family:'JetBrains Mono',monospace;font-size:12px;
 }
 .overlay-media.wide{width:min(880px,90vw);aspect-ratio:16/9;}
 .overlay-media.tall{height:min(80vh,720px);aspect-ratio:9/16;}
+#overlayMediaContent{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
 .overlay-media iframe,.overlay-media img{width:100%;height:100%;display:block;object-fit:contain;border:0;}
+.overlay-playpause{
+  position:absolute;bottom:14px;left:14px;z-index:5;width:40px;height:40px;border-radius:50%;
+  background:rgba(6,7,9,.75);color:#fff;border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;
+}
+.overlay-playpause:hover{border-color:var(--edit-accent);color:var(--edit-accent);}
 .overlay-meta{width:100%;max-width:880px;padding:14px 2px;display:flex;justify-content:space-between;align-items:flex-start;}
 .overlay-meta .note{font-size:12.5px;color:var(--muted);max-width:70%;line-height:1.5;}
 .overlay-close{
@@ -321,10 +328,16 @@ header{
 
 <div class="overlay" id="overlay">
   <div class="overlay-box">
-    <div class="overlay-media wide" id="overlayMedia">MEDIA PREVIEW</div>
+    <div class="overlay-media wide" id="overlayMedia">
+      <div id="overlayMediaContent">MEDIA PREVIEW</div>
+      <span class="overlay-playpause" id="overlayPlayPause" onclick="toggleOverlayPlay()" style="display:none;">⏸</span>
+    </div>
     <div class="overlay-meta">
       <div class="note" id="overlayNote"></div>
-      <div class="overlay-close" onclick="closeOverlay()">닫기 ✕</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button class="btn-ghost" id="overlayFullBtn" onclick="showFullVideo()" style="display:none;">전체 영상 보기</button>
+        <div class="overlay-close" onclick="closeOverlay()">닫기 ✕</div>
+      </div>
     </div>
   </div>
 </div>
@@ -632,22 +645,32 @@ function renderCards(){
 }
 
 let clipTimer = null;
+let overlayVideoId = null;
+let overlayHasClip = false;
 function openOverlay(id){
   const it = items.find(i => i.id === id);
-  const media = document.getElementById('overlayMedia');
+  const media = document.getElementById('overlayMediaContent');
+  const playPauseBtn = document.getElementById('overlayPlayPause');
+  const fullBtn = document.getElementById('overlayFullBtn');
 
   // 이전 플레이어/타이머 정리
   if(clipTimer){ clearInterval(clipTimer); clipTimer = null; }
   if(ytPlayer && ytPlayer.destroy){ ytPlayer.destroy(); ytPlayer = null; }
+  playPauseBtn.style.display = 'none';
+  fullBtn.style.display = 'none';
+  overlayVideoId = null;
+  overlayHasClip = false;
 
   if(it.type === 'vid' && it.video_url){
     const p = parseYouTube(it.video_url);
     if(p){
-      media.className = 'overlay-media ' + (p.isShort ? 'tall' : 'wide');
+      document.getElementById('overlayMedia').className = 'overlay-media ' + (p.isShort ? 'tall' : 'wide');
       const hasClip = (it.clip_start != null || it.clip_end != null);
+      overlayHasClip = hasClip;
+      overlayVideoId = p.id;
 
       if(hasClip){
-        // 클립 구간이 있으면 JS 플레이어로 제어 (쇼츠도 구간 적용됨)
+        // 클립 구간이 있으면 JS 플레이어로 제어 (쇼츠도 구간 적용됨), 컨트롤바는 숨겨서 구간 밖으로 못 나가게 함
         const mount = document.createElement('div');
         media.innerHTML = '';
         media.appendChild(mount);
@@ -656,17 +679,22 @@ function openOverlay(id){
         const build = () => {
           ytPlayer = new YT.Player(mount, {
             videoId: p.id,
-            playerVars: { autoplay:1, playsinline:1, controls:1, rel:0, start:start, origin:location.origin },
+            playerVars: { autoplay:1, playsinline:1, controls:0, rel:0, start:start, origin:location.origin },
             events: {
               onReady: (e) => { e.target.seekTo(start, true); e.target.playVideo(); },
               onStateChange: (e) => {
-                if(e.data === YT.PlayerState.PLAYING && end != null){
-                  if(clipTimer) clearInterval(clipTimer);
-                  clipTimer = setInterval(() => {
-                    if(ytPlayer && ytPlayer.getCurrentTime && ytPlayer.getCurrentTime() >= end){
-                      ytPlayer.seekTo(start, true); // 구간 반복
-                    }
-                  }, 250);
+                if(e.data === YT.PlayerState.PLAYING){
+                  playPauseBtn.textContent = '⏸';
+                  if(end != null){
+                    if(clipTimer) clearInterval(clipTimer);
+                    clipTimer = setInterval(() => {
+                      if(ytPlayer && ytPlayer.getCurrentTime && ytPlayer.getCurrentTime() >= end){
+                        ytPlayer.seekTo(start, true); // 구간 반복
+                      }
+                    }, 250);
+                  }
+                } else if(e.data === YT.PlayerState.PAUSED){
+                  playPauseBtn.textContent = '▶';
                 }
               }
             }
@@ -674,28 +702,72 @@ function openOverlay(id){
         };
         if(ytReady && window.YT && YT.Player){ build(); }
         else { const iv = setInterval(() => { if(window.YT && YT.Player){ clearInterval(iv); ytReady=true; build(); } }, 200); }
+
+        playPauseBtn.textContent = '⏸';
+        playPauseBtn.style.display = 'flex';
+        fullBtn.style.display = 'inline-block';
       } else {
         // 구간 없으면 일반 임베드
         media.innerHTML = `<iframe src="https://www.youtube.com/embed/${p.id}?rel=0&autoplay=1&playsinline=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
       }
     } else {
-      media.className = 'overlay-media wide';
+      document.getElementById('overlayMedia').className = 'overlay-media wide';
       media.innerHTML = `<span>유튜브 링크 형식을 확인해주세요</span>`;
     }
   } else if(it.type === 'img' && it.img_url){
-    media.className = 'overlay-media wide';
+    document.getElementById('overlayMedia').className = 'overlay-media wide';
     media.innerHTML = `<img src="${it.img_url}">`;
   } else {
-    media.className = 'overlay-media wide';
+    document.getElementById('overlayMedia').className = 'overlay-media wide';
     media.innerHTML = it.type==='vid' ? '<span>아직 등록된 영상이 없어요</span>' : '<span>아직 등록된 이미지가 없어요</span>';
   }
   document.getElementById('overlayNote').textContent = it.note ? it.title + ' — ' + it.note : it.title;
   document.getElementById('overlay').classList.add('active');
 }
+function toggleOverlayPlay(){
+  if(!ytPlayer || !ytPlayer.getPlayerState) return;
+  if(ytPlayer.getPlayerState() === YT.PlayerState.PLAYING){
+    ytPlayer.pauseVideo();
+  } else {
+    ytPlayer.playVideo();
+  }
+}
+function showFullVideo(){
+  if(!overlayVideoId || !overlayHasClip) return;
+  const resumeAt = (ytPlayer && ytPlayer.getCurrentTime) ? ytPlayer.getCurrentTime() : 0;
+  if(clipTimer){ clearInterval(clipTimer); clipTimer = null; }
+  if(ytPlayer && ytPlayer.destroy){ ytPlayer.destroy(); ytPlayer = null; }
+
+  const media = document.getElementById('overlayMediaContent');
+  const mount = document.createElement('div');
+  media.innerHTML = '';
+  media.appendChild(mount);
+
+  const videoId = overlayVideoId;
+  const build = () => {
+    ytPlayer = new YT.Player(mount, {
+      videoId: videoId,
+      playerVars: { autoplay:1, playsinline:1, controls:1, rel:0, start: Math.floor(resumeAt), origin: location.origin },
+      events: {
+        onReady: (e) => { e.target.seekTo(resumeAt, true); e.target.playVideo(); }
+      }
+    });
+  };
+  if(ytReady && window.YT && YT.Player){ build(); }
+  else { const iv = setInterval(() => { if(window.YT && YT.Player){ clearInterval(iv); ytReady=true; build(); } }, 200); }
+
+  overlayHasClip = false;
+  document.getElementById('overlayPlayPause').style.display = 'none';
+  document.getElementById('overlayFullBtn').style.display = 'none';
+}
 function closeOverlay(){
   if(clipTimer){ clearInterval(clipTimer); clipTimer = null; }
   if(ytPlayer && ytPlayer.destroy){ ytPlayer.destroy(); ytPlayer = null; }
-  document.getElementById('overlayMedia').innerHTML = '';
+  document.getElementById('overlayMediaContent').innerHTML = '';
+  document.getElementById('overlayPlayPause').style.display = 'none';
+  document.getElementById('overlayFullBtn').style.display = 'none';
+  overlayVideoId = null;
+  overlayHasClip = false;
   document.getElementById('overlay').classList.remove('active');
 }
 

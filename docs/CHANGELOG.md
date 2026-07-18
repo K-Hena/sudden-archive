@@ -31,6 +31,7 @@
 - **편집모드 항목(카드) 개별 삭제 기능** 추가 — 레거시 Admin의 `deleteItem()`을 이식, 카드 호버 시 ✕ 아이콘으로 confirm 후 삭제
 - **"위폭"/"팁" 태그 이미지 유형 추가 + 전체 이미지 업로드 크롭 도입** — 항목 추가 모달에 영상/이미지 유형 토글(`typeToggle`)을 복원해 `submitItem()`을 `modalType` 기준으로 일반화. Cropper.js(`cropperjs@1.6.1`, 레거시 Admin과 동일 CDN) 도입으로 맵 지명/위폭/팁 이미지 업로드 모두 크롭 후 jpg 업로드하도록 교체(원본 그대로 업로드하던 이전 로직 제거). `docs/MAINTENANCE.md`의 오래된 "문서 통합" 서술도 함께 정리
 - **영상 클립 구간(`clip_start`/`clip_end`) 마킹 기능** 추가 — 레거시 Admin의 `loadClipPlayer()`/`markClipStart()`/`markClipEnd()`/`clearClip()`을 버튼 방식 그대로 이식하고, 그 위에 `<input type="range">` 슬라이더 2개(시작/끝)를 추가 도입해 드래그로도 구간을 지정할 수 있게 했다. 버튼과 슬라이더는 같은 `clipStart`/`clipEnd` 변수를 공유해 항상 동기화된다. `submitItem()`이 이제 실제 클립 값을 저장한다(이전엔 항상 `null`)
+- **클립 재생 오버레이 컨트롤바 제거 + 전체 영상 보기** — `openOverlay()`가 클립 구간이 있는 영상은 YouTube `controls:0`으로 띄워 구간 밖 드래그 이탈을 막고, 커스텀 재생/일시정지 버튼(`toggleOverlayPlay()`)을 얹었다. 클립 항목에만 노출되는 "전체 영상 보기" 버튼(`showFullVideo()`)을 누르면 같은 위치에서 이어서 `controls:1` 플레이어로 재생성해 구간 제한 없이 볼 수 있다
 
 ---
 
