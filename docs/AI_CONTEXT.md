@@ -1,8 +1,8 @@
 # AI_CONTEXT.md
 
 > Project: Sudden Archive
-> Version: 1.1
-> Last Updated: 2026-07-18
+> Version: 1.2
+> Last Updated: 2026-07-18 (문서 체계 리팩터링 — 세부 내용을 docs/ 하위 문서로 이동, 참조 링크로 연결)
 
 ---
 
@@ -78,6 +78,9 @@ User
 
 관리자에서 등록하거나 수정한 데이터는 Supabase를 통해 사용자 사이트에 즉시 반영된다.
 
+실제 폴더/파일 구조는 `docs/PROJECT_STRUCTURE.md`, DB 스키마는 `docs/DATABASE.md`,
+쓰기 후 반영되는 방식(전체 재조회, Realtime 미사용 등)은 `docs/architecture/database-flow.md` 참고.
+
 ---
 
 # 현재 기술 스택
@@ -97,6 +100,8 @@ Infrastructure
 - GitHub
 - Vercel
 
+파일별 상세 구성(CSS/HTML/JS 영역)은 `docs/PROJECT_STRUCTURE.md` 참고.
+
 ---
 
 # 진행 중인 기능 개발 — 디스코드 로그인 & 편집모드 통합
@@ -113,6 +118,8 @@ Infrastructure
 - **로그인 버튼 스타일**: B안 채택 — 사이트 톤 매칭, 레드 아웃라인 (`--red` 컬러, Rajdhani 폰트, 기존 팀 토글 버튼과 통일감)
 - **즐겨찾기**: 위폭/팁 항목에만 별 아이콘 적용 (맵 지명 태그는 제외). 정렬은 즐겨찾기 항목이 맨 위, 즐겨찾기한 시각 최신순
 - **클립보드 붙여넣기(관리자)**: 브라우저 확장프로그램 없이, 페이지 내 Ctrl+V 자동인식(이미지/영상 URL 자동 판별)으로 구현하기로 방향만 정함 — 세부 설계는 아직 진행 전
+
+편집모드 렌더링 방식, 이스케이프 패턴, 강조색(`--edit-accent`) 신설 등 구현 단위의 세부 결정과 그 이유는 `docs/DECISIONS.md` 참고.
 
 ## 완료된 작업
 - [x] Discord Developer Portal에 앱 등록 완료
@@ -131,6 +138,8 @@ Infrastructure
   - 임시 테스트 코드 제거, 정식 로그인/로그아웃 UI로 교체하는 작업 지시함
   - **적용 및 배포 확인은 아직 안 됨 — 다음 대화에서 결과 확인 필요**
 
+이후 진행된 세부 작업 이력(커밋 단위)은 `docs/CHANGELOG.md` 참고.
+
 ## 남은 작업 (순서대로)
 - [ ] 1차 결과 확인 (로그인/로그아웃 UI 정상 동작 여부)
 - [ ] 2차: 로그인 계정이 `admins`에 있는지 판별하는 로직 + "편집모드" 토글 버튼 뼈대 추가 (아직 실제 CRUD 기능 없이 버튼만)
@@ -139,52 +148,37 @@ Infrastructure
 - [ ] 관리자 클립보드 자동인식 붙여넣기 기능 설계 및 구현
 - [ ] 정상 동작 확인 후 구 Admin 사이트(`sudden-archive-admin.vercel.app`) 정리
 
+**참고**: 이 체크리스트는 2026-07-18 오전 기준이며, 이후 편집모드 관련 작업이 여러 건 더 진행되어
+실제로는 2차가 완료되었고 3차 중 맵 CRUD와 항목 추가(영상만)까지 이식된 상태다.
+완료/진행중/예정이 더 세분화된 최신 상태는 `docs/TODO.md`를 참고 — 이 문서보다 최신이다.
+편집모드 이식 완료/미완료 항목과 레거시 Admin과의 기능 격차는 `docs/architecture/admin-flow.md` 참고.
+
 ## 참고 — 반복 작업 시 원칙
-- DB(Supabase) 관련 작업(테이블 생성, RLS 정책)은 Claude Code에게 맡기지 않고, Claude(Chat)와 먼저 정확한 SQL을 설계한 뒤 사용자가 Supabase SQL Editor에서 직접 실행한다.
-- 코드 작업(HTML/JS/CSS 수정)은 Claude Code에게 지시서 형태로 전달하며, 지시서 끝에는 항상 "작업 완료 후 git add / commit / push까지 진행"을 포함한다.
-- 로컬 파일 변경 후에는 반드시 git push까지 해야 Vercel 배포에 반영된다는 점을 매번 기억할 것.
+DB 작업을 Claude Chat과 먼저 설계한 뒤 사용자가 직접 실행하는 원칙, 코드 작업 지시서 작성 방식,
+git push까지 포함해야 Vercel 배포에 반영된다는 점은 `docs/README_AI.md`, `docs/PROMPTS.md`(6. Git 작업),
+`docs/CLAUDE_CODE_RULES.md`, `docs/MAINTENANCE.md`에 운영 규칙으로 정리되어 있다.
 
 ---
 
 # AI 협업 방식
 
-## Claude (Chat)
+이 프로젝트는 두 역할로 나뉘어 협업한다.
 
-역할
+## Claude (Chat) — Technical Lead
 
-Technical Lead
-
-담당
-
-- 프로젝트 구조 분석
-- 기능 설계
-- 아키텍처 설계
-- DB 구조 검토 (SQL 설계, 사용자가 직접 실행)
-- 코드 리뷰
-- 버그 원인 분석
-- Claude Code 작업 지시서 작성
-- 구현 방향 결정
-- 디자인 시안 제시 (버튼 스타일, 아이콘 등 — 확정 전에는 시안으로만 제시하고, 사용자가 "이대로 만들어줘"라고 확정하면 실제 파일 생성)
-
+설계, 분석, 코드 리뷰, 작업 지시서 작성, 디자인 시안 제시를 담당한다.
 구현 전에 항상 Claude와 설계를 먼저 진행한다.
+
+담당 업무의 전체 목록은 `docs/README_AI.md`의 "AI 역할" 참고.
 
 ---
 
-## Claude Code
+## Claude Code — Developer
 
-역할
-
-Developer
-
-담당
-
-- 실제 코드 구현
-- 여러 파일 수정
-- 리팩터링
-- Git 작업 (커밋, 푸시 포함)
-
-Claude Code는 구현을 담당하며,
+실제 코드 구현, 여러 파일 수정, 리팩터링, Git 작업(커밋·푸시 포함)을 담당한다.
 설계 변경은 Claude(Chat)와 협의 후 진행한다.
+
+담당 업무와 행동 규칙은 `docs/CLAUDE_CODE_RULES.md` 참고.
 
 ---
 
@@ -204,11 +198,15 @@ Claude Code는 구현을 담당하며,
 
 큰 기능(로그인 통합 등)은 한 번에 다 구현하지 않고 단계별로 나눠서 진행하고, 각 단계마다 결과를 확인한 뒤 다음 단계로 넘어간다.
 
+구체적인 코드 스타일, 커밋 규칙, 에러 처리 방식은 `docs/CODING_RULES.md` 참고.
+
 ---
 
 # 개발 프로세스
 
 기능 요청 → Claude와 설계 → (DB 변경 시) 사용자가 Supabase에서 직접 SQL 실행 → Claude Code 구현 (커밋+푸시 포함) → Claude 코드 리뷰 → Vercel 자동 배포 확인
+
+시나리오별(새 기능 구현/버그 수정/코드 리뷰/SQL 작성/리팩터링/Git 작업/문서 업데이트) 세부 절차는 `docs/PROMPTS.md` 참고.
 
 ---
 
@@ -221,23 +219,43 @@ Claude Code는 구현을 담당하며,
 - UI 개선
 - 데이터 관리 기능 강화
 
-※ 기능 추가 시 계속 업데이트
+※ 기능 추가 시 계속 업데이트. 완료/진행중/예정/아이디어로 세분화된 최신 목록은 `docs/TODO.md` 참고.
 
 ---
 
 # AI 운영 원칙
 
-AI는 프로젝트 전체 구조를 우선 이해한 후 작업한다.
+AI는 프로젝트 전체 구조를 우선 이해한 후 작업하며, 불확실한 부분은 추측하지 않고 확인 후 구현한다.
 
-기존 기능을 임의로 변경하지 않는다.
+기존 기능과 DB 구조를 임의로 변경하지 않고, 새로운 라이브러리는 반드시 검토 후 추가한다.
 
-불확실한 부분은 추측하지 말고 확인 후 구현한다.
+구체적인 AI 행동 규칙 목록은 `docs/CODING_RULES.md`의 "AI 규칙" 참고.
 
-필요 이상으로 프로젝트 구조를 변경하지 않는다.
+---
 
-새로운 라이브러리는 반드시 검토 후 추가한다.
+# 문서 지도 (Document Map)
 
-DB 구조는 임의로 변경하지 않는다.
+이 문서(AI_CONTEXT.md)는 프로젝트의 기준 문서(Single Source of Truth)다.
+아래는 더 자세한 내용을 찾을 수 있는 문서 목록이다.
+
+| 알고 싶은 것 | 문서 |
+|---|---|
+| AI에게 작업을 어떻게 요청하는지, AI 역할(Claude Chat/Code) 상세 | `docs/README_AI.md` |
+| 코드 스타일, 에러 처리, 파일 수정 원칙, AI 행동 규칙 | `docs/CODING_RULES.md` |
+| Claude Code의 행동 규칙, 담당 업무 | `docs/CLAUDE_CODE_RULES.md` |
+| 기능 추가/버그 수정/SQL 작성/리팩터링 등 표준 작업 절차 | `docs/PROMPTS.md` |
+| 어떤 작업을 하면 어떤 문서를 함께 확인해야 하는지 | `docs/MAINTENANCE.md` |
+| 실제 폴더/파일 구조, index.html 내부 CSS/HTML/JS 구성 | `docs/PROJECT_STRUCTURE.md` |
+| Supabase 테이블/컬럼/RLS/Storage 버킷 구조 | `docs/DATABASE.md` |
+| 커밋 단위 변경 이력 | `docs/CHANGELOG.md` |
+| 완료/진행중/예정/아이디어 최신 목록 | `docs/TODO.md` |
+| 확정된 설계 결정과 그 이유(세부) | `docs/DECISIONS.md` |
+| 실제로 해결했던 문제와 원인/해결/예방 | `docs/TROUBLESHOOTING.md` |
+| 로그인(Discord OAuth / 이메일·비밀번호) 흐름, 관리자 판별 세부 | `docs/architecture/auth-flow.md` |
+| 검색이 아닌 실제 탐색(맵→팀→태그) 흐름 | `docs/architecture/search-flow.md` |
+| 편집모드 이식 완료/미완료, 레거시 Admin과의 기능 격차 | `docs/architecture/admin-flow.md` |
+| 데이터 조회/쓰기/Storage 흐름, Realtime 미사용 등 | `docs/architecture/database-flow.md` |
+| GitHub Copilot용 핵심 규칙 요약 | `.github/copilot-instructions.md` |
 
 ---
 
@@ -248,3 +266,6 @@ DB 구조는 임의로 변경하지 않는다.
 프로젝트 변경 사항이 발생하면 항상 최신 상태로 유지한다.
 
 **새 채팅 시작 시 이 문서를 먼저 공유하면, 지금까지의 설계 결정과 진행 상황을 빠르게 파악할 수 있다.**
+
+다른 문서와 겹치는 세부 내용은 각 문서로 옮기고 참조 링크로 연결했다 (2026-07-18 리팩터링).
+이 문서만 읽어도 프로젝트 전체를 이해할 수 있도록, 세부 내용이 아니라 각 주제의 핵심 요약과 "어디를 보면 되는지"를 유지한다.

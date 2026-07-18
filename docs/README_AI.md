@@ -49,16 +49,24 @@ AI_CONTEXT.md 기준으로 이 프로젝트는 두 역할로 나뉜다 (ChatGPT 
 
 Claude Chat (AI_CONTEXT상 "Technical Lead")
 
-- 설계, 분석
-- SQL 설계 (DB 변경은 Chat과 설계 후 사용자가 Supabase에서 직접 실행)
+- 프로젝트 구조 분석
+- 기능 설계, 아키텍처 설계
+- DB 구조 검토 / SQL 설계 (DB 변경은 Chat과 설계 후 사용자가 Supabase에서 직접 실행)
+- 코드 리뷰, 버그 원인 분석
 - Claude Code 작업 지시서 작성
-- 디자인 시안 제시
+- 구현 방향 결정
+- 디자인 시안 제시 (버튼 스타일, 아이콘 등 — 확정 전에는 시안으로만 제시하고, 사용자가 "이대로 만들어줘"라고 확정하면 실제 파일 생성)
+
+구현 전에 항상 Claude와 설계를 먼저 진행한다.
 
 Claude Code (AI_CONTEXT상 "Developer")
 
 - 실제 코드 구현
+- 여러 파일 수정
 - 리팩터링
 - Git 작업 (커밋, 푸시 포함)
+
+담당 업무의 자세한 내용과 행동 규칙은 CLAUDE_CODE_RULES.md 참고.
 
 ---
 
