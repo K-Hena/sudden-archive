@@ -111,7 +111,7 @@ Commit
 위험도에 따라 처리 방식이 다르다. (`CLAUDE_CODE_RULES.md`의 "SQL 실행 규칙" 참고)
 
 - SELECT/INSERT/UPDATE → Supabase MCP로 직접 실행
-- DELETE/DROP/ALTER/RLS 정책 변경 → 사용자 확인 후 실행
+- DELETE/DROP/TRUNCATE/ALTER TABLE/CREATE TABLE/RLS 정책 생성/변경/삭제 → 사용자 확인 후 실행
 
 순서
 
@@ -212,7 +212,7 @@ AI_CONTEXT.md(진행 상황 / 설계 결정) 갱신이 필요한지 확인한다
 - Vue 전환
 - TypeScript 전환
 - 프로젝트 구조 변경
-- 사용자 확인 없는 고위험 DB 변경(DROP/ALTER/DELETE/TRUNCATE/RLS/CREATE TABLE)
+- 사용자 확인 없는 고위험 DB 변경(DELETE/DROP/TRUNCATE/ALTER TABLE/CREATE TABLE/RLS 정책 생성/변경/삭제)
 - 사용자 승인 없는 라이브러리 추가
 - 사용자 승인 없는 대규모 리팩터링
 
