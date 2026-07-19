@@ -106,11 +106,12 @@ Commit
 
 ---
 
-# 4. SQL 작성
+# 4. SQL 작성 및 실행
 
-SQL은 작성만 한다.
+위험도에 따라 처리 방식이 다르다. (`CLAUDE_CODE_RULES.md`의 "SQL 실행 규칙" 참고)
 
-실행하지 않는다.
+- SELECT/INSERT/UPDATE → Supabase MCP로 직접 실행
+- DELETE/DROP/ALTER/RLS 정책 변경 → 사용자 확인 후 실행
 
 순서
 
@@ -122,11 +123,13 @@ SQL 작성
 
 ↓
 
-설명 작성
+위험도 판단
 
 ↓
 
-사용자가 실행
+(저위험) 바로 실행 / (고위험) 사용자 확인 → 실행
+
+작업 완료 후 git add / commit / push까지 진행
 
 ---
 
