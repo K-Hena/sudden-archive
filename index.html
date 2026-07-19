@@ -1069,6 +1069,9 @@ function loadClipPlayer(){
       videoId: p.id,
       playerVars: { playsinline: 1, enablejsapi: 1, origin: location.origin, rel: 0, cc_load_policy: 0 },
       events: {
+        onStateChange: (e) => {
+          if(!clipPreviewTimer && modalType === 'vid' && document.getElementById('addModal').classList.contains('active') && [YT.PlayerState.PLAYING, YT.PlayerState.PAUSED, YT.PlayerState.BUFFERING, YT.PlayerState.ENDED].includes(e.data)) syncClipPreviewTimer();
+        },
         onReady: (e) => {
           e.target.setVolume(50);
           // onReady 시점의 getDuration()은 (특히 쇼츠에서) 메타데이터가 아직 다 안 실려서
@@ -1235,9 +1238,9 @@ function startImageFlow(file){
     setModalMsg('이미지 파일만 사용할 수 있습니다.', 'err');
     return;
   }
+  modalType = 'img';
   stopClipPreviewTimer();
   if(clipYtPlayer && clipYtPlayer.destroy){ clipYtPlayer.destroy(); clipYtPlayer = null; }
-  modalType = 'img';
   showModalStep('media');
   setModalMsg('');
   loadImageIntoCropper(file);

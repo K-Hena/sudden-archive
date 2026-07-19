@@ -42,6 +42,26 @@ URL: `https://mvyepqqstaipxqfesalv.supabase.co` (User/Admin 두 사이트가 동
 | clip_start / clip_end | 유튜브 클립 재생 구간(초), null이면 전체 재생 | User 사이트 항목 추가 모달에서 버튼(`markClipStart`/`markClipEnd`) 또는 슬라이더로 지정한 값을 저장. 지정하지 않으면 둘 다 `null` (전체 재생) |
 | created_at | timestamptz, 기본값 `now()` | 코드에서 직접 참조하지 않음 |
 
+### `items.team` CHECK 변경 SQL
+
+그룹 A에서 적용한 제약 교체 SQL과 복구 SQL이다. 이번 후속 작업에서는 실행하지 않았다.
+
+```sql
+alter table public.items drop constraint items_team_check;
+alter table public.items
+  add constraint items_team_check check (team = any (array['red'::text, 'blue'::text, 'none'::text]));
+```
+
+복구 시에는 아래처럼 기존 두 값만 허용한다. 실행 전 `team = 'none'` 행이 없는지 먼저 확인해야 한다.
+
+```sql
+alter table public.items drop constraint items_team_check;
+alter table public.items
+  add constraint items_team_check check (team = any (array['red'::text, 'blue'::text]));
+```
+
+2026-07-20 Supabase SELECT 재확인 결과 실제 `items_team_check`는 `red`, `blue`, `none`만 허용하며, `items` 데이터는 0건이었다. RED/BLUE/공통 실제 INSERT는 수행하지 않았으므로 그룹 A 저장 검증은 브라우저 UI와 `submitItem()` insert payload 확인 범위다.
+
 ## admins
 
 관리자 판별용 테이블.
