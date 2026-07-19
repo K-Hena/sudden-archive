@@ -268,7 +268,7 @@ header{
 .cropper-wrap img{max-width:100%;display:block;}
 .clip-tools{margin-bottom:14px;}
 .clip-player{width:100%;aspect-ratio:16/9;background:#000;margin-bottom:10px;}
-.clip-player.tall{aspect-ratio:9/16;max-height:360px;margin:0 auto 10px;}
+.clip-player.tall{width:min(100%,calc(min(60vh,480px) * 0.5625));height:auto;aspect-ratio:9/16;margin:0 auto 10px;}
 .clip-player iframe{width:100%;height:100%;border:0;}
 .clip-sliders{margin-bottom:14px;}
 .clip-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:8px;letter-spacing:0.03em;}
