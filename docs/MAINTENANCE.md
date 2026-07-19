@@ -135,7 +135,7 @@ AI_CONTEXT.md를 프로젝트의 기준 문서(Single Source of Truth)로 두고
 
 □ AI_CONTEXT 진행 상황(완료된 작업 / 남은 작업) 갱신 필요 여부 확인
 
-□ DB(Supabase) 변경 시 SQL을 사용자가 직접 실행했는지 확인 (Claude Code가 직접 실행하지 않았는지)
+□ DB(Supabase) 변경 시, 고위험 SQL(DELETE/DROP/ALTER TABLE/RLS 정책 변경)은 사용자 확인을 받고 실행했는지 확인 (SELECT/INSERT/UPDATE는 Supabase MCP로 바로 실행 가능)
 
 □ Git Push 완료 확인 (Vercel 자동 배포 트리거)
 
