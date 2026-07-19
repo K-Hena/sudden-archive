@@ -119,6 +119,11 @@ header{
 .team-toggle button:last-child{border-right:none;}
 .team-toggle button.on-red{color:var(--red);background:var(--red-dim);}
 .team-toggle button.on-blue{color:var(--blue);background:var(--blue-dim);}
+.detail-search{
+  width:100%;max-width:420px;box-sizing:border-box;margin-bottom:20px;padding:10px 12px;
+  background:var(--panel);color:var(--text);border:1px solid var(--line);font:13px 'Inter',sans-serif;
+}
+.detail-search:focus{outline:none;border-color:#FFFFFF;}
 
 .tag-section{margin-bottom:34px;}
 .tag-section .section-label{margin-bottom:16px;}
@@ -330,6 +335,7 @@ header{
       <button id="btnBlue" onclick="setTeam('blue')">BLUE</button>
     </div>
   </div>
+  <input type="search" id="titleSearch" class="detail-search" placeholder="제목 검색" aria-label="제목 검색" oninput="renderCards()">
   <div id="cardGrid"></div>
 </div>
 
@@ -552,6 +558,7 @@ document.getElementById('mapImgInput').addEventListener('change', async function
 });
 
 function showMapGrid(){
+  clearTitleSearch();
   document.getElementById('viewGrid').classList.add('active');
   document.getElementById('viewDetail').classList.remove('active');
   document.getElementById('crumbMap').style.display = 'none';
@@ -573,10 +580,13 @@ function openMap(id, name){
 
 function setTeam(t){
   currentTeam = t;
+  clearTitleSearch();
   document.getElementById('btnRed').className = t==='red' ? 'on-red' : '';
   document.getElementById('btnBlue').className = t==='blue' ? 'on-blue' : '';
   renderCards();
 }
+
+function clearTitleSearch(){ document.getElementById('titleSearch').value = ''; }
 
 function parseYouTube(url){
   if(!url) return null;
@@ -601,7 +611,9 @@ let ytReady = false, ytPlayer = null;
 window.onYouTubeIframeAPIReady = function(){ ytReady = true; };
 
 function renderCards(){
-  const filtered = items.filter(i => i.map_id === currentMap && i.team === currentTeam);
+  const query = document.getElementById('titleSearch').value.trim().toLowerCase();
+  const teamItems = items.filter(i => i.map_id === currentMap && i.team === currentTeam);
+  const filtered = query ? teamItems.filter(i => String(i.title ?? '').toLowerCase().includes(query)) : teamItems;
   document.getElementById('detailCount').textContent = '(' + filtered.length + ')';
 
   const groups = {};
@@ -612,7 +624,7 @@ function renderCards(){
   tagOrder.forEach(t => { if(!groups[t]) groups[t] = []; });
 
   const sortedTags = Object.keys(groups)
-    .filter(t => editMode || groups[t].length > 0)
+    .filter(t => (editMode && !query) || groups[t].length > 0)
     .sort((a, b) => {
       const ai = tagOrder.indexOf(a), bi = tagOrder.indexOf(b);
       return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
@@ -622,7 +634,7 @@ function renderCards(){
   container.innerHTML = sortedTags.map(tag => {
     const list = groups[tag];
     const isMapLabel = tag === '맵 지명';
-    const addTileHtml = editMode ? `<div class="add-tile cut-sm" onclick="openAddModal('${tag}')"><div class="plus">+</div><div class="label">${tag}에 추가</div></div>` : '';
+    const addTileHtml = editMode && !query ? `<div class="add-tile cut-sm" onclick="openAddModal('${tag}')"><div class="plus">+</div><div class="label">${tag}에 추가</div></div>` : '';
     return `
     <div class="tag-section">
       <div class="section-label"><b>${tag}</b></div>
@@ -652,7 +664,7 @@ function renderCards(){
       </div>
     </div>
   `;
-  }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">이 진영에 등록된 항목이 없어요.</div>`;
+  }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">${query ? '일치하는 제목이 없어요.' : '이 진영에 등록된 항목이 없어요.'}</div>`;
 }
 
 let clipTimer = null;
