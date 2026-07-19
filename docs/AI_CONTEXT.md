@@ -34,7 +34,7 @@ https://sudden-archive.vercel.app/
 주요 기능
 
 - 기록 조회
-- 현재 맵·팀 내 제목 부분 일치 검색
+- 첫 화면 전체 제목 검색 + 현재 맵·팀 내 제목 부분 일치 검색
 - 상세 정보 확인
 - 공개 데이터 이용
 - (진행 중) 디스코드 로그인
@@ -264,7 +264,7 @@ AI는 프로젝트 전체 구조를 우선 이해한 후 작업하며, 불확실
 | 확정된 설계 결정과 그 이유(세부) | `docs/DECISIONS.md` |
 | 실제로 해결했던 문제와 원인/해결/예방 | `docs/TROUBLESHOOTING.md` |
 | 로그인(Discord OAuth / 이메일·비밀번호) 흐름, 관리자 판별 세부 | `docs/architecture/auth-flow.md` |
-| 맵→팀→태그 탐색과 현재 맵·팀 내 제목 검색 흐름 | `docs/architecture/search-flow.md` |
+| 첫 화면 전체 제목 검색과 맵→팀→태그·상세 제목 검색 흐름 | `docs/architecture/search-flow.md` |
 | 편집모드 이식 완료/미완료, 레거시 Admin과의 기능 격차 | `docs/architecture/admin-flow.md` |
 | 데이터 조회/쓰기/Storage 흐름, Realtime 미사용 등 | `docs/architecture/database-flow.md` |
 | GitHub Copilot용 핵심 규칙 요약 | `.github/copilot-instructions.md` |

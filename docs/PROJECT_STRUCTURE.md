@@ -32,13 +32,13 @@ CDN으로 불러오는 외부 라이브러리: `@supabase/supabase-js@2`, `cropp
 
 ## CSS (`<style>`)
 - `:root`에 색상 변수 정의: `--bg/--panel/--line/--text/--muted` (베이스), `--red/--blue` (팀 컬러), `--amber` (기존 강조색, 편집모드에는 미사용), `--edit-accent/--edit-accent-ink` (편집모드 전용 강조색), `--green` (성공 메시지)
-- 컴포넌트별 스타일: 헤더/브랜드, 맵 그리드(`map-tile`), 제목 검색창(`detail-search`), 카드 그리드(`card`, `card-del`), 재생 오버레이(`overlay`), 편집모드 UI(`tile-actions`, `add-tile`, `editmode-btn`, `admin-badge`), 항목 추가 모달(`modal`, `type-toggle`, `cropper-wrap`, `clip-tools`, `clip-btns`, `clip-range`), 구간 슬라이더(`clip-sliders`, `clip-range-slider`/`clip-range-track`/`clip-range-fill`/`clip-range-input` — 겹친 단일 트랙 + thumb만 `pointer-events:auto`, `docs/DECISIONS.md` 참고)
+- 컴포넌트별 스타일: 헤더/브랜드, 맵 그리드(`map-tile`), 검색창(`detail-search`)과 첫 화면 검색 행(`map-head`, 모바일 세로 배치), 카드 그리드(`card`, `card-del`), 재생 오버레이(`overlay`), 편집모드 UI(`tile-actions`, `add-tile`, `editmode-btn`, `admin-badge`), 항목 추가 모달(`modal`, `type-toggle`, `cropper-wrap`, `clip-tools`, `clip-btns`, `clip-range`), 구간 슬라이더(`clip-sliders`, `clip-range-slider`/`clip-range-track`/`clip-range-fill`/`clip-range-input` — 겹친 단일 트랙 + thumb만 `pointer-events:auto`, `docs/DECISIONS.md` 참고)
 
 ## HTML (`<body>`)
 - `header`: 로고, CLIPS/TIPS 카운트, `#authArea`(로그인 상태에 따라 JS가 채움)
 - `.subbar`: 전체 맵 / 현재 맵 이름 breadcrumb
-- `#viewGrid`: 맵 선택 화면 (`#mapGrid`)
-- `#viewDetail`: 맵 상세 화면 — RED/BLUE 팀 토글 + 제목 검색창(`#titleSearch`) + `#cardGrid`
+- `#viewGrid`: 맵 선택 화면 — 맵 선택 문구와 전체 제목 검색창(`#globalTitleSearch`) 아래 `#mapGrid`에 맵 타일 또는 검색 결과 카드 표시
+- `#viewDetail`: 맵 상세 화면 — 뒤로가기 아래 제목 검색창(`#titleSearch`), 그 아래 맵 제목·RED/BLUE 팀 토글과 `#cardGrid`
 - `#overlay`: 영상/이미지 재생 오버레이 — 실제 미디어(iframe/img)는 `#overlayMediaContent`에만 그리고, 그 위에 뜨는 재생/일시정지 버튼(`#overlayPlayPause`)과 클립 항목 전용 "전체 영상 보기" 버튼(`#overlayFullBtn`)은 형제 요소로 분리해 `innerHTML` 교체로 지워지지 않게 함
 - `#addModal`: 편집모드 항목 추가 모달 — `#pasteStep` → `#videoWrap/#imageWrap` → `#titleWrap` 3단계 화면 전환. 유튜브 URL/이미지를 자동 판별하고, 이미지는 Cropper.js, 영상은 `#clipTools`(버튼 + 슬라이더)로 연결. "맵 지명" 태그는 이미지 고정
 - `#mapImgInput`: 맵 이미지 업로드용 숨김 `<input type=file>`
@@ -47,7 +47,7 @@ CDN으로 불러오는 외부 라이브러리: `@supabase/supabase-js@2`, `cropp
 - Supabase 클라이언트 초기화 (`sb`)
 - 전역 상태: `maps`, `items`, `currentMap`, `currentMapName`, `currentTeam`, `editMode`, `modalTag`, `modalType`, `modalStep`, `cropper`, `pendingMapId`, `clipStart`, `clipEnd`, `clipDuration`, `clipYtPlayer`(재생 오버레이용 `ytPlayer`와는 별도 — `docs/DECISIONS.md` 참고), `clipPreviewTimer`(편집 미리보기 구간 감시 전용, 일반 오버레이 `clipTimer`와 분리), `clipScrubLastSeek`(드래그 스크러빙 스로틀용)
 - 데이터 로드: `loadAll()` — `maps`/`items` 테이블을 조회해 전역 배열을 채우고 `renderMapGrid()` 호출
-- 맵 그리드: `renderMapGrid()`, 편집모드 전용 `addMap()/renameMap()/deleteMap()/pickMapImage()`
+- 맵 그리드: `renderMapGrid()`는 전역 검색어가 없으면 맵 타일을, 있으면 `renderGlobalTitleSearch()`를 통해 전체 `items.title` 검색 결과 카드를 표시. 결과 카드는 `maps`에서 맵 이름을 찾아 진영과 함께 표시하고 `openOverlay()` 재사용. 편집모드 전용 `addMap()/renameMap()/deleteMap()/pickMapImage()`
 - 상세 카드: `renderCards()`가 현재 맵·팀으로 먼저 좁힌 뒤 `#titleSearch` 값으로 `items.title`을 부분 일치 필터링하고 표시 건수를 계산. `setTeam()`/`showMapGrid()`에서 검색어 초기화. 편집모드 전용 `openAddModal()/showModalStep()/readAddClipboard()/startVideoFlow()/startImageFlow()/advanceAddModal()/submitItem()/deleteItem()`, 이미지 크롭 `loadImageIntoCropper()`
 - 클립 구간 지정: `loadClipPlayer()/markClipStart()/markClipEnd()/clearClip()/updateClipLabel()`(버튼), `onClipStartInput()/onClipEndInput()/onClipStartChange()/onClipEndChange()/syncClipSliders()/updateClipSliderBounds()/updateClipRangeFill()`(단일 트랙 슬라이더 — 서로 `min`/`max`로 배타적 범위를 걺), `onClipScrubStart()/scrubClipPreview()`(드래그 중 일시정지 + 스로틀된 정지 프레임 미리보기), `applyClipDuration(duration)`(`getDuration()`이 안정된 값으로 확정됐을 때만 슬라이더 `min`/`max`/`value`에 반영 — 모달 초기화 시 `0`으로도 호출해 이전 영상 상태를 리셋), `syncClipPreviewTimer()/stopClipPreviewTimer()`(양쪽 경계가 있을 때만 `[clipStart, clipEnd)` 감시, 초기화·영상 교체·이미지 전환·모달 종료 시 정리) — 버튼과 슬라이더 모두 `clipStart`/`clipEnd`를 공유
 - 재생: `openOverlay()/closeOverlay()` — 유튜브 IFrame API로 클립 구간 반복 재생 지원, 클립 항목은 `controls:0`으로 컨트롤바를 숨기고 `toggleOverlayPlay()`(커스텀 재생/일시정지)와 `showFullVideo()`(같은 위치에서 이어서 `controls:1` 플레이어로 재생성, 구간 제한 해제)를 제공. 상태는 `overlayVideoId`/`overlayHasClip`에 저장되며 오버레이를 닫으면 초기화됨(전체 모드 전환은 세션 한정, `docs/DECISIONS.md` 참고)

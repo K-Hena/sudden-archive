@@ -87,6 +87,9 @@ header{
   margin-bottom:14px;display:flex;align-items:center;gap:8px;
 }
 .section-label::after{content:'';flex:1;height:1px;background:var(--line);}
+.map-head{display:flex;align-items:center;gap:16px;margin-bottom:14px;}
+.map-head .section-label{flex:1;margin-bottom:0;}
+.map-head .detail-search{margin-bottom:0;}
 
 .map-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;}
 .map-tile{
@@ -120,10 +123,14 @@ header{
 .team-toggle button.on-red{color:var(--red);background:var(--red-dim);}
 .team-toggle button.on-blue{color:var(--blue);background:var(--blue-dim);}
 .detail-search{
-  width:100%;max-width:420px;box-sizing:border-box;margin-bottom:20px;padding:10px 12px;
+  display:block;width:100%;max-width:420px;box-sizing:border-box;margin-bottom:20px;padding:10px 12px;
   background:var(--panel);color:var(--text);border:1px solid var(--line);font:13px 'Inter',sans-serif;
 }
 .detail-search:focus{outline:none;border-color:#FFFFFF;}
+@media(max-width:600px){
+  .map-head{align-items:stretch;flex-direction:column;}
+  .map-head .detail-search{max-width:none;}
+}
 
 .tag-section{margin-bottom:34px;}
 .tag-section .section-label{margin-bottom:16px;}
@@ -322,12 +329,16 @@ header{
 </div>
 
 <div class="view active" id="viewGrid">
-  <div class="section-label">맵 선택</div>
+  <div class="map-head">
+    <div class="section-label">맵 선택</div>
+    <input type="search" id="globalTitleSearch" class="detail-search" placeholder="전체 제목 검색" aria-label="전체 제목 검색" oninput="renderGlobalTitleSearch()">
+  </div>
   <div class="map-grid" id="mapGrid"><div class="loading">불러오는 중...</div></div>
 </div>
 
 <div class="view" id="viewDetail">
   <button class="back-btn" onclick="showMapGrid()">← 전체 맵으로</button>
+  <input type="search" id="titleSearch" class="detail-search" placeholder="제목 검색" aria-label="제목 검색" oninput="renderCards()">
   <div class="detail-head">
     <div class="detail-title" id="detailTitle">맵명 <span id="detailCount"></span></div>
     <div class="team-toggle">
@@ -335,7 +346,6 @@ header{
       <button id="btnBlue" onclick="setTeam('blue')">BLUE</button>
     </div>
   </div>
-  <input type="search" id="titleSearch" class="detail-search" placeholder="제목 검색" aria-label="제목 검색" oninput="renderCards()">
   <div id="cardGrid"></div>
 </div>
 
@@ -479,6 +489,7 @@ async function loadAll(){
 }
 
 function renderMapGrid(){
+  if(document.getElementById('globalTitleSearch').value.trim()){ renderGlobalTitleSearch(); return; }
   const grid = document.getElementById('mapGrid');
   const tilesHtml = maps.map(m => {
     const count = items.filter(i => i.map_id === m.id).length;
@@ -503,6 +514,32 @@ function renderMapGrid(){
   `;}).join('');
   const addTile = editMode ? `<div class="map-tile add-tile cut-sm" onclick="addMap()"><div class="plus">+</div><div class="label">맵 추가</div></div>` : '';
   grid.innerHTML = (tilesHtml || (editMode ? '' : `<div class="loading">등록된 맵이 없어요.</div>`)) + addTile;
+}
+
+function renderGlobalTitleSearch(){
+  const query = document.getElementById('globalTitleSearch').value.trim().toLowerCase();
+  if(!query){ renderMapGrid(); return; }
+  const filtered = items.filter(it => String(it.title ?? '').toLowerCase().includes(query));
+  document.getElementById('mapGrid').innerHTML = filtered.map(it => {
+    const p = it.type === 'vid' ? parseYouTube(it.video_url) : null;
+    const thumbUrl = it.type === 'vid' ? ytThumb(it.video_url) : it.img_url;
+    const mapName = maps.find(m => m.id === it.map_id)?.name || '알 수 없는 맵';
+    return `
+    <div class="card" onclick="openOverlay('${it.id}')">
+      <div class="thumb" style="${thumbUrl ? `background-image:url('${thumbUrl}');background-size:cover;background-position:center;` : ''}">
+        <div class="badge ${it.type}">${it.type==='vid' ? '영상' : '이미지'}</div>
+        ${(p && p.isShort) ? '<div class="badge short" style="left:auto;right:8px;">쇼츠</div>' : ''}
+        ${thumbUrl
+          ? (it.type==='vid' ? '<div class="playicon"></div>' : '')
+          : `<span class="mono" style="font-size:10px;color:#3A4048;">${it.type==='vid' ? '아직 등록된 영상 없음' : '아직 등록된 이미지 없음'}</span>`}
+      </div>
+      <div class="meta">
+        <div class="title">${it.title}</div>
+        ${it.note ? `<div class="note">${it.note}</div>` : ''}
+        <div class="note">${mapName} · ${String(it.team || '').toUpperCase()}</div>
+      </div>
+    </div>`;
+  }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">일치하는 제목이 없어요.</div>`;
 }
 
 async function addMap(){
@@ -559,13 +596,16 @@ document.getElementById('mapImgInput').addEventListener('change', async function
 
 function showMapGrid(){
   clearTitleSearch();
+  clearGlobalTitleSearch();
   document.getElementById('viewGrid').classList.add('active');
   document.getElementById('viewDetail').classList.remove('active');
   document.getElementById('crumbMap').style.display = 'none';
   document.getElementById('crumbSep').style.display = 'none';
+  renderMapGrid();
 }
 
 function openMap(id, name){
+  clearGlobalTitleSearch();
   currentMap = id;
   currentMapName = name;
   currentTeam = 'red';
@@ -587,6 +627,7 @@ function setTeam(t){
 }
 
 function clearTitleSearch(){ document.getElementById('titleSearch').value = ''; }
+function clearGlobalTitleSearch(){ document.getElementById('globalTitleSearch').value = ''; }
 
 function parseYouTube(url){
   if(!url) return null;
