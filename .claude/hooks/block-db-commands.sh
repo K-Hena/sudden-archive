@@ -11,7 +11,7 @@ if [ $? -ne 0 ]; then
   fi
 fi
 
-if echo "$CMD" | grep -Eq 'supabase (db push|db reset|migration)|psql[[:space:]]'; then
+if echo "$CMD" | grep -Eq 'supabase[[:space:]]+(db[[:space:]]+push|db[[:space:]]+reset|migration)|(^|[^[:alnum:]_])psql([[:space:]]|$)'; then
   echo "🔧 Bash를 통한 DB 직접 실행(CLI/psql)은 금지되어 있습니다. 실행은 항상 Supabase MCP를 통해서만 하고, 고위험 SQL(DELETE/DROP/ALTER/RLS)은 사용자 확인 후에만 실행합니다 (docs/CLAUDE_CODE_RULES.md 'SQL 실행 규칙' 참고)." >&2
   exit 2
 fi
