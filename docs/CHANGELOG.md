@@ -47,6 +47,7 @@
 - **상세 검색창 상단 오른쪽 정렬** — 첫 화면과 같은 `map-head` 행을 재사용해 뒤로가기 버튼은 왼쪽, 제목 검색창은 같은 행의 오른쪽 끝에 배치하고 모바일에서는 세로로 전환
 - **Discord 로그인 기반 즐겨찾기 추가** — Supabase `favorites` 테이블에 복합 PK·CASCADE FK·인덱스와 본인 행 전용 SELECT/INSERT/DELETE RLS를 구성. 위폭·팁 상세/전체 검색 카드에 별 토글을 추가하고 최신 즐겨찾기를 우선 정렬하며 로그아웃 시 상태를 초기화
 - **"구간 끝 지정" 직후 시작 지점으로 튕기던 버그 수정** — `markClipEnd()`가 `Math.floor(getCurrentTime())`로 저장한 값을 곧바로 `clipPreviewTimer`의 상한 검사 경계로 재사용해, 지정 직후 첫 폴링에서 항상 구간 밖으로 오판되던 문제. `markClipEnd()`에만 짧은 유예(`clipEndMarkGraceUntil`)를 두고, 슬라이더 입력·구간 초기화 경로에서는 유예를 즉시 해제해 정밀도를 그대로 유지. 원인/검토 과정은 `docs/TROUBLESHOOTING.md` 참고
+- **그룹 A: 맵 상세뷰 진영 뷰 확장(TOTAL/RED/BLUE/FAVORITE) + 진영 없음(공통) 항목 지원** — `items.team` CHECK 제약을 `['red','blue']`에서 `['red','blue','none']`로 교체(적용 시점 데이터 0건이라 별도 마이그레이션 불필요). `currentTeam`을 뷰 상태(`'total'|'red'|'blue'|'favorite'`)로 확장 재사용해 팀 토글 버튼을 2개→4개로 늘렸고, TOTAL은 현재 맵의 전체 항목, FAVORITE은 로그인 사용자의 즐겨찾기 항목(팀 무관)을 보여주도록 `renderCards()` 필터링을 분기했다. TOTAL/FAVORITE 카드에서만 타입 배지 아래 진영 텍스트 배지(RED/BLUE/공통)를 표시하며, `red`/`blue`/`none` 이외의 예상 밖 값은 배지를 그리지 않고 콘솔 경고만 남긴다(`teamLabel()`/`teamBadge()`). FAVORITE 버튼을 비로그인 상태로 누르면 기존 로그인 유도 confirm을 그대로 띄우되, 취소 시 이전 뷰를 유지하고 FAVORITE 버튼을 활성화하지 않는다(로그인 완료 후 자동으로 FAVORITE 뷰로 전환하는 것은 이번 범위에서 제외 — 아래 DECISIONS.md 참고). 항목 추가 모달에는 `teamWrap`(RED/BLUE/공통 select, 전역 `modalTeam`)을 새로 추가해 `submitItem()`이 `team: currentTeam` 대신 `team: modalTeam`을 저장하도록 바꿨다
 
 ---
 

@@ -123,6 +123,8 @@ header{
 .team-toggle button:last-child{border-right:none;}
 .team-toggle button.on-red{color:var(--red);background:var(--red-dim);}
 .team-toggle button.on-blue{color:var(--blue);background:var(--blue-dim);}
+.team-toggle button.on-total{color:var(--text);background:var(--panel-hi);}
+.team-toggle button.on-favorite{color:var(--amber);background:var(--panel-hi);}
 .detail-search{
   display:block;width:100%;max-width:420px;box-sizing:border-box;margin-bottom:20px;padding:10px 12px;
   background:var(--panel);color:var(--text);border:1px solid var(--line);font:13px 'Inter',sans-serif;
@@ -277,7 +279,7 @@ header{
 .modal-head .x:hover{color:var(--red);}
 .modal-body{padding:20px;}
 .modal-body label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;letter-spacing:0.03em;}
-.modal-body input[type=text], .modal-body input[type=url], .modal-body textarea{width:100%;background:#0D1013;border:1px solid var(--line);color:var(--text);padding:9px 10px;font-family:'Inter',sans-serif;font-size:13px;margin-bottom:14px;}
+.modal-body input[type=text], .modal-body input[type=url], .modal-body textarea, .modal-body select{width:100%;background:#0D1013;border:1px solid var(--line);color:var(--text);padding:9px 10px;font-family:'Inter',sans-serif;font-size:13px;margin-bottom:14px;}
 .modal-body textarea{resize:vertical;min-height:44px;}
 .modal-body input[type=file]{width:100%;background:#0D1013;border:1px solid var(--line);color:var(--text);padding:9px 10px;font-family:'Inter',sans-serif;font-size:12px;margin-bottom:10px;}
 .paste-step{text-align:center;padding:24px 0 10px;}
@@ -352,8 +354,10 @@ header{
   <div class="detail-head">
     <div class="detail-title" id="detailTitle">맵명 <span id="detailCount"></span></div>
     <div class="team-toggle">
+      <button id="btnTotal" onclick="setTeam('total')">TOTAL</button>
       <button id="btnRed" onclick="setTeam('red')">RED</button>
       <button id="btnBlue" onclick="setTeam('blue')">BLUE</button>
+      <button id="btnFavorite" onclick="setTeam('favorite')">FAVORITE</button>
     </div>
   </div>
   <div id="cardGrid"></div>
@@ -428,6 +432,16 @@ header{
         <div class="cropper-wrap" id="cropperWrap">
           <img id="cropperImg">
         </div>
+      </div>
+
+      <div id="teamWrap" style="display:none;">
+        <label>진영</label>
+        <select id="mTeam" onchange="modalTeam = this.value || null;">
+          <option value="">선택 안 함</option>
+          <option value="red">RED</option>
+          <option value="blue">BLUE</option>
+          <option value="none">공통</option>
+        </select>
       </div>
 
       <div class="msg-modal" id="modalMsg"></div>
@@ -550,7 +564,7 @@ function renderGlobalTitleSearch(){
       <div class="meta">
         <div class="title">${it.title}</div>
         ${it.note ? `<div class="note">${it.note}</div>` : ''}
-        <div class="note">${mapName} · ${String(it.team || '').toUpperCase()}</div>
+        <div class="note">${mapName} · ${teamLabel(it.team) || String(it.team || '').toUpperCase()}</div>
       </div>
     </div>`;
   }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">일치하는 제목이 없어요.</div>`;
@@ -633,10 +647,16 @@ function openMap(id, name){
 }
 
 function setTeam(t){
+  if(t === 'favorite' && !currentSession){
+    if(confirm('즐겨찾기 보기는 Discord 로그인이 필요합니다. 로그인할까요?')) discordLogin();
+    return;
+  }
   currentTeam = t;
   clearTitleSearch();
+  document.getElementById('btnTotal').className = t==='total' ? 'on-total' : '';
   document.getElementById('btnRed').className = t==='red' ? 'on-red' : '';
   document.getElementById('btnBlue').className = t==='blue' ? 'on-blue' : '';
+  document.getElementById('btnFavorite').className = t==='favorite' ? 'on-favorite' : '';
   renderCards();
 }
 
@@ -716,6 +736,22 @@ function ytThumb(url){
   return p ? `https://img.youtube.com/vi/${p.id}/hqdefault.jpg` : '';
 }
 
+function teamLabel(team){
+  if(team === 'red') return 'RED';
+  if(team === 'blue') return 'BLUE';
+  if(team === 'none') return '공통';
+  console.warn('알 수 없는 team 값:', team);
+  return null;
+}
+function teamBadge(it){
+  if(currentTeam !== 'total' && currentTeam !== 'favorite') return '';
+  const label = teamLabel(it.team);
+  if(!label) return '';
+  const bg = it.team === 'red' ? 'var(--red)' : it.team === 'blue' ? 'var(--blue)' : 'var(--muted)';
+  const color = it.team === 'none' ? 'var(--bg)' : '#fff';
+  return `<div class="badge" style="top:28px;left:8px;background:${bg};color:${color};">${label}</div>`;
+}
+
 // 유튜브 IFrame API 로드 (클립 구간 제어용)
 let ytReady = false, ytPlayer = null;
 (function(){
@@ -727,7 +763,10 @@ window.onYouTubeIframeAPIReady = function(){ ytReady = true; };
 
 function renderCards(){
   const query = document.getElementById('titleSearch').value.trim().toLowerCase();
-  const teamItems = items.filter(i => i.map_id === currentMap && i.team === currentTeam);
+  const mapItems = items.filter(i => i.map_id === currentMap);
+  const teamItems = currentTeam === 'total' ? mapItems
+    : currentTeam === 'favorite' ? mapItems.filter(i => favoriteRow(i.id))
+    : mapItems.filter(i => i.team === currentTeam);
   const filtered = query ? teamItems.filter(i => String(i.title ?? '').toLowerCase().includes(query)) : teamItems;
   document.getElementById('detailCount').textContent = '(' + filtered.length + ')';
 
@@ -765,6 +804,7 @@ function renderCards(){
             <div class="thumb" style="${thumbUrl ? `background-image:url('${thumbUrl}');background-size:cover;background-position:center;` : ''}">
               <div class="badge ${it.type}">${it.type==='vid' ? '영상' : '이미지'}</div>
               ${shortBadge}
+              ${teamBadge(it)}
               ${thumbUrl
                 ? (it.type==='vid' ? '<div class="playicon"></div>' : '')
                 : `<span class="mono" style="font-size:10px;color:#3A4048;">${it.type==='vid' ? '아직 등록된 영상 없음' : '아직 등록된 이미지 없음'}</span>`
@@ -912,6 +952,7 @@ function closeOverlay(){
 
 let modalTag = null;
 let modalType = 'vid';
+let modalTeam = null;
 let modalStep = 'paste';
 let cropper = null;
 let clipStart = null, clipEnd = null, clipYtPlayer = null;
@@ -1154,6 +1195,7 @@ function showModalStep(step){
   document.getElementById('titleWrap').style.display = step === 'details' && !isMapLabel ? 'block' : 'none';
   document.getElementById('videoWrap').style.display = step === 'media' && modalType === 'vid' ? 'block' : 'none';
   document.getElementById('imageWrap').style.display = step === 'media' && modalType === 'img' ? 'block' : 'none';
+  document.getElementById('teamWrap').style.display = (isMapLabel ? step === 'media' : step === 'details') ? 'block' : 'none';
   document.getElementById('modalBackBtn').style.display = step === 'paste' ? 'none' : 'inline-block';
   const saveBtn = document.getElementById('modalSaveBtn');
   saveBtn.style.display = step === 'paste' ? 'none' : 'inline-block';
@@ -1252,6 +1294,10 @@ function openAddModal(tag){
   const isMapLabel = (tag === '맵 지명');
   document.getElementById('modalTitle').textContent = tag + '에 추가';
   modalType = isMapLabel ? 'img' : 'vid';
+
+  modalTeam = (currentTeam === 'red' || currentTeam === 'blue') ? currentTeam : null;
+  document.getElementById('mTeam').value = modalTeam || '';
+
   showModalStep('paste');
 
   document.getElementById('addModal').classList.add('active');
@@ -1281,6 +1327,7 @@ function setModalMsg(t, cls){
   el.textContent = t;
 }
 async function submitItem(){
+  if(!modalTeam){ setModalMsg('진영을 선택해주세요.', 'err'); return; }
   const isMapLabel = (modalTag === '맵 지명');
   const title = isMapLabel ? '맵 전체 지명' : document.getElementById('mTitle').value.trim();
   const note = isMapLabel ? '' : document.getElementById('mNote').value.trim();
@@ -1296,7 +1343,7 @@ async function submitItem(){
     if(!p){ setModalMsg('유튜브 링크를 확인해주세요.', 'err'); saveBtn.disabled = false; return; }
 
     const { error } = await sb.from('items').insert({
-      map_id: currentMap, team: currentTeam, type: 'vid', tag: modalTag,
+      map_id: currentMap, team: modalTeam, type: 'vid', tag: modalTag,
       title, note: note || null, video_url: url, clip_start: clipStart, clip_end: clipEnd
     });
     if(error){ setModalMsg('저장 실패: ' + error.message, 'err'); saveBtn.disabled = false; return; }
@@ -1312,7 +1359,7 @@ async function submitItem(){
 
     setModalMsg('저장 중...');
     const { error } = await sb.from('items').insert({
-      map_id: currentMap, team: currentTeam, type: 'img', tag: modalTag,
+      map_id: currentMap, team: modalTeam, type: 'img', tag: modalTag,
       title, note: note || null, img_url: pub.publicUrl, video_url: null, clip_start: null, clip_end: null
     });
     if(error){ setModalMsg('저장 실패: ' + error.message, 'err'); saveBtn.disabled = false; return; }

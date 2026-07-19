@@ -32,7 +32,7 @@ URL: `https://mvyepqqstaipxqfesalv.supabase.co` (User/Admin 두 사이트가 동
 |---|---|---|
 | id | uuid PK, `gen_random_uuid()` 기본값 | 즐겨찾기 `item_id`가 참조 |
 | map_id | `maps.id`를 참조하는 FK로 추정 (`items.filter(i => i.map_id === m.id)`) | |
-| team | `'red'` \| `'blue'` | RED/BLUE 팀 필터 기준 |
+| team | `'red'` \| `'blue'` \| `'none'` | RED/BLUE는 팀 필터 기준. `'none'`은 "진영 없음(공통)" 항목 — TOTAL/FAVORITE 뷰에서만 보이고 RED/BLUE 필터에서는 제외됨(NOT NULL, CHECK `items_team_check`로 세 값만 허용) |
 | type | `'vid'` \| `'img'` | 영상/이미지 구분 |
 | tag | 문자열. 실제 코드에서 쓰는 값: `'맵 지명'`, `'위폭'`, `'팁'` (`tagOrder` 배열 기준) | 이 외의 값도 저장 가능하지만 정렬 순서 밖으로 밀림 |
 | title | 항목 제목. `tag==='맵 지명'`이면 항상 `'맵 전체 지명'`로 고정 저장 | |
