@@ -12,7 +12,7 @@
          \                            /
           →      Supabase (공유)     ←
           - 동일 SUPABASE_URL / anon key
-          - maps, items, admins 테이블
+          - maps, items, admins, favorites 테이블
           - media Storage 버킷
           - Auth (Discord OAuth / 이메일·비밀번호 공존)
 ```
@@ -31,8 +31,8 @@
 
 # 쓰기(INSERT/UPDATE/DELETE)
 
-- 전부 `admins` 테이블 등록 여부에 의존하는 RLS로 막혀 있다 (User/레거시 Admin 구분 없이 동일한 정책 적용).
-- 쓰기 흐름은 항상 **"Supabase에 직접 쓰기 → 성공하면 `loadAll()`로 전체 재조회"** 패턴이다. 낙관적 업데이트(Optimistic UI, 로컬 배열을 먼저 바꾸는 방식)는 쓰지 않는다.
+- `maps`/`items`는 전부 `admins` 테이블 등록 여부에 의존하는 RLS로 막혀 있다 (User/레거시 Admin 구분 없이 동일한 정책 적용). 예외: `favorites`는 관리자 여부와 무관하게 로그인 사용자 본인 행(`user_id = auth.uid()`)만 SELECT/INSERT/DELETE할 수 있는 별도 RLS를 쓴다 (`docs/DATABASE.md` 참고).
+- `maps`/`items` 쓰기 흐름은 항상 **"Supabase에 직접 쓰기 → 성공하면 `loadAll()`로 전체 재조회"** 패턴이다. 낙관적 업데이트(Optimistic UI, 로컬 배열을 먼저 바꾸는 방식)는 쓰지 않는다. 예외: `favorites` 쓰기(`toggleFavorite()`)는 DB 성공 후 `loadAll()`을 다시 부르지 않고, 로컬 `favorites` 배열만 직접 갱신한 뒤 현재 화면을 다시 렌더링한다.
 - 예: `renameMap()` → `sb.from('maps').update(...)` → 성공 시 `await loadAll()` → `maps`/`items` 전체 재조회 → `renderMapGrid()`
 
 ---
@@ -49,7 +49,7 @@
 
 ```
 파일 선택/붙여넣기
-  → (레거시 Admin만) Cropper.js로 자르기 → jpg blob 생성
+  → Cropper.js로 자르기 → jpg blob 생성 (레거시 Admin, User 사이트 편집모드 `loadImageIntoCropper()`/`submitItem()` 모두 사용)
   → sb.storage.from('media').upload(path, file/blob)
   → sb.storage.from('media').getPublicUrl(path)
   → 반환된 공개 URL을 maps.img 또는 items.img_url 컬럼에 저장

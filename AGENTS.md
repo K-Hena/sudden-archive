@@ -21,7 +21,7 @@
 ## 하지 말 것
 - 추측으로 존재하지 않는 기능/파일/테이블을 가정하지 않는다.
 - 불필요한 리팩터링, 대규모 구조 변경.
-- 검색 기능이 있다고 가정하지 않는다 — 현재 텍스트 검색 기능 없음 (`docs/architecture/search-flow.md` 참고).
+- 검색 범위를 넘겨짚지 않는다 — 첫 화면 전체 제목 검색(`renderGlobalTitleSearch()`)과 맵·팀 내 제목 검색(`renderCards()`)이 구현되어 있지만, 둘 다 `items.title`만 검색하고 설명·태그·맵 이름·영상 URL은 검색하지 않는다 (`docs/architecture/search-flow.md` 참고).
 
 ## 참고 문서
 - 구조: `docs/PROJECT_STRUCTURE.md`

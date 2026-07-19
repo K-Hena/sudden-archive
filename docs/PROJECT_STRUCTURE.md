@@ -11,7 +11,21 @@ sudden-archive/                     (이 저장소, User 사이트 — github.co
 ├── index.html                      User 사이트 전체 (HTML+CSS+JS 단일 파일)
 ├── favicon.ico / favicon-16.png / favicon-32.png / favicon-192.png / apple-touch-icon-180.png
 ├── .gitignore
-├── .claude/                        로컬 Claude Code 설정 (settings.local.json)
+├── CLAUDE.md                       Claude Code 진입 문서 (docs/README_AI.md로 안내)
+├── CLAUDE.local.md                 개인 전용 로컬 메모, git 추적 제외 (.gitignore)
+├── AGENTS.md                       범용 AI 에이전트(Codex 등) 온보딩 문서
+├── .github/
+│   └── copilot-instructions.md     GitHub Copilot용 규칙 요약
+├── tests/
+│   └── favorites.test.js           즐겨찾기 정렬/버튼 로직 최소 단위 테스트 (node로 직접 실행)
+├── .claude/                        Claude Code 설정 — settings.json 등은 git에 커밋되어(공유) 팀 전체에 적용됨, settings.local.json만 개인용(git 미추적)
+│   ├── settings.json                PostToolUse/PreToolUse 훅 등록, permissions
+│   ├── settings.local.json          개인 permissions/language 설정 (git 미추적)
+│   ├── hooks/block-db-commands.sh   Bash로 DB CLI 직접 실행(psql, supabase db push 등) 차단
+│   ├── rules/db.md                  SQL 실행 위험도 규칙
+│   ├── agents/                      code-reviewer.md, bug-hunter.md
+│   ├── commands/commit.md           `/commit` 슬래시 커맨드
+│   └── output-styles/terse.md       응답 스타일 설정
 ├── docs/                           AI 운영 문서 (이 문서들)
 │   └── architecture/               세부 흐름 문서
 └── sudden-archive-admin/           레거시 Admin 사이트 — 별도 git 저장소, .gitignore로 이 repo 추적에서 제외됨
@@ -49,7 +63,7 @@ CDN으로 불러오는 외부 라이브러리: `@supabase/supabase-js@2`, `cropp
 - 데이터 로드: `loadAll()` — `maps`/`items` 테이블을 조회해 전역 배열을 채우고 `renderMapGrid()` 호출
 - 맵 그리드: `renderMapGrid()`는 전역 검색어가 없으면 맵 타일을, 있으면 `renderGlobalTitleSearch()`를 통해 전체 `items.title` 검색 결과 카드를 표시. 결과 카드는 `maps`에서 맵 이름을 찾아 진영과 함께 표시하고 `openOverlay()` 재사용. 편집모드 전용 `addMap()/renameMap()/deleteMap()/pickMapImage()`
 - 상세 카드: `renderCards()`가 현재 맵·팀과 제목으로 필터링한 뒤 위폭·팁 즐겨찾기를 최신순 우선 정렬. `favoriteButton()/toggleFavorite()`가 상세·전체 검색 카드의 별 버튼과 DB 성공 후 상태 갱신을 담당하고 `favoritePending`으로 중복 요청을 차단. 편집모드 전용 `openAddModal()/showModalStep()/readAddClipboard()/startVideoFlow()/startImageFlow()/advanceAddModal()/submitItem()/deleteItem()`, 이미지 크롭 `loadImageIntoCropper()`
-- 클립 구간 지정: `loadClipPlayer()/markClipStart()/markClipEnd()/clearClip()/updateClipLabel()`(버튼), `onClipStartInput()/onClipEndInput()/onClipStartChange()/onClipEndChange()/syncClipSliders()/updateClipSliderBounds()/updateClipRangeFill()`(단일 트랙 슬라이더 — 서로 `min`/`max`로 배타적 범위를 걺), `onClipScrubStart()/scrubClipPreview()`(드래그 중 일시정지 + 스로틀된 정지 프레임 미리보기), `applyClipDuration(duration)`(`getDuration()`이 안정된 값으로 확정됐을 때만 슬라이더 `min`/`max`/`value`에 반영 — 모달 초기화 시 `0`으로도 호출해 이전 영상 상태를 리셋), `syncClipPreviewTimer()/stopClipPreviewTimer()`(양쪽 경계가 있을 때만 `[clipStart, clipEnd)` 감시, 초기화·영상 교체·이미지 전환·모달 종료 시 정리) — 버튼과 슬라이더 모두 `clipStart`/`clipEnd`를 공유
+- 클립 구간 지정: `loadClipPlayer()/markClipStart()/markClipEnd()/clearClip()/updateClipLabel()`(버튼), `onClipStartInput()/onClipStartChange()/onClipEndInput()/onClipEndChange()/syncClipSliders()/updateClipSliderLabels()/updateClipRangeFill()`(단일 트랙 슬라이더 — `min`/`max`는 항상 `[0, clipDuration]`로 고정, 교차 방지는 각 입력 핸들러가 자기 자신의 value만 clamp하는 방식), `onClipScrubStart()/scrubClipPreview()`(드래그 중 일시정지 + 스로틀된 정지 프레임 미리보기), `applyClipDuration(duration)`(`getDuration()`이 안정된 값으로 확정됐을 때만 슬라이더 `min`/`max`/`value`에 반영 — 모달 초기화 시 `0`으로도 호출해 이전 영상 상태를 리셋), `syncClipPreviewTimer()/stopClipPreviewTimer()`(양쪽 경계가 있을 때만 `[clipStart, clipEnd)` 감시, 초기화·영상 교체·이미지 전환·모달 종료 시 정리) — 버튼과 슬라이더 모두 `clipStart`/`clipEnd`를 공유
 - 재생: `openOverlay()/closeOverlay()` — 유튜브 IFrame API로 클립 구간 반복 재생 지원, 클립 항목은 `controls:0`으로 컨트롤바를 숨기고 `toggleOverlayPlay()`(커스텀 재생/일시정지)와 `showFullVideo()`(같은 위치에서 이어서 `controls:1` 플레이어로 재생성, 구간 제한 해제)를 제공. 상태는 `overlayVideoId`/`overlayHasClip`에 저장되며 오버레이를 닫으면 초기화됨(전체 모드 전환은 세션 한정, `docs/DECISIONS.md` 참고)
 - 인증: `initAuth()/renderAuthArea()/discordLogin()/loadFavorites()` — Discord OAuth 로그인, 로그인 사용자의 즐겨찾기 조회·로그아웃 초기화, `admins` 테이블 조회로 관리자 판별, `toggleEditMode()`
 
