@@ -38,7 +38,7 @@
 3. 구현 계획 작성 (Claude 또는 GPT)
 4. 기존 구조 유지
 5. 기능 구현 (Claude Code 또는 Codex)
-6. Codex 자동 리뷰 (stop-review-gate) — 턴이 끝나기 전 Codex가 git diff를 자동 검토한다. 별도 명령 불필요.
+6. Codex 리뷰 (stop-review-gate) — 설정되어 있으면 턴이 끝나기 전 Codex가 git diff를 자동 검토한다(`/codex:setup --enable-review-gate`로 1회 설정, 별도 명령 불필요). 단, VS Code 확장/사이드바 세션에서는 자동 발동이 관찰되지 않는 경우가 있으므로, 자동 리뷰가 뜨지 않으면 `docs/CLAUDE_CODE_RULES.md`의 "커밋 전 필수 리뷰 규칙"에 따라 `codex:rescue`로 수동 요청한다.
    - 문제 없음 → 7번으로 진행
    - 문제 발견 → 멈추고 사용자에게 보고, 지시 없이 임의 수정하지 않는다
 7. 오류 확인
