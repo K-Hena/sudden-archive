@@ -87,9 +87,10 @@ header{
   margin-bottom:14px;display:flex;align-items:center;gap:8px;
 }
 .section-label::after{content:'';flex:1;height:1px;background:var(--line);}
-.map-head{display:flex;align-items:center;gap:16px;margin-bottom:14px;}
+.map-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px;}
 .map-head .section-label{flex:1;margin-bottom:0;}
 .map-head .detail-search{margin-bottom:0;}
+.detail-toolbar .back-btn{margin-bottom:0;}
 
 .map-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;}
 .map-tile{
@@ -130,6 +131,7 @@ header{
 @media(max-width:600px){
   .map-head{align-items:stretch;flex-direction:column;}
   .map-head .detail-search{max-width:none;}
+  .detail-toolbar .back-btn{align-self:flex-start;}
 }
 
 .tag-section{margin-bottom:34px;}
@@ -337,8 +339,10 @@ header{
 </div>
 
 <div class="view" id="viewDetail">
-  <button class="back-btn" onclick="showMapGrid()">← 전체 맵으로</button>
-  <input type="search" id="titleSearch" class="detail-search" placeholder="제목 검색" aria-label="제목 검색" oninput="renderCards()">
+  <div class="map-head detail-toolbar">
+    <button class="back-btn" onclick="showMapGrid()">← 전체 맵으로</button>
+    <input type="search" id="titleSearch" class="detail-search" placeholder="제목 검색" aria-label="제목 검색" oninput="renderCards()">
+  </div>
   <div class="detail-head">
     <div class="detail-title" id="detailTitle">맵명 <span id="detailCount"></span></div>
     <div class="team-toggle">

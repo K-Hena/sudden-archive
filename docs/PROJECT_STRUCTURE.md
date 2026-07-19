@@ -32,13 +32,13 @@ CDN으로 불러오는 외부 라이브러리: `@supabase/supabase-js@2`, `cropp
 
 ## CSS (`<style>`)
 - `:root`에 색상 변수 정의: `--bg/--panel/--line/--text/--muted` (베이스), `--red/--blue` (팀 컬러), `--amber` (기존 강조색, 편집모드에는 미사용), `--edit-accent/--edit-accent-ink` (편집모드 전용 강조색), `--green` (성공 메시지)
-- 컴포넌트별 스타일: 헤더/브랜드, 맵 그리드(`map-tile`), 검색창(`detail-search`)과 첫 화면 검색 행(`map-head`, 모바일 세로 배치), 카드 그리드(`card`, `card-del`), 재생 오버레이(`overlay`), 편집모드 UI(`tile-actions`, `add-tile`, `editmode-btn`, `admin-badge`), 항목 추가 모달(`modal`, `type-toggle`, `cropper-wrap`, `clip-tools`, `clip-btns`, `clip-range`), 구간 슬라이더(`clip-sliders`, `clip-range-slider`/`clip-range-track`/`clip-range-fill`/`clip-range-input` — 겹친 단일 트랙 + thumb만 `pointer-events:auto`, `docs/DECISIONS.md` 참고)
+- 컴포넌트별 스타일: 헤더/브랜드, 맵 그리드(`map-tile`), 검색창(`detail-search`)과 첫 화면·상세 상단 검색 행(`map-head`, 모바일 세로 배치), 카드 그리드(`card`, `card-del`), 재생 오버레이(`overlay`), 편집모드 UI(`tile-actions`, `add-tile`, `editmode-btn`, `admin-badge`), 항목 추가 모달(`modal`, `type-toggle`, `cropper-wrap`, `clip-tools`, `clip-btns`, `clip-range`), 구간 슬라이더(`clip-sliders`, `clip-range-slider`/`clip-range-track`/`clip-range-fill`/`clip-range-input` — 겹친 단일 트랙 + thumb만 `pointer-events:auto`, `docs/DECISIONS.md` 참고)
 
 ## HTML (`<body>`)
 - `header`: 로고, CLIPS/TIPS 카운트, `#authArea`(로그인 상태에 따라 JS가 채움)
 - `.subbar`: 전체 맵 / 현재 맵 이름 breadcrumb
 - `#viewGrid`: 맵 선택 화면 — 맵 선택 문구와 전체 제목 검색창(`#globalTitleSearch`) 아래 `#mapGrid`에 맵 타일 또는 검색 결과 카드 표시
-- `#viewDetail`: 맵 상세 화면 — 뒤로가기 아래 제목 검색창(`#titleSearch`), 그 아래 맵 제목·RED/BLUE 팀 토글과 `#cardGrid`
+- `#viewDetail`: 맵 상세 화면 — 상단 `map-head detail-toolbar` 안에 뒤로가기 버튼(왼쪽)과 제목 검색창(`#titleSearch`, 오른쪽), 그 아래 맵 제목·RED/BLUE 팀 토글과 `#cardGrid`
 - `#overlay`: 영상/이미지 재생 오버레이 — 실제 미디어(iframe/img)는 `#overlayMediaContent`에만 그리고, 그 위에 뜨는 재생/일시정지 버튼(`#overlayPlayPause`)과 클립 항목 전용 "전체 영상 보기" 버튼(`#overlayFullBtn`)은 형제 요소로 분리해 `innerHTML` 교체로 지워지지 않게 함
 - `#addModal`: 편집모드 항목 추가 모달 — `#pasteStep` → `#videoWrap/#imageWrap` → `#titleWrap` 3단계 화면 전환. 유튜브 URL/이미지를 자동 판별하고, 이미지는 Cropper.js, 영상은 `#clipTools`(버튼 + 슬라이더)로 연결. "맵 지명" 태그는 이미지 고정
 - `#mapImgInput`: 맵 이미지 업로드용 숨김 `<input type=file>`
