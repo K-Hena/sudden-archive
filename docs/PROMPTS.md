@@ -35,13 +35,16 @@
 
 1. 관련 파일 분석
 2. 영향 범위 확인
-3. 구현 계획 작성
+3. 구현 계획 작성 (Claude 또는 GPT)
 4. 기존 구조 유지
-5. 기능 구현
-6. 오류 확인
-7. 코드 리뷰
-8. Git Commit
-9. Git Push
+5. 기능 구현 (Claude Code 또는 Codex)
+6. Codex 자동 리뷰 (stop-review-gate) — 턴이 끝나기 전 Codex가 git diff를 자동 검토한다. 별도 명령 불필요.
+   - 문제 없음 → 7번으로 진행
+   - 문제 발견 → 멈추고 사용자에게 보고, 지시 없이 임의 수정하지 않는다
+7. 오류 확인
+8. 코드 리뷰 (구현 결과물 리뷰, .claude/agents/code-reviewer.md 기준)
+9. Git Commit
+10. Git Push
 
 주의
 

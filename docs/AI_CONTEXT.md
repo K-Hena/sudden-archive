@@ -162,23 +162,35 @@ git push까지 포함해야 Vercel 배포에 반영된다는 점은 `docs/README
 
 # AI 협업 방식
 
-이 프로젝트는 두 역할로 나뉘어 협업한다.
+이 프로젝트는 상황에 따라 Mode A(Claude Chat 설계 → Claude Code 구현 → Codex 자동 리뷰) 또는
+Mode B(GPT 설계 → Codex 구현+리뷰, Claude Code 사용량 소진 시 대체)로 작업한다.
+Mode 전환은 사용자가 명시적으로 지시한다. 각 역할의 자세한 담당 업무는 `docs/README_AI.md`의
+"AI 역할 & 워크플로우 모드" 참고.
 
 ## Claude (Chat) — Technical Lead
 
-설계, 분석, 코드 리뷰, 작업 지시서 작성, 디자인 시안 제시를 담당한다.
+설계, 분석, 코드 리뷰, 작업 지시서 작성, 디자인 시안 제시를 담당한다 (Mode A).
 구현 전에 항상 Claude와 설계를 먼저 진행한다.
 
-담당 업무의 전체 목록은 `docs/README_AI.md`의 "AI 역할" 참고.
+담당 업무의 전체 목록은 `docs/README_AI.md`의 "AI 역할 & 워크플로우 모드" 참고.
 
 ---
 
 ## Claude Code — Developer
 
-실제 코드 구현, 여러 파일 수정, 리팩터링, Git 작업(커밋·푸시 포함)을 담당한다.
+실제 코드 구현, 여러 파일 수정, 리팩터링, Git 작업(커밋·푸시 포함)을 담당한다 (Mode A).
 설계 변경은 Claude(Chat)와 협의 후 진행한다.
 
 담당 업무와 행동 규칙은 `docs/CLAUDE_CODE_RULES.md` 참고.
+
+---
+
+## Codex — 리뷰어 (Mode A) / 구현+리뷰어 (Mode B)
+
+Mode A에서는 Claude Code가 코드를 수정한 직후 `stop-review-gate`(플러그인 내장 기능)로 git diff를 자동 검토만 한다 — 설계 단계가 아니라 구현 직후, 턴이 끝나기 전에 동작한다.
+Mode B(Claude Code 사용량 소진 시)에서는 GPT의 설계를 바탕으로 구현까지 직접 담당하고, 구현 후 동일하게 자동 리뷰가 붙는다.
+
+자세한 내용은 `docs/README_AI.md` 참고.
 
 ---
 

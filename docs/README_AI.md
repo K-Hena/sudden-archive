@@ -72,30 +72,50 @@ MAINTENANCE
 
 ---
 
-# AI 역할
+# AI 역할 & 워크플로우 모드
 
-AI_CONTEXT.md 기준으로 이 프로젝트는 두 역할로 나뉜다 (ChatGPT 등 제3의 AI는 현재 사용하지 않는다).
+이 프로젝트는 상황에 따라 두 가지 모드로 작업한다. Mode 전환은 사용자가 명시적으로 지시하며,
+Claude Code가 스스로 "토큰/사용량이 부족하다"고 판단해 임의로 Mode를 바꾸지 않는다.
 
-Claude Chat (AI_CONTEXT상 "Technical Lead")
+## Mode A — 기본 워크플로우 (기본값)
 
-- 프로젝트 구조 분석
-- 기능 설계, 아키텍처 설계
-- DB 구조 검토 / SQL 설계 (DB 변경은 Chat과 설계 후 사용자가 Supabase에서 직접 실행)
-- 코드 리뷰, 버그 원인 분석
-- Claude Code 작업 지시서 작성
-- 구현 방향 결정
-- 디자인 시안 제시 (버튼 스타일, 아이콘 등 — 확정 전에는 시안으로만 제시하고, 사용자가 "이대로 만들어줘"라고 확정하면 실제 파일 생성)
+1. **Claude (Chat)** — 설계 (AI_CONTEXT상 "Technical Lead")
 
-구현 전에 항상 Claude와 설계를 먼저 진행한다.
+   - 프로젝트 구조 분석
+   - 기능 설계, 아키텍처 설계
+   - DB 구조 검토 / SQL 설계 (DB 변경은 Chat과 설계 후 사용자가 Supabase에서 직접 실행)
+   - 코드 리뷰, 버그 원인 분석
+   - Claude Code 작업 지시서 작성
+   - 구현 방향 결정
+   - 디자인 시안 제시 (버튼 스타일, 아이콘 등 — 확정 전에는 시안으로만 제시하고, 사용자가 "이대로 만들어줘"라고 확정하면 실제 파일 생성)
 
-Claude Code (AI_CONTEXT상 "Developer")
+   구현 전에 항상 Claude와 설계를 먼저 진행한다.
 
-- 실제 코드 구현
-- 여러 파일 수정
-- 리팩터링
-- Git 작업 (커밋, 푸시 포함)
+2. **Claude Code** — 구현 (AI_CONTEXT상 "Developer")
 
-담당 업무의 자세한 내용과 행동 규칙은 CLAUDE_CODE_RULES.md 참고.
+   - 실제 코드 구현
+   - 여러 파일 수정
+   - 리팩터링
+   - Git 작업 (커밋, 푸시 포함)
+
+   담당 업무의 자세한 내용과 행동 규칙은 CLAUDE_CODE_RULES.md 참고.
+
+3. **Codex** — 리뷰어
+   - 설계 단계가 아니라 **Claude Code가 코드를 수정한 직후, 턴이 끝나기 전에** 자동으로 검토한다 (`stop-review-gate`, 플러그인 내장 기능)
+   - git diff(실제 변경된 코드)를 기준으로 검토하며, 별도 명령이나 창 없이 Claude Code 안에서 자동 실행된다
+   - 문제가 발견되면 턴을 멈추고 사용자에게 보고한다
+   - 사용자가 `/codex:setup --enable-review-gate`를 한 번 실행해둬야 동작한다 (Claude Code가 대신 실행하지 않음)
+
+## Mode B — 대체 워크플로우 (Claude Code 사용량/토큰 소진 시)
+
+1. **GPT (ChatGPT)** — 설계 (Claude Chat 대체)
+   - Mode A의 Claude(Chat) 담당 업무를 동일하게 수행한다
+   - 사용자가 ChatGPT와 별도로 설계를 진행하고, 그 결과(지시서)를 Codex에게 전달한다
+
+2. **Codex** — 구현 + 리뷰 (Claude Code 대체)
+   - GPT가 작성한 지시서를 바탕으로 코드를 직접 구현한다 (Codex CLI, 또는 Claude Code 안에서는 `codex-rescue` 서브에이전트로 위임 가능)
+   - 구현 후에는 Mode A와 동일하게 `stop-review-gate`가 자동으로 리뷰한다
+   - Git 작업(커밋/푸시)도 동일한 규칙(CODING_RULES.md, MAINTENANCE.md)을 따른다
 
 ---
 
