@@ -1,7 +1,6 @@
 # DATABASE.md
 
-> Supabase 대시보드를 직접 열람해서 작성한 문서가 아니라, `index.html`(User)과 `sudden-archive-admin/index.html`(레거시 Admin)의 실제 쿼리 코드에서 사용하는 테이블/컬럼만 근거로 정리한 문서다.
-> RLS 정책의 정확한 SQL 조건은 AI_CONTEXT.md에 요약된 내용 외에는 코드만으로 확인할 수 없으므로, 확실하지 않은 부분은 그렇다고 명시했다. 정확한 정책 SQL은 Supabase 대시보드에서 직접 확인해야 한다.
+> 코드와 Supabase MCP로 확인한 실제 스키마를 기준으로 정리한다.
 
 ---
 
@@ -30,7 +29,7 @@ URL: `https://mvyepqqstaipxqfesalv.supabase.co` (User/Admin 두 사이트가 동
 
 | 컬럼 | 코드에서 확인된 사용 | 비고 |
 |---|---|---|
-| id | `it.id`, 삭제/오버레이에서 참조 | PK로 추정 |
+| id | uuid PK, `gen_random_uuid()` 기본값 | 즐겨찾기 `item_id`가 참조 |
 | map_id | `maps.id`를 참조하는 FK로 추정 (`items.filter(i => i.map_id === m.id)`) | |
 | team | `'red'` \| `'blue'` | RED/BLUE 팀 필터 기준 |
 | type | `'vid'` \| `'img'` | 영상/이미지 구분 |
@@ -51,15 +50,29 @@ URL: `https://mvyepqqstaipxqfesalv.supabase.co` (User/Admin 두 사이트가 동
 
 현재 등록된 대표 계정 `user_id`: `c9642556-c6d5-427d-9e46-92ecfe507f2e` (AI_CONTEXT.md 기준, 코드에서 직접 확인되지는 않음)
 
+## favorites
+
+Discord 로그인 사용자의 즐겨찾기. Supabase migration `create_user_favorites`로 생성했다.
+
+| 컬럼 | 자료형/제약 |
+|---|---|
+| user_id | uuid NOT NULL, `auth.users(id)` FK, ON DELETE CASCADE |
+| item_id | uuid NOT NULL, `public.items(id)` FK, ON DELETE CASCADE |
+| created_at | timestamptz NOT NULL DEFAULT `now()` |
+
+- 복합 PK: `(user_id, item_id)` — 중복 즐겨찾기 방지
+- 인덱스: `(user_id, created_at DESC)`, `(item_id)`
+
 ---
 
 # RLS (Row Level Security)
 
-코드 동작과 AI_CONTEXT.md 기술 내용으로 미루어 볼 때:
+코드 동작과 Supabase MCP 확인 기준:
 
 - `maps`, `items`: **SELECT는 로그인 여부와 무관하게 누구나 가능** (User 사이트는 로그인 없이도 목록을 조회함)
 - `maps`, `items`: **INSERT/UPDATE/DELETE는 `admins` 테이블에 등록된 `user_id`만 허용** — User 사이트 편집모드가 이 권한에 의존해서 관리자만 CRUD 버튼이 동작하도록 설계됨
 - `admins`: 정확한 RLS 정책은 코드로 확인 불가. 최소한 로그인한 본인이 자신의 `user_id`가 등록돼 있는지 SELECT할 수 있어야 현재 코드(`renderAuthArea`)가 동작한다.
+- `favorites`: RLS 활성화. `authenticated`에 SELECT/INSERT/DELETE만 부여하고 각 정책이 `(select auth.uid()) = user_id`로 본인 행만 허용한다. `anon` 권한과 UPDATE 정책은 없다.
 
 정확한 정책 SQL은 Supabase 대시보드의 Authentication/Database > Policies에서 직접 확인 필요.
 

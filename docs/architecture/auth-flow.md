@@ -25,6 +25,8 @@ sequenceDiagram
         S-->>U: onAuthStateChange(session) 발생
         U->>U: renderAuthArea(session) 재실행
     else 로그인 된 상태
+        U->>S: favorites에서 item_id, created_at 최신순 조회
+        S-->>U: RLS로 현재 사용자 행만 반환
         U->>S: sb.from('admins').select('user_id').eq('user_id', session.user.id).maybeSingle()
         S-->>U: 관리자 여부(isAdmin)
         U->>U: 닉네임 표시 + (관리자면) 배지/편집모드 버튼 표시
@@ -37,6 +39,7 @@ sequenceDiagram
 - 로그인: `sb.auth.signInWithOAuth({ provider: 'discord' })`
 - 로그아웃: `sb.auth.signOut()`
 - 닉네임: `session.user.user_metadata.full_name || session.user.user_metadata.name || '사용자'`
+- 즐겨찾기: 로그인 시 `favorites`를 최신순 조회하고 로그아웃 시 세션·즐겨찾기·처리 중 상태를 즉시 비운 뒤 현재 화면을 다시 렌더링한다.
 
 ## 관리자 판별 → 편집모드
 - `renderAuthArea`가 `admins` 테이블에서 `user_id` 존재 여부로 `isAdmin`을 판별한다.

@@ -150,6 +150,12 @@ header{
 }
 .card:hover .card-del{opacity:1;}
 .card .card-del:hover{color:var(--red);}
+.card-fav{
+  position:absolute;top:6px;right:6px;width:32px;height:32px;z-index:3;cursor:pointer;
+  border:1px solid var(--line);background:rgba(6,7,9,.8);color:var(--muted);font-size:20px;line-height:1;
+}
+.card-fav.with-delete{right:36px;}
+.card-fav.on,.card-fav:hover{color:var(--amber);border-color:var(--amber);}
 .thumb{
   height:130px;position:relative;background:linear-gradient(135deg,#1A1E24,#0F1216);
   display:flex;align-items:center;justify-content:center;
@@ -466,6 +472,9 @@ let items = [];
 let currentMap = null;   // 맵 id
 let currentMapName = '';
 let currentTeam = 'red';
+let currentSession = null;
+let favorites = [];
+const favoritePending = new Set();
 const tagOrder = ['맵 지명', '위폭', '팁'];
 
 async function loadAll(){
@@ -523,13 +532,14 @@ function renderMapGrid(){
 function renderGlobalTitleSearch(){
   const query = document.getElementById('globalTitleSearch').value.trim().toLowerCase();
   if(!query){ renderMapGrid(); return; }
-  const filtered = items.filter(it => String(it.title ?? '').toLowerCase().includes(query));
+  const filtered = sortFavorites(items.filter(it => String(it.title ?? '').toLowerCase().includes(query)));
   document.getElementById('mapGrid').innerHTML = filtered.map(it => {
     const p = it.type === 'vid' ? parseYouTube(it.video_url) : null;
     const thumbUrl = it.type === 'vid' ? ytThumb(it.video_url) : it.img_url;
     const mapName = maps.find(m => m.id === it.map_id)?.name || '알 수 없는 맵';
     return `
     <div class="card" onclick="openOverlay('${it.id}')">
+      ${favoriteButton(it)}
       <div class="thumb" style="${thumbUrl ? `background-image:url('${thumbUrl}');background-size:cover;background-position:center;` : ''}">
         <div class="badge ${it.type}">${it.type==='vid' ? '영상' : '이미지'}</div>
         ${(p && p.isShort) ? '<div class="badge short" style="left:auto;right:8px;">쇼츠</div>' : ''}
@@ -633,6 +643,66 @@ function setTeam(t){
 function clearTitleSearch(){ document.getElementById('titleSearch').value = ''; }
 function clearGlobalTitleSearch(){ document.getElementById('globalTitleSearch').value = ''; }
 
+function favoriteRow(id){ return favorites.find(f => f.item_id === id); }
+function sortFavorites(list){
+  return [...list].sort((a, b) => {
+    const af = favoriteRow(a.id), bf = favoriteRow(b.id);
+    if(af && bf) return new Date(bf.created_at) - new Date(af.created_at);
+    return af ? -1 : (bf ? 1 : 0);
+  });
+}
+function favoriteButton(it, withDelete = false){
+  if(it.tag !== '위폭' && it.tag !== '팁') return '';
+  const active = !!favoriteRow(it.id);
+  return `<button type="button" class="card-fav${active ? ' on' : ''}${withDelete ? ' with-delete' : ''}" aria-label="즐겨찾기 ${active ? '해제' : '추가'}" onclick="toggleFavorite(event,'${it.id}')">${active ? '★' : '☆'}</button>`;
+}
+function rerenderCurrentView(){
+  if(document.getElementById('viewDetail').classList.contains('active')) renderCards();
+  else renderMapGrid();
+}
+async function discordLogin(){
+  const { error } = await sb.auth.signInWithOAuth({ provider: 'discord' });
+  if(error) alert('로그인 실패: ' + error.message);
+}
+async function loadFavorites(){
+  const userId = currentSession && currentSession.user.id;
+  if(!userId){ favorites = []; return; }
+  const { data, error } = await sb.from('favorites').select('item_id, created_at').order('created_at', { ascending: false });
+  if(currentSession && currentSession.user.id === userId){
+    favorites = error ? [] : (data || []);
+    if(error) alert('즐겨찾기를 불러오지 못했어요: ' + error.message);
+  }
+}
+async function toggleFavorite(e, itemId){
+  e.stopPropagation();
+  if(!currentSession){
+    if(confirm('Discord 로그인이 필요한 기능입니다. 로그인할까요?')) discordLogin();
+    return;
+  }
+  const userId = currentSession.user.id;
+  if(favoritePending.has(itemId)) return;
+  favoritePending.add(itemId);
+  try {
+    const existing = favoriteRow(itemId);
+    if(existing){
+      const { error } = await sb.from('favorites').delete().eq('user_id', userId).eq('item_id', itemId);
+      if(error) throw error;
+      if(!currentSession || currentSession.user.id !== userId) return;
+      favorites = favorites.filter(f => f.item_id !== itemId);
+    } else {
+      const { data, error } = await sb.from('favorites').insert({ user_id: userId, item_id: itemId }).select('item_id, created_at').single();
+      if(error) throw error;
+      if(!currentSession || currentSession.user.id !== userId) return;
+      favorites = [data, ...favorites];
+    }
+    rerenderCurrentView();
+  } catch(error){
+    alert('즐겨찾기 변경 실패: ' + error.message);
+  } finally {
+    favoritePending.delete(itemId);
+  }
+}
+
 function parseYouTube(url){
   if(!url) return null;
   const short = url.match(/shorts\/([A-Za-z0-9_-]{6,})/);
@@ -677,7 +747,7 @@ function renderCards(){
 
   const container = document.getElementById('cardGrid');
   container.innerHTML = sortedTags.map(tag => {
-    const list = groups[tag];
+    const list = sortFavorites(groups[tag]);
     const isMapLabel = tag === '맵 지명';
     const addTileHtml = editMode && !query ? `<div class="add-tile cut-sm" onclick="openAddModal('${tag}')"><div class="plus">+</div><div class="label">${tag}에 추가</div></div>` : '';
     return `
@@ -691,6 +761,7 @@ function renderCards(){
           return `
           <div class="card" onclick="openOverlay('${it.id}')">
             ${editMode ? `<span class="card-del" onclick="deleteItem(event,'${it.id}')" title="삭제">✕</span>` : ''}
+            ${favoriteButton(it, editMode)}
             <div class="thumb" style="${thumbUrl ? `background-image:url('${thumbUrl}');background-size:cover;background-position:center;` : ''}">
               <div class="badge ${it.type}">${it.type==='vid' ? '영상' : '이미지'}</div>
               ${shortBadge}
@@ -1257,6 +1328,12 @@ function toggleEditMode(){
 }
 
 async function renderAuthArea(session){
+  const userId = session && session.user.id;
+  const previousUserId = currentSession && currentSession.user.id;
+  currentSession = session;
+  if(previousUserId !== userId) favoritePending.clear();
+  await loadFavorites();
+  if((currentSession && currentSession.user.id) !== userId) return;
   const el = document.getElementById('authArea');
   if(session){
     const nickname = session.user.user_metadata.full_name || session.user.user_metadata.name || '사용자';
@@ -1282,14 +1359,10 @@ async function renderAuthArea(session){
     }
   } else {
     editMode = false;
-    renderMapGrid();
-    if(document.getElementById('viewDetail').classList.contains('active')) renderCards();
     el.innerHTML = `<button id="discordLoginBtn" class="discord-btn">디스코드로 로그인</button>`;
-    document.getElementById('discordLoginBtn').onclick = async () => {
-      const { error } = await sb.auth.signInWithOAuth({ provider: 'discord' });
-      if(error) alert('로그인 실패: ' + error.message);
-    };
+    document.getElementById('discordLoginBtn').onclick = discordLogin;
   }
+  rerenderCurrentView();
 }
 
 async function initAuth(){
