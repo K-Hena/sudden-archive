@@ -809,39 +809,41 @@ function updateClipSliderLabels(){
 }
 function updateClipRangeFill(){
   const fill = document.getElementById('clipRangeFill');
-  if(clipDuration <= 0){ fill.style.left = '0%'; fill.style.width = '0%'; return; }
-  const s = Number(document.getElementById('clipStartRange').value);
-  const e = Number(document.getElementById('clipEndRange').value);
-  const startFrac = s / clipDuration;
-  const endFrac = Math.max(e, s) / clipDuration;
-  // 네이티브 range 손잡이는 트랙 전체 폭이 아니라 (트랙폭 - 손잡이폭)만큼만 이동하고,
-  // 손잡이 중심은 항상 손잡이 반지름(8px, thumb width 16px의 절반)만큼 안쪽에서 시작한다.
-  // 퍼센트를 트랙 폭 그대로 써서 계산하면 채움 바가 실제 손잡이 위치보다 바깥으로 튀어나온다.
-  fill.style.left = `calc(8px + (100% - 16px) * ${startFrac})`;
-  fill.style.width = `calc((100% - 16px) * ${Math.max(endFrac - startFrac, 0)})`;
-}
-// 시작/끝 슬라이더가 서로 넘나들지 못하도록 각자의 min/max로 상호 배타적 범위를 걸어둔다.
-// (반대쪽 슬라이더의 .value를 직접 밀어내는 대신 자기 자신의 네이티브 범위로만 막아서,
-//  서로의 값을 계속 되돌려쓰는 일이 없게 한다 — "끝쪽이 뻑뻑하다" 버그의 원인이었다)
-function updateClipSliderBounds(){
   const startRange = document.getElementById('clipStartRange');
   const endRange = document.getElementById('clipEndRange');
+  // 각 슬라이더가 실제로 렌더링되는 비율은 (value - 자신의 min) / (자신의 max - 자신의 min)이다.
+  // 지금은 min/max를 항상 [0, clipDuration]으로 고정해두므로 이 비율이 곧 value/clipDuration과
+  // 같지만, 혹시라도 min/max가 다른 값으로 바뀌는 경우에도 항상 실제 손잡이 위치와 일치하도록
+  // value/clipDuration 대신 각 슬라이더 자신의 min/max를 기준으로 계산한다.
+  const sMin = Number(startRange.min), sMax = Number(startRange.max);
+  const eMin = Number(endRange.min), eMax = Number(endRange.max);
   const s = Number(startRange.value);
   const e = Number(endRange.value);
-  startRange.max = Math.max(e - 1, 0);
-  endRange.min = Math.min(s + 1, clipDuration);
+  const startFrac = sMax > sMin ? (s - sMin) / (sMax - sMin) : 0;
+  const endFrac = eMax > eMin ? (e - eMin) / (eMax - eMin) : 0;
+  const left = Math.min(startFrac, endFrac);
+  const right = Math.max(startFrac, endFrac);
+  // 네이티브 range 손잡이는 트랙 전체 폭이 아니라 (트랙폭 - 손잡이폭)만큼만 이동하고,
+  // 손잡이 중심은 항상 손잡이 반지름(8px, thumb width 16px의 절반)만큼 안쪽에서 시작한다.
+  fill.style.left = `calc(8px + (100% - 16px) * ${left})`;
+  fill.style.width = `calc((100% - 16px) * ${Math.max(right - left, 0)})`;
 }
+// 시작/끝 슬라이더의 min/max는 항상 [0, clipDuration]으로 고정한다.
+// (예전에는 서로 넘나들지 못하게 상대 슬라이더 값으로 startRange.max/endRange.min을
+//  계속 좁혀서 막았는데, 그러면 각 슬라이더의 실제 min~max 폭이 clipDuration보다
+//  좁아져서 "손잡이의 화면 위치 비율(value-min)/(max-min)"이 실제 재생 위치 비율
+//  (value/clipDuration)과 어긋나 버렸다 — 두 손잡이가 화면상 역전되어 그려지거나
+//  채움 바가 손잡이 밖으로 튀어나오는 근본 원인이었다. 교차 방지는 min/max를 좁히는
+//  대신 onClipStartInput/onClipEndInput에서 "자기 자신의" value만 clamp해서 처리한다.)
 function syncClipSliders(){
   const startRange = document.getElementById('clipStartRange');
   const endRange = document.getElementById('clipEndRange');
   const s = clipStart !== null ? clipStart : 0;
   const e = clipEnd !== null ? clipEnd : clipDuration;
-  // 값을 대입하기 전에 범위를 넉넉하게 풀어둬야 새 값이 이전 범위에 잘려나가지 않는다
-  startRange.max = clipDuration;
-  endRange.min = 0;
+  startRange.min = 0; startRange.max = clipDuration;
+  endRange.min = 0; endRange.max = clipDuration;
   startRange.value = s;
   endRange.value = e;
-  updateClipSliderBounds();
   updateClipSliderLabels();
   updateClipRangeFill();
 }
@@ -851,8 +853,8 @@ function applyClipDuration(duration){
   clipDuration = duration;
   const startRange = document.getElementById('clipStartRange');
   const endRange = document.getElementById('clipEndRange');
-  startRange.min = 0; startRange.max = Math.max(clipDuration - 1, 0); startRange.value = 0;
-  endRange.min = Math.min(1, clipDuration); endRange.max = clipDuration; endRange.value = clipDuration;
+  startRange.min = 0; startRange.max = clipDuration; startRange.value = 0;
+  endRange.min = 0; endRange.max = clipDuration; endRange.value = clipDuration;
   updateClipSliderLabels();
   updateClipRangeFill();
 }
@@ -937,10 +939,14 @@ function scrubClipPreview(t){
   clipYtPlayer.seekTo(t, true);
 }
 function onClipStartInput(){
+  const startRange = document.getElementById('clipStartRange');
   const endRange = document.getElementById('clipEndRange');
-  clipStart = Number(document.getElementById('clipStartRange').value);
-  clipEnd = Number(endRange.value);
-  endRange.min = Math.min(clipStart + 1, clipDuration);
+  let s = Number(startRange.value);
+  const e = Number(endRange.value);
+  // 상대(끝) 슬라이더의 값/범위는 건드리지 않고 자기 자신의 값만 넘지 못하게 clamp한다
+  // (상대 슬라이더 값을 매 틱마다 재할당하면 "끝쪽이 뻑뻑하다" 버그가 재발한다)
+  if(s >= e){ s = Math.max(e - 1, 0); startRange.value = s; }
+  clipStart = s; clipEnd = e;
   updateClipSliderLabels();
   updateClipRangeFill();
   updateClipLabel();
@@ -951,9 +957,11 @@ function onClipStartChange(){
 }
 function onClipEndInput(){
   const startRange = document.getElementById('clipStartRange');
-  clipEnd = Number(document.getElementById('clipEndRange').value);
-  clipStart = Number(startRange.value);
-  startRange.max = Math.max(clipEnd - 1, 0);
+  const endRange = document.getElementById('clipEndRange');
+  let e = Number(endRange.value);
+  const s = Number(startRange.value);
+  if(e <= s){ e = Math.min(s + 1, clipDuration); endRange.value = e; }
+  clipStart = s; clipEnd = e;
   updateClipSliderLabels();
   updateClipRangeFill();
   updateClipLabel();
