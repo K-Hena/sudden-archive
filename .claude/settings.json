@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '📖 파일 수정 완료 — docs/MAINTENANCE.md의 문서 자동 동기화 규칙에 따라 TODO.md / CHANGELOG.md / DECISIONS.md 갱신 필요 여부를 확인하세요.'"
+          }
+        ]
+      }
+    ]
+  }
+}

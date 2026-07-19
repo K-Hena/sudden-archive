@@ -1,0 +1,30 @@
+# Sudden Archive — AI 에이전트 온보딩
+
+이 저장소에서 코드를 작업하기 전에 `docs/README_AI.md`를 먼저 읽고,
+`docs/AI_CONTEXT.md`의 "문서 지도"를 따라 필요한 문서를 확인한다.
+
+## 프로젝트 성격
+- `index.html` 하나로 이루어진 바닐라 JavaScript 정적 사이트. 빌드 도구, 프레임워크, 번들러 없음.
+- 백엔드는 Supabase(Auth/DB/Storage). 별도 서버 코드 없음.
+- User 사이트(이 저장소)와 레거시 Admin 사이트(`sudden-archive-admin`, 별도 저장소)가 공존하며, 편집모드를 User 사이트로 이식해 Admin 사이트를 폐기하는 마이그레이션이 진행 중.
+
+## 반드시 지킬 것
+- 기존 코드 스타일/구조 유지. React/Vue/TypeScript 전환 금지.
+- 새 라이브러리는 사용자 승인 없이 추가하지 않는다.
+- Supabase 호출은 `{ data, error }`를 반환한다(예외 아님) — `error` 필드로 확인. 실제 예외 가능성 있는 코드(초기화 등)에만 try/catch.
+- 사용자 입력값을 인라인 `onclick`에 넣을 때는 작은따옴표 이스케이프 (`renderMapGrid()`의 `safe` 패턴 참고).
+- 하나의 기능 = 하나의 커밋.
+- **DB(Supabase) 스키마/RLS 변경은 SQL만 작성하고 절대 직접 실행하지 않는다.** 사용자가 Supabase SQL Editor에서 직접 실행한다.
+- 코드 작업 완료 후 git add / commit / push까지 진행한다.
+- 큰 기능은 단계별로 나눠서 진행하고, 각 단계 완료 확인 후 다음 단계로 넘어간다.
+
+## 하지 말 것
+- 추측으로 존재하지 않는 기능/파일/테이블을 가정하지 않는다.
+- 불필요한 리팩터링, 대규모 구조 변경.
+- 검색 기능이 있다고 가정하지 않는다 — 현재 텍스트 검색 기능 없음 (`docs/architecture/search-flow.md` 참고).
+
+## 참고 문서
+- 구조: `docs/PROJECT_STRUCTURE.md`
+- DB: `docs/DATABASE.md`
+- 진행 상황/결정: `docs/AI_CONTEXT.md`, `docs/TODO.md`, `docs/DECISIONS.md`
+- 세부 흐름: `docs/architecture/*.md`

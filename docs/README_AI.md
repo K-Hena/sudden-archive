@@ -13,6 +13,11 @@
 3. CLAUDE_CODE_RULES.md
 4. PROMPTS.md
 5. MAINTENANCE.md
+6. PROJECT_STRUCTURE.md
+7. DATABASE.md
+8. TODO.md
+
+CHANGELOG.md / DECISIONS.md / TROUBLESHOOTING.md / architecture/*.md 는 필요할 때 참고 문서로 열람한다 (매번 전체를 읽을 필요는 없음).
 
 읽기 전에는 작업하지 않는다.
 
@@ -22,8 +27,32 @@
 
 AI_CONTEXT
 
-프로젝트의 목표, 서비스 구성, 시스템 구조, 진행 중인 기능 개발(완료된 작업 / 남은 작업 / 확정된 설계 결정)까지 포함하는 이 프로젝트의 기준 문서.
-이 프로젝트는 별도의 PROJECT_STRUCTURE / DATABASE / TODO / CHANGELOG / DECISIONS 문서를 두지 않고, 이 내용을 모두 AI_CONTEXT 한 문서에 통합해 관리한다.
+프로젝트의 기준 문서(Single Source of Truth). 프로젝트 소개, 서비스 구성, 시스템 구조 요약, 진행 상황 요약, AI 협업 방식, 그리고 아래 세부 문서로 가는 "문서 지도"를 담고 있다.
+세부 내용(구조/DB/이력/할일/결정 등)은 각 주제별 문서로 분리되어 있다 (2026-07-18 리팩터링). 전체 문서 목록과 역할은 docs/MAINTENANCE.md의 "문서 책임" 표 참고.
+
+PROJECT_STRUCTURE
+
+실제 폴더/파일 구조, index.html 내부 CSS/HTML/JS 구성
+
+DATABASE
+
+Supabase 테이블/컬럼/RLS/Storage 버킷 구조
+
+CHANGELOG
+
+커밋 단위 변경 이력
+
+TODO
+
+완료/진행중/예정/아이디어 최신 목록
+
+DECISIONS
+
+확정된 설계 결정과 그 이유(세부)
+
+TROUBLESHOOTING
+
+실제로 해결했던 문제와 원인/해결/예방
 
 CODING_RULES
 
