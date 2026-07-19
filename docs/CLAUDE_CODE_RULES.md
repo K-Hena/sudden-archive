@@ -35,6 +35,7 @@
 ## 반드시 사용자 확인 후 실행
 - DELETE (데이터 삭제)
 - DROP / TRUNCATE (테이블·데이터 전체 삭제)
+- CREATE TABLE (테이블 생성)
 - ALTER TABLE (구조 변경, 컬럼 삭제 포함)
 - RLS 정책 생성/변경/삭제
 
