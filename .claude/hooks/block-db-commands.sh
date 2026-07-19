@@ -4,7 +4,7 @@ INPUT=$(cat)
 CMD=$(echo "$INPUT" | python3 -c "import json,sys; print(json.load(sys.stdin).get('tool_input',{}).get('command',''))" 2>/dev/null)
 
 if echo "$CMD" | grep -Eq 'supabase (db push|db reset|migration)|psql[[:space:]]'; then
-  echo "🔧 DB 직접 실행은 금지되어 있습니다. SQL은 작성만 하고, 사용자가 Supabase SQL Editor에서 직접 실행해야 합니다 (docs/PROMPTS.md '4. SQL 작성' 참고)." >&2
+  echo "🔧 Bash를 통한 DB 직접 실행(CLI/psql)은 금지되어 있습니다. 실행은 항상 Supabase MCP를 통해서만 하고, 고위험 SQL(DELETE/DROP/ALTER/RLS)은 사용자 확인 후에만 실행합니다 (docs/CLAUDE_CODE_RULES.md 'SQL 실행 규칙' 참고)." >&2
   exit 2
 fi
 

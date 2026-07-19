@@ -90,7 +90,7 @@ AI_CONTEXT.md를 프로젝트의 기준 문서(Single Source of Truth)로 두고
 
 반드시
 
-- SQL은 Claude Chat과 설계한 뒤 사용자가 Supabase SQL Editor에서 직접 실행 (Claude Code가 직접 실행하지 않음)
+- SQL은 Claude Chat과 먼저 설계한다. 실행은 위험도에 따라 다르다: SELECT/INSERT/UPDATE는 Supabase MCP로 Claude Code가 바로 실행 가능, DELETE/DROP/ALTER TABLE/RLS 정책 변경은 사용자에게 명시하고 확인받은 후에만 실행 (docs/CLAUDE_CODE_RULES.md의 "SQL 실행 규칙" 참고)
 - AI_CONTEXT의 관련 섹션(시스템 구조 / 설계 결정) 갱신
 
 ---

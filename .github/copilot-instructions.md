@@ -13,7 +13,7 @@
 - Supabase 호출은 `{ data, error }`를 반환한다 — 예외를 던지지 않으므로 `error` 필드로 확인한다. `try/catch`는 실제로 예외가 발생할 수 있는 코드(초기화 등)에만 쓴다.
 - 맵/항목 이름처럼 사용자 입력값을 인라인 `onclick` 문자열에 넣을 때는 작은따옴표를 이스케이프한다 (`renderMapGrid()`의 `safe` 패턴 참고).
 - 하나의 기능 = 하나의 커밋. 의미 없는 커밋을 만들지 않는다.
-- DB(Supabase) 스키마/RLS 변경은 코드로 직접 실행하지 않는다 — SQL만 작성하고 사용자가 Supabase에서 직접 실행한다.
+- DB(Supabase) 스키마/RLS 변경은 위험도에 따라 다르게 처리한다 — SELECT/INSERT/UPDATE는 Supabase MCP로 바로 실행 가능, DELETE/DROP/ALTER TABLE/RLS 정책 변경은 사용자에게 명시하고 확인받은 후에만 실행한다 (docs/CLAUDE_CODE_RULES.md의 "SQL 실행 규칙" 참고).
 - `docs/AI_CONTEXT.md`는 프로젝트의 기준 문서다. 수정이 필요해 보여도 먼저 사용자에게 확인한다.
 
 ## 하지 말 것

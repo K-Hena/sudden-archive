@@ -14,7 +14,7 @@
 - Supabase 호출은 `{ data, error }`를 반환한다(예외 아님) — `error` 필드로 확인. 실제 예외 가능성 있는 코드(초기화 등)에만 try/catch.
 - 사용자 입력값을 인라인 `onclick`에 넣을 때는 작은따옴표 이스케이프 (`renderMapGrid()`의 `safe` 패턴 참고).
 - 하나의 기능 = 하나의 커밋.
-- **DB(Supabase) 스키마/RLS 변경은 SQL만 작성하고 절대 직접 실행하지 않는다.** 사용자가 Supabase SQL Editor에서 직접 실행한다.
+- **Supabase DB 변경은 위험도에 따라 다르게 처리한다** — SELECT/INSERT/UPDATE는 Supabase MCP로 바로 실행 가능, DELETE/DROP/ALTER TABLE/RLS 정책 변경은 실행 전 사용자에게 명시하고 확인받은 후에만 실행한다 (자세한 내용은 docs/CLAUDE_CODE_RULES.md의 "SQL 실행 규칙" 참고).
 - 코드 작업 완료 후 git add / commit / push까지 진행한다.
 - 큰 기능은 단계별로 나눠서 진행하고, 각 단계 완료 확인 후 다음 단계로 넘어간다.
 

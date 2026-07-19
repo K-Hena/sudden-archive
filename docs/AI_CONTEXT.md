@@ -154,7 +154,7 @@ Infrastructure
 편집모드 이식 완료/미완료 항목과 레거시 Admin과의 기능 격차는 `docs/architecture/admin-flow.md` 참고.
 
 ## 참고 — 반복 작업 시 원칙
-DB 작업을 Claude Chat과 먼저 설계한 뒤 사용자가 직접 실행하는 원칙, 코드 작업 지시서 작성 방식,
+DB 작업을 Claude Chat과 먼저 설계한 뒤, 위험도에 따라 Supabase MCP로 바로 실행하거나 고위험 SQL은 사용자 확인 후 실행하는 원칙, 코드 작업 지시서 작성 방식,
 git push까지 포함해야 Vercel 배포에 반영된다는 점은 `docs/README_AI.md`, `docs/PROMPTS.md`(6. Git 작업),
 `docs/CLAUDE_CODE_RULES.md`, `docs/MAINTENANCE.md`에 운영 규칙으로 정리되어 있다.
 
@@ -229,7 +229,7 @@ Mode B(Claude Code 사용량 소진 시)에서는 GPT의 설계를 바탕으로 
 
 # 개발 프로세스
 
-기능 요청 → Claude와 설계 → (DB 변경 시) 사용자가 Supabase에서 직접 SQL 실행 → Claude Code 구현 (커밋+푸시 포함) → Claude 코드 리뷰 → Vercel 자동 배포 확인
+기능 요청 → Claude와 설계 → (DB 변경 시) 위험도에 따라 Supabase MCP로 바로 실행하거나 사용자 확인 후 실행 → Claude Code 구현 (커밋+푸시 포함) → Claude 코드 리뷰 → Vercel 자동 배포 확인
 
 시나리오별(새 기능 구현/버그 수정/코드 리뷰/SQL 작성/리팩터링/Git 작업/문서 업데이트) 세부 절차는 `docs/PROMPTS.md` 참고.
 
