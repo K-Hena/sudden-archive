@@ -918,6 +918,7 @@ let clipStart = null, clipEnd = null, clipYtPlayer = null;
 let clipPreviewTimer = null;
 let clipDuration = 0;
 let clipScrubLastSeek = 0;
+let clipEndMarkGraceUntil = 0;
 
 function fmtClip(s){
   if(s === null) return '—';
@@ -993,7 +994,8 @@ function syncClipPreviewTimer(){
   clipPreviewTimer = setInterval(() => {
     if(!clipYtPlayer || !clipYtPlayer.getCurrentTime) return;
     const current = clipYtPlayer.getCurrentTime();
-    if(current < clipStart || current >= clipEnd){
+    const inEndMarkGrace = Date.now() < clipEndMarkGraceUntil;
+    if(current < clipStart || (!inEndMarkGrace && current >= clipEnd)){
       const state = clipYtPlayer.getPlayerState && clipYtPlayer.getPlayerState();
       const shouldPlay = state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING || state === YT.PlayerState.ENDED;
       clipYtPlayer.seekTo(clipStart, true);
@@ -1007,7 +1009,7 @@ function loadClipPlayer(){
   const p = parseYouTube(url);
   if(!p){ setModalMsg('유튜브 링크를 확인해주세요.', 'err'); return; }
   setModalMsg('');
-  clipStart = null; clipEnd = null; updateClipLabel();
+  clipStart = null; clipEnd = null; clipEndMarkGraceUntil = 0; updateClipLabel();
   document.getElementById('clipTools').style.display = 'block';
   document.getElementById('clipPlayerWrap').className = 'clip-player' + (p.isShort ? ' tall' : '');
 
@@ -1066,12 +1068,15 @@ function markClipEnd(){
   const t = Math.floor(clipYtPlayer.getCurrentTime());
   if(clipStart !== null && t <= clipStart){ setModalMsg('끝은 시작보다 뒤여야 해요.', 'err'); return; }
   clipEnd = t; setModalMsg('');
+  // Math.floor로 저장하는 순간 실제 재생 위치가 이미 clipEnd를 넘어 있을 수 있어
+  // (절삭 오차 최대 1초 + 폴링 대기 최대 0.25초), 지정 직후 잠깐만 이탈 판정을 건너뛴다.
+  clipEndMarkGraceUntil = Date.now() + 1300;
   syncClipSliders();
   updateClipLabel();
   syncClipPreviewTimer();
 }
 function clearClip(){
-  clipStart = null; clipEnd = null;
+  clipStart = null; clipEnd = null; clipEndMarkGraceUntil = 0;
   syncClipSliders();
   updateClipLabel();
   stopClipPreviewTimer();
@@ -1095,6 +1100,7 @@ function onClipStartInput(){
   // (상대 슬라이더 값을 매 틱마다 재할당하면 "끝쪽이 뻑뻑하다" 버그가 재발한다)
   if(s >= e){ s = Math.max(e - 1, 0); startRange.value = s; }
   clipStart = s; clipEnd = e;
+  clipEndMarkGraceUntil = 0;
   updateClipSliderLabels();
   updateClipRangeFill();
   updateClipLabel();
@@ -1111,6 +1117,7 @@ function onClipEndInput(){
   const s = Number(startRange.value);
   if(e <= s){ e = Math.min(s + 1, clipDuration); endRange.value = e; }
   clipStart = s; clipEnd = e;
+  clipEndMarkGraceUntil = 0;
   updateClipSliderLabels();
   updateClipRangeFill();
   updateClipLabel();
@@ -1235,7 +1242,7 @@ function openAddModal(tag){
   if(cropper){ cropper.destroy(); cropper = null; }
   document.getElementById('cropperWrap').style.display = 'none';
 
-  clipStart = null; clipEnd = null;
+  clipStart = null; clipEnd = null; clipEndMarkGraceUntil = 0;
   applyClipDuration(0);
   document.getElementById('clipTools').style.display = 'none';
   stopClipPreviewTimer();
