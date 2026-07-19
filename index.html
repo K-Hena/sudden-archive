@@ -787,6 +787,7 @@ let modalType = 'vid';
 let modalStep = 'paste';
 let cropper = null;
 let clipStart = null, clipEnd = null, clipYtPlayer = null;
+let clipPreviewTimer = null;
 let clipDuration = 0;
 let clipScrubLastSeek = 0;
 
@@ -855,6 +856,24 @@ function applyClipDuration(duration){
   updateClipSliderLabels();
   updateClipRangeFill();
 }
+function stopClipPreviewTimer(){
+  if(clipPreviewTimer){ clearInterval(clipPreviewTimer); clipPreviewTimer = null; }
+}
+function syncClipPreviewTimer(){
+  stopClipPreviewTimer();
+  if(clipStart === null || clipEnd === null || !clipYtPlayer) return;
+  clipPreviewTimer = setInterval(() => {
+    if(!clipYtPlayer || !clipYtPlayer.getCurrentTime) return;
+    const current = clipYtPlayer.getCurrentTime();
+    if(current < clipStart || current >= clipEnd){
+      const state = clipYtPlayer.getPlayerState && clipYtPlayer.getPlayerState();
+      const shouldPlay = state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING || state === YT.PlayerState.ENDED;
+      clipYtPlayer.seekTo(clipStart, true);
+      if(shouldPlay && clipYtPlayer.playVideo) clipYtPlayer.playVideo();
+      else if(state === YT.PlayerState.PAUSED && clipYtPlayer.pauseVideo) clipYtPlayer.pauseVideo();
+    }
+  }, 250);
+}
 function loadClipPlayer(){
   const url = document.getElementById('mVideoUrl').value.trim();
   const p = parseYouTube(url);
@@ -867,6 +886,7 @@ function loadClipPlayer(){
   // 이전 영상의 duration/슬라이더 상태가 새 영상 로딩 중에 잠깐이라도 남아있지 않도록 즉시 0으로 초기화
   applyClipDuration(0);
 
+  stopClipPreviewTimer();
   if(clipYtPlayer && clipYtPlayer.destroy){ clipYtPlayer.destroy(); clipYtPlayer = null; }
   const mount = document.createElement('div');
   mount.id = 'clipPlayer';
@@ -911,6 +931,7 @@ function markClipStart(){
   if(clipEnd !== null && clipEnd <= clipStart) clipEnd = null;
   syncClipSliders();
   updateClipLabel();
+  syncClipPreviewTimer();
 }
 function markClipEnd(){
   if(!clipYtPlayer || !clipYtPlayer.getCurrentTime) return;
@@ -919,11 +940,13 @@ function markClipEnd(){
   clipEnd = t; setModalMsg('');
   syncClipSliders();
   updateClipLabel();
+  syncClipPreviewTimer();
 }
 function clearClip(){
   clipStart = null; clipEnd = null;
   syncClipSliders();
   updateClipLabel();
+  stopClipPreviewTimer();
 }
 function onClipScrubStart(){
   if(clipYtPlayer && clipYtPlayer.pauseVideo) clipYtPlayer.pauseVideo();
@@ -948,6 +971,7 @@ function onClipStartInput(){
   updateClipRangeFill();
   updateClipLabel();
   scrubClipPreview(clipStart);
+  syncClipPreviewTimer();
 }
 function onClipStartChange(){
   if(clipYtPlayer && clipYtPlayer.seekTo) clipYtPlayer.seekTo(clipStart, true);
@@ -963,6 +987,7 @@ function onClipEndInput(){
   updateClipRangeFill();
   updateClipLabel();
   scrubClipPreview(clipEnd);
+  syncClipPreviewTimer();
 }
 function onClipEndChange(){
   if(clipYtPlayer && clipYtPlayer.seekTo) clipYtPlayer.seekTo(clipEnd, true);
@@ -1033,6 +1058,8 @@ function startImageFlow(file){
     setModalMsg('이미지 파일만 사용할 수 있습니다.', 'err');
     return;
   }
+  stopClipPreviewTimer();
+  if(clipYtPlayer && clipYtPlayer.destroy){ clipYtPlayer.destroy(); clipYtPlayer = null; }
   modalType = 'img';
   showModalStep('media');
   setModalMsg('');
@@ -1083,6 +1110,7 @@ function openAddModal(tag){
   clipStart = null; clipEnd = null;
   applyClipDuration(0);
   document.getElementById('clipTools').style.display = 'none';
+  stopClipPreviewTimer();
   if(clipYtPlayer && clipYtPlayer.destroy){ clipYtPlayer.destroy(); clipYtPlayer = null; }
   updateClipLabel();
 
@@ -1096,6 +1124,7 @@ function openAddModal(tag){
 function closeModal(){
   document.getElementById('addModal').classList.remove('active');
   if(cropper){ cropper.destroy(); cropper = null; }
+  stopClipPreviewTimer();
   if(clipYtPlayer && clipYtPlayer.destroy){ clipYtPlayer.destroy(); clipYtPlayer = null; }
 }
 function goBackModal(){
