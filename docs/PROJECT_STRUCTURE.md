@@ -40,15 +40,15 @@ CDN으로 불러오는 외부 라이브러리: `@supabase/supabase-js@2`, `cropp
 - `#viewGrid`: 맵 선택 화면 (`#mapGrid`)
 - `#viewDetail`: 맵 상세 화면 — RED/BLUE 팀 토글 + `#cardGrid`
 - `#overlay`: 영상/이미지 재생 오버레이 — 실제 미디어(iframe/img)는 `#overlayMediaContent`에만 그리고, 그 위에 뜨는 재생/일시정지 버튼(`#overlayPlayPause`)과 클립 항목 전용 "전체 영상 보기" 버튼(`#overlayFullBtn`)은 형제 요소로 분리해 `innerHTML` 교체로 지워지지 않게 함
-- `#addModal`: 편집모드 항목 추가 모달 — 영상/이미지 유형 토글(`#typeToggle`), 이미지는 Cropper.js로 크롭 후 업로드, 영상은 `#clipTools`(버튼 + 슬라이더)로 클립 구간 지정. "맵 지명" 태그는 유형 토글 없이 이미지 고정
+- `#addModal`: 편집모드 항목 추가 모달 — `#pasteStep` → `#videoWrap/#imageWrap` → `#titleWrap` 3단계 화면 전환. 유튜브 URL/이미지를 자동 판별하고, 이미지는 Cropper.js, 영상은 `#clipTools`(버튼 + 슬라이더)로 연결. "맵 지명" 태그는 이미지 고정
 - `#mapImgInput`: 맵 이미지 업로드용 숨김 `<input type=file>`
 
 ## JS (`<script>`)
 - Supabase 클라이언트 초기화 (`sb`)
-- 전역 상태: `maps`, `items`, `currentMap`, `currentMapName`, `currentTeam`, `editMode`, `modalTag`, `modalType`, `cropper`, `pendingMapId`, `clipStart`, `clipEnd`, `clipDuration`, `clipYtPlayer`(재생 오버레이용 `ytPlayer`와는 별도 — `docs/DECISIONS.md` 참고), `clipScrubLastSeek`(드래그 스크러빙 스로틀용)
+- 전역 상태: `maps`, `items`, `currentMap`, `currentMapName`, `currentTeam`, `editMode`, `modalTag`, `modalType`, `modalStep`, `cropper`, `pendingMapId`, `clipStart`, `clipEnd`, `clipDuration`, `clipYtPlayer`(재생 오버레이용 `ytPlayer`와는 별도 — `docs/DECISIONS.md` 참고), `clipScrubLastSeek`(드래그 스크러빙 스로틀용)
 - 데이터 로드: `loadAll()` — `maps`/`items` 테이블을 조회해 전역 배열을 채우고 `renderMapGrid()` 호출
 - 맵 그리드: `renderMapGrid()`, 편집모드 전용 `addMap()/renameMap()/deleteMap()/pickMapImage()`
-- 상세 카드: `renderCards()`, 편집모드 전용 `openAddModal()/closeModal()/setModalType()/submitItem()/deleteItem()`, 이미지 크롭 `loadImageIntoCropper()`
+- 상세 카드: `renderCards()`, 편집모드 전용 `openAddModal()/showModalStep()/readAddClipboard()/startVideoFlow()/startImageFlow()/advanceAddModal()/submitItem()/deleteItem()`, 이미지 크롭 `loadImageIntoCropper()`
 - 클립 구간 지정: `loadClipPlayer()/markClipStart()/markClipEnd()/clearClip()/updateClipLabel()`(버튼), `onClipStartInput()/onClipEndInput()/onClipStartChange()/onClipEndChange()/syncClipSliders()/updateClipSliderBounds()/updateClipRangeFill()`(단일 트랙 슬라이더 — 서로 `min`/`max`로 배타적 범위를 걺), `onClipScrubStart()/scrubClipPreview()`(드래그 중 일시정지 + 스로틀된 정지 프레임 미리보기), `applyClipDuration(duration)`(`getDuration()`이 안정된 값으로 확정됐을 때만 슬라이더 `min`/`max`/`value`에 반영 — 모달 초기화 시 `0`으로도 호출해 이전 영상 상태를 리셋) — 버튼과 슬라이더 모두 `clipStart`/`clipEnd`를 공유
 - 재생: `openOverlay()/closeOverlay()` — 유튜브 IFrame API로 클립 구간 반복 재생 지원, 클립 항목은 `controls:0`으로 컨트롤바를 숨기고 `toggleOverlayPlay()`(커스텀 재생/일시정지)와 `showFullVideo()`(같은 위치에서 이어서 `controls:1` 플레이어로 재생성, 구간 제한 해제)를 제공. 상태는 `overlayVideoId`/`overlayHasClip`에 저장되며 오버레이를 닫으면 초기화됨(전체 모드 전환은 세션 한정, `docs/DECISIONS.md` 참고)
 - 인증: `initAuth()/renderAuthArea()` — Discord OAuth 로그인, `admins` 테이블 조회로 관리자 판별, `toggleEditMode()`

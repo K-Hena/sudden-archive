@@ -260,10 +260,10 @@ header{
 .modal-body input[type=text], .modal-body input[type=url], .modal-body textarea{width:100%;background:#0D1013;border:1px solid var(--line);color:var(--text);padding:9px 10px;font-family:'Inter',sans-serif;font-size:13px;margin-bottom:14px;}
 .modal-body textarea{resize:vertical;min-height:44px;}
 .modal-body input[type=file]{width:100%;background:#0D1013;border:1px solid var(--line);color:var(--text);padding:9px 10px;font-family:'Inter',sans-serif;font-size:12px;margin-bottom:10px;}
-.type-toggle{display:flex;gap:0;border:1px solid var(--line);margin-bottom:16px;}
-.type-toggle button{flex:1;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:13px;background:#0D1013;color:var(--muted);border:none;padding:10px;cursor:pointer;border-right:1px solid var(--line);}
-.type-toggle button:last-child{border-right:none;}
-.type-toggle button.on{background:var(--edit-accent);color:var(--edit-accent-ink);}
+.paste-step{text-align:center;padding:24px 0 10px;}
+.paste-primary{width:100%;padding:22px;font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;background:var(--edit-accent);color:var(--edit-accent-ink);border:0;cursor:pointer;}
+.paste-upload{margin-top:14px;background:none;border:0;color:var(--muted);font-size:11px;text-decoration:underline;cursor:pointer;}
+.paste-fallback{margin-top:14px;}
 .cropper-wrap{max-height:340px;margin-bottom:14px;display:none;}
 .cropper-wrap img{max-width:100%;display:block;}
 .clip-tools{margin-bottom:14px;}
@@ -356,25 +356,21 @@ header{
       <span class="x" onclick="closeModal()">✕</span>
     </div>
     <div class="modal-body">
-      <div class="type-toggle" id="typeToggle">
-        <button id="ttVid" onclick="setModalType('vid')">🎬 영상</button>
-        <button id="ttImg" onclick="setModalType('img')">🖼 이미지</button>
+      <div class="paste-step" id="pasteStep">
+        <button class="paste-primary" onclick="readAddClipboard()">📋 붙여넣기</button>
+        <button class="paste-upload" onclick="document.getElementById('mImageFile').click()">붙여넣지 않고 업로드</button>
+        <textarea class="paste-fallback" id="pasteFallback" placeholder="여기에 Ctrl+V로 붙여넣어주세요" style="display:none;"></textarea>
       </div>
 
-      <div id="titleWrap">
+      <div id="titleWrap" style="display:none;">
         <label>제목</label>
         <input type="text" id="mTitle" placeholder="예: 박스 뒤 몸샷 위폭">
         <label>설명 (선택)</label>
         <textarea id="mNote" placeholder="비워둬도 됨"></textarea>
       </div>
 
-      <div id="videoWrap">
-        <label>유튜브 링크 (풀영상 / 쇼츠 모두 가능)</label>
-        <input type="url" id="mVideoUrl" placeholder="https://youtube.com/watch?v=... 또는 /shorts/...">
-        <div style="display:flex;gap:8px;margin-bottom:14px;">
-          <button class="btn-ghost" onclick="loadClipPlayer()">불러오기</button>
-        </div>
-
+      <div id="videoWrap" style="display:none;">
+        <input type="hidden" id="mVideoUrl">
         <div class="clip-tools" id="clipTools" style="display:none;">
           <div class="clip-player" id="clipPlayerWrap"><div id="clipPlayer"></div></div>
           <div class="clip-sliders" id="clipSliders">
@@ -402,8 +398,7 @@ header{
       </div>
 
       <div id="imageWrap" style="display:none;">
-        <label>이미지 (파일 선택 또는 모달 안에서 Ctrl+V로 붙여넣기)</label>
-        <input type="file" id="mImageFile" accept="image/*">
+        <input type="file" id="mImageFile" accept="image/*" style="display:none;">
         <div class="cropper-wrap" id="cropperWrap">
           <img id="cropperImg">
         </div>
@@ -411,8 +406,9 @@ header{
 
       <div class="msg-modal" id="modalMsg"></div>
       <div class="modal-actions">
+        <button class="btn-ghost" id="modalBackBtn" onclick="goBackModal()" style="display:none;">뒤로</button>
         <button class="btn-ghost" onclick="closeModal()">취소</button>
-        <button class="btn-primary" id="modalSaveBtn" onclick="submitItem()">저장</button>
+        <button class="btn-primary" id="modalSaveBtn" onclick="advanceAddModal()" style="display:none;">다음</button>
       </div>
     </div>
   </div>
@@ -788,6 +784,7 @@ function closeOverlay(){
 
 let modalTag = null;
 let modalType = 'vid';
+let modalStep = 'paste';
 let cropper = null;
 let clipStart = null, clipEnd = null, clipYtPlayer = null;
 let clipDuration = 0;
@@ -986,20 +983,90 @@ function loadImageIntoCropper(file){
 document.getElementById('mImageFile').addEventListener('change', function(e){
   const file = e.target.files[0];
   if(!file) return;
-  loadImageIntoCropper(file);
+  startImageFlow(file);
+  e.target.value = '';
 });
 
-document.addEventListener('paste', function(e){
-  if(modalType !== 'img') return;
-  if(!document.getElementById('addModal').classList.contains('active')) return;
-  const clipboardItems = (e.clipboardData || window.clipboardData).items;
-  for(const item of clipboardItems){
-    if(item.type.indexOf('image') !== -1){
-      const file = item.getAsFile();
-      if(file){ loadImageIntoCropper(file); }
-      break;
-    }
+function showModalStep(step){
+  modalStep = step;
+  const isMapLabel = modalTag === '맵 지명';
+  document.getElementById('pasteStep').style.display = step === 'paste' ? 'block' : 'none';
+  document.getElementById('titleWrap').style.display = step === 'details' && !isMapLabel ? 'block' : 'none';
+  document.getElementById('videoWrap').style.display = step === 'media' && modalType === 'vid' ? 'block' : 'none';
+  document.getElementById('imageWrap').style.display = step === 'media' && modalType === 'img' ? 'block' : 'none';
+  document.getElementById('modalBackBtn').style.display = step === 'paste' ? 'none' : 'inline-block';
+  const saveBtn = document.getElementById('modalSaveBtn');
+  saveBtn.style.display = step === 'paste' ? 'none' : 'inline-block';
+  saveBtn.textContent = step === 'details' || isMapLabel ? '저장' : '다음';
+}
+
+function showPasteFallback(message){
+  setModalMsg(message, 'err');
+  const input = document.getElementById('pasteFallback');
+  input.style.display = 'block';
+  input.value = '';
+  input.focus();
+}
+
+function startVideoFlow(text){
+  if(modalTag === '맵 지명'){
+    setModalMsg('맵 지명은 이미지만 가능합니다.', 'err');
+    return;
   }
+  const url = text.trim();
+  if(!parseYouTube(url)){
+    setModalMsg('유효한 유튜브 링크가 아닙니다.', 'err');
+    return;
+  }
+  modalType = 'vid';
+  document.getElementById('mVideoUrl').value = url;
+  showModalStep('media');
+  loadClipPlayer();
+}
+
+function startImageFlow(file){
+  if(file.type === 'image/gif' || /\.gif$/i.test(file.name || '')){
+    setModalMsg('GIF는 아직 지원하지 않습니다.', 'err');
+    return;
+  }
+  if(!file.type.startsWith('image/')){
+    setModalMsg('이미지 파일만 사용할 수 있습니다.', 'err');
+    return;
+  }
+  modalType = 'img';
+  showModalStep('media');
+  setModalMsg('');
+  loadImageIntoCropper(file);
+}
+
+async function readAddClipboard(){
+  if(!navigator.clipboard || !navigator.clipboard.read){
+    showPasteFallback('자동 붙여넣기를 지원하지 않는 브라우저입니다. 여기에 Ctrl+V로 붙여넣거나 업로드를 사용해주세요.');
+    return;
+  }
+  try{
+    const items = await navigator.clipboard.read();
+    for(const item of items){
+      const imageType = item.types.find(type => type.startsWith('image/'));
+      if(imageType){ startImageFlow(await item.getType(imageType)); return; }
+      if(item.types.includes('text/plain')){
+        const text = (await (await item.getType('text/plain')).text()).trim();
+        if(text){ startVideoFlow(text); return; }
+      }
+    }
+    showPasteFallback('클립보드가 비어 있습니다. 여기에 Ctrl+V로 붙여넣거나 업로드를 사용해주세요.');
+  } catch(err){
+    showPasteFallback('클립보드를 읽을 수 없습니다. 여기에 Ctrl+V로 붙여넣거나 업로드를 사용해주세요.');
+  }
+}
+
+document.addEventListener('paste', function(e){
+  if(modalStep !== 'paste' || !document.getElementById('addModal').classList.contains('active')) return;
+  const files = e.clipboardData && e.clipboardData.files;
+  const image = files && Array.from(files).find(file => file.type.startsWith('image/'));
+  if(image){ startImageFlow(image); e.preventDefault(); return; }
+  const text = e.clipboardData && e.clipboardData.getData('text/plain');
+  if(text){ startVideoFlow(text); e.preventDefault(); }
 });
 
 function openAddModal(tag){
@@ -1008,6 +1075,7 @@ function openAddModal(tag){
   document.getElementById('mNote').value = '';
   document.getElementById('mVideoUrl').value = '';
   document.getElementById('mImageFile').value = '';
+  document.getElementById('pasteFallback').style.display = 'none';
   document.getElementById('modalMsg').textContent = '';
   if(cropper){ cropper.destroy(); cropper = null; }
   document.getElementById('cropperWrap').style.display = 'none';
@@ -1020,9 +1088,8 @@ function openAddModal(tag){
 
   const isMapLabel = (tag === '맵 지명');
   document.getElementById('modalTitle').textContent = tag + '에 추가';
-  document.getElementById('titleWrap').style.display = isMapLabel ? 'none' : 'block';
-  document.getElementById('typeToggle').style.display = isMapLabel ? 'none' : 'flex';
-  setModalType(isMapLabel ? 'img' : 'vid');
+  modalType = isMapLabel ? 'img' : 'vid';
+  showModalStep('paste');
 
   document.getElementById('addModal').classList.add('active');
 }
@@ -1031,12 +1098,18 @@ function closeModal(){
   if(cropper){ cropper.destroy(); cropper = null; }
   if(clipYtPlayer && clipYtPlayer.destroy){ clipYtPlayer.destroy(); clipYtPlayer = null; }
 }
-function setModalType(t){
-  modalType = t;
-  document.getElementById('ttVid').className = t === 'vid' ? 'on' : '';
-  document.getElementById('ttImg').className = t === 'img' ? 'on' : '';
-  document.getElementById('videoWrap').style.display = t === 'vid' ? 'block' : 'none';
-  document.getElementById('imageWrap').style.display = t === 'img' ? 'block' : 'none';
+function goBackModal(){
+  setModalMsg('');
+  showModalStep(modalStep === 'details' ? 'media' : 'paste');
+}
+function advanceAddModal(){
+  if(modalStep === 'details' || modalTag === '맵 지명'){ submitItem(); return; }
+  if(modalType === 'vid' && document.getElementById('clipTools').style.display === 'none'){
+    setModalMsg('유튜브 영상을 불러오지 못했습니다.', 'err'); return;
+  }
+  if(modalType === 'img' && !cropper){ setModalMsg('이미지를 선택하거나 붙여넣어주세요.', 'err'); return; }
+  setModalMsg('');
+  showModalStep('details');
 }
 function setModalMsg(t, cls){
   const el = document.getElementById('modalMsg');

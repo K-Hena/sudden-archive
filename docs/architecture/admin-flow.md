@@ -36,15 +36,13 @@ Cropper.js(CDN, `cropperjs@1.6.1`)를 이미지 크롭에 사용 — User 사이
 - 맵 타일 호버 액션(이미지 변경 / 이름 변경 / 삭제) — 레거시 `pickMapImage`/`renameMap`/`deleteMap`과 동일 로직
 - "맵 추가" 타일 — 레거시 `addMap`과 동일 로직
 - 태그 섹션별 "+추가" 타일 → `openAddModal(tag)` → 모달
-- **영상/이미지 유형 토글(`typeToggle`)** — 레거시와 동일하게 "위폭"/"팁" 태그에서 `setModalType('vid'|'img')`로 유형을 선택할 수 있다. 기본값은 `vid`(기존 동작 유지). "맵 지명" 태그는 레거시와 동일하게 `typeToggle`을 숨기고 `img`로 고정
-- **모든 태그의 이미지 업로드** — 파일 선택 또는 모달 안 Ctrl+V 붙여넣기 → Cropper.js로 크롭 → jpg blob 변환 → Storage `media`의 `items/{timestamp}.jpg`에 업로드 → `img_url` 저장. "맵 지명"뿐 아니라 "위폭"/"팁"에도 동일하게 적용됨
+- **붙여넣기 우선 3단계 모달** — `paste → media → details` 순서로 같은 모달 안에서 화면만 전환한다. 첫 화면은 `readAddClipboard()` 버튼과 이미지 업로드 링크만 노출하고, 자동 판별된 유튜브 URL은 기존 `loadClipPlayer()`, 이미지는 기존 Cropper.js 흐름으로 보낸다. media/details 단계에는 뒤로가기를 제공한다.
+- **클립보드 자동 판별 + 폴백** — 사용자 클릭 안에서 `navigator.clipboard.read()`를 우선 호출해 `text/plain`은 `parseYouTube()`로 검증하고 이미지 MIME은 Cropper로 전달한다. API 미지원·권한 거부·빈 클립보드는 전용 입력 영역에 포커스를 주고 네이티브 `paste` 이벤트로 Ctrl+V를 받는다. "맵 지명"에서 URL을 붙여넣으면 이미지 전용 오류를 표시한다.
+- **모든 태그의 이미지 업로드** — 붙여넣기 또는 "붙여넣지 않고 업로드" → Cropper.js로 크롭 → jpg blob 변환 → Storage `media`의 `items/{timestamp}.jpg`에 업로드 → `img_url` 저장. 파일 선택은 `accept="image/*"`를 유지하고 GIF는 선택/붙여넣기 직후 명시적으로 거부한다.
 - `submitItem()`이 `isMapLabel` 전용 분기가 아니라 레거시처럼 `modalType`(vid/img) 기준으로 일반화됨
 - **개별 항목 삭제** — `deleteItem()`, 카드 호버 시 ✕ 아이콘(`card-del`) → confirm → `items` 행 삭제. 레거시 `deleteItem()`과 동일하게 confirm 한 번만 거침
 - **클립 구간(`clip_start`/`clip_end`) 마킹** — 레거시의 `loadClipPlayer()`/`markClipStart()`/`markClipEnd()`/`clearClip()`/`updateClipLabel()`을 버튼 방식 그대로 이식. 레거시에는 없던 **슬라이더 UI**(`<input type=range>` 2개, 시작/끝)를 추가로 도입해 드래그로도 구간 지정이 가능하다. 버튼/슬라이더 모두 같은 `clipStart`/`clipEnd` 전역 변수를 공유해 항상 동기화됨(`docs/DECISIONS.md` 참고). `submitItem()`이 `modalType==='vid'`일 때 이 값들을 그대로 저장한다(더 이상 항상 `null`이 아님)
 - 모달의 클립 플레이어는 오버레이 재생용 `ytPlayer`와 이름이 겹치지 않도록 `clipYtPlayer`라는 별도 변수로 분리 (재생 중인 유튜브 IFrame API 로드 자체는 오버레이 코드와 공유)
-
-## 이식 안 됨 / 축소해서 이식
-- 클립보드 텍스트/이미지 붙여넣기 중 레거시의 `pasteVideoUrl()`/`pasteImage()` 버튼(권한 기반 `navigator.clipboard.read()`)은 이식하지 않았다 — 모달 안에서의 전역 `paste` 이벤트 리스너(Ctrl+V)만으로 이미지 붙여넣기를 지원
 
 ## 편집모드 On/Off에 따른 렌더링 차이
 `renderMapGrid()`/`renderCards()` 안에서 `editMode` 전역 변수를 직접 참조해 액션 HTML을 조건부로 문자열에 끼워 넣는다. 레거시 Admin처럼 "로그인 = 관리자 = 항상 액션 노출"이 아니라, "로그인 + admins 등록 + editMode=true"일 때만 노출되므로 조건이 하나 더 있다.
