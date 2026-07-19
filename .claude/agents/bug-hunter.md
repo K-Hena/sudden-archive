@@ -10,7 +10,7 @@ docs/PROMPTS.md "2. 버그 수정" 절차를 그대로 따른다.
 4. 최소 수정 (관련 없는 코드는 건드리지 않는다)
 5. 검증
 6. 코드 리뷰 (code-reviewer 에이전트 기준 참고)
-7. Commit
+7. Commit + Push (`git add` / `git commit` / `git push`까지 진행)
 
 ## 원칙
 - 추측하지 않는다. 재현이 안 되면 재현 방법부터 사용자에게 확인한다.

@@ -138,11 +138,11 @@ AI_CONTEXT의 진행 상황(완료된 작업 / 남은 작업) 확인
 
 ↓
 
-Git Push
+MAINTENANCE 기준으로 문서 수정 여부 확인 (필요하면 코드 변경과 같은 커밋에 포함)
 
 ↓
 
-MAINTENANCE 기준으로 문서 수정 여부 확인
+Git Push
 
 ---
 

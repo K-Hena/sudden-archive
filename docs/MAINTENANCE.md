@@ -137,9 +137,13 @@ AI_CONTEXT.md를 프로젝트의 기준 문서(Single Source of Truth)로 두고
 
 □ DB(Supabase) 변경 시, 고위험 SQL(DELETE/DROP/ALTER TABLE/RLS 정책 변경)은 사용자 확인을 받고 실행했는지 확인 (SELECT/INSERT/UPDATE는 Supabase MCP로 바로 실행 가능)
 
-□ Git Push 완료 확인 (Vercel 자동 배포 트리거)
-
 문서 수정이 필요 없다면 수정하지 않는다.
+
+---
+
+# 작업 종료 체크리스트
+
+□ Git Push 완료 확인 (Vercel 자동 배포 트리거)
 
 ---
 
