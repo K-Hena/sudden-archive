@@ -43,8 +43,9 @@
    - 문제 발견 → 멈추고 사용자에게 보고, 지시 없이 임의 수정하지 않는다
 7. 오류 확인
 8. 코드 리뷰 (구현 결과물 리뷰, .claude/agents/code-reviewer.md 기준)
-9. Git Commit
-10. Git Push
+9. 문서 갱신 확인 (MAINTENANCE.md 기준, 수정한 문서는 코드 변경과 같은 커밋에 포함)
+10. Git Commit
+11. Git Push
 
 주의
 
@@ -81,6 +82,10 @@
 ↓
 
 리뷰
+
+↓
+
+문서 갱신 확인 (MAINTENANCE.md 기준, 수정한 문서는 코드 변경과 같은 커밋에 포함)
 
 ↓
 

@@ -229,7 +229,7 @@ Mode B(Claude Code 사용량 소진 시)에서는 GPT의 설계를 바탕으로 
 
 # 개발 프로세스
 
-기능 요청 → Claude와 설계 → (DB 변경 시) 위험도에 따라 Supabase MCP로 바로 실행하거나 사용자 확인 후 실행 → Claude Code 구현 (커밋+푸시 포함) → Claude 코드 리뷰 → Vercel 자동 배포 확인
+기능 요청 → Claude와 설계 → (DB 변경 시) 위험도에 따라 Supabase MCP로 바로 실행하거나 사용자 확인 후 실행 → Claude Code 구현 → Claude 코드 리뷰 → 문서 갱신 확인 → 커밋+푸시 → Vercel 자동 배포 확인
 
 시나리오별(새 기능 구현/버그 수정/코드 리뷰/SQL 작성/리팩터링/Git 작업/문서 업데이트) 세부 절차는 `docs/PROMPTS.md` 참고.
 
