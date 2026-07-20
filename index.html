@@ -162,11 +162,14 @@ header{
 .card:hover .card-edit{opacity:1;}
 .card .card-edit:hover{color:var(--edit-accent);}
 .card-fav{
-  position:absolute;top:6px;right:6px;width:32px;height:32px;z-index:3;cursor:pointer;
-  border:1px solid var(--line);background:rgba(6,7,9,.8);color:var(--muted);font-size:20px;line-height:1;
+  position:absolute;top:6px;right:6px;width:32px;height:32px;z-index:3;cursor:pointer;font-size:20px;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  padding:0;border:0;background:transparent;color:var(--muted);
+  text-shadow:0 1px 2px rgba(0,0,0,.6);
 }
 .card-fav.with-delete{right:66px;}
-.card-fav.on,.card-fav:hover{color:var(--amber);border-color:var(--amber);}
+.card-fav.on,.card-fav:hover{color:var(--amber);}
+.card-fav:focus-visible{outline:1px solid var(--amber);outline-offset:2px;}
 .thumb{
   height:130px;position:relative;background:linear-gradient(135deg,#1A1E24,#0F1216);
   display:flex;align-items:center;justify-content:center;
@@ -533,7 +536,7 @@ let maps = [];
 let items = [];
 let currentMap = null;   // 맵 id
 let currentMapName = '';
-let currentTeam = 'red';
+let currentTeam = 'total';
 let currentSession = null;
 let favorites = [];
 const favoritePending = new Set();
@@ -684,14 +687,13 @@ function openMap(id, name){
   clearGlobalTitleSearch();
   currentMap = id;
   currentMapName = name;
-  currentTeam = 'red';
   document.getElementById('viewGrid').classList.remove('active');
   document.getElementById('viewDetail').classList.add('active');
   document.getElementById('crumbMap').style.display = 'inline';
   document.getElementById('crumbSep').style.display = 'inline';
   document.getElementById('crumbMap').textContent = name;
   document.getElementById('detailTitle').innerHTML = name + ' <span id="detailCount"></span>';
-  setTeam('red');
+  setTeam('total');
 }
 
 function setTeam(t){

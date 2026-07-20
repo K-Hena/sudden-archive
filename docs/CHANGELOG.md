@@ -64,6 +64,14 @@
 
 ---
 
+## 2026-07-21 — 기본 뷰 TOTAL 전환 + 즐겨찾기 별 아이콘 스타일 변경
+
+- **맵 상세뷰 기본 팀을 RED에서 TOTAL로 변경** — `openMap()`이 `currentTeam = 'red'` 대입 없이 `setTeam('total')`만 호출하도록 정리하고, 전역 초기값도 `let currentTeam = 'total'`로 통일. `setTeam()` 내부 로직(버튼 클래스 토글, `renderCards()` 호출)과 FAVORITE 비로그인 확인 로직은 그대로 유지. Codex 리뷰에서 항목 추가 모달의 `modalTeam`이 `currentTeam`이 `'red'`/`'blue'`일 때만 자동 선택되어 TOTAL 진입 직후에는 팀 미선택 상태로 시작하는 부작용이 지적됐으나, 사용자 확인 후 이번 범위에서는 그대로 두기로 결정
+- **즐겨찾기 별 버튼(`.card-fav`) 사각 테두리/배경 제거** — `border`/`background`를 명시적으로 `0`/`transparent`로 지정해 브라우저 기본 버튼 스타일이 새로 나타나지 않게 하고, 대신 `text-shadow`로 가독성을 보완. 클릭 영역(32×32)과 `.with-delete` 오프셋은 그대로 유지하며, 기존에 없던 `.card-fav:focus-visible` 아웃라인을 추가해 키보드 포커스 표시를 보완. `favoriteButton()`의 구조·onclick·active 판별 로직은 변경 없음
+- DB 스키마 변경 없음
+
+---
+
 # 참고
 
 - 이 문서는 커밋 단위 이력이다. 기능별 완료/진행 상태는 `TODO.md`, 설계 이유는 `DECISIONS.md`를 참고.
