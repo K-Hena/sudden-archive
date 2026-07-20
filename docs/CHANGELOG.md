@@ -72,6 +72,14 @@
 
 ---
 
+## 2026-07-21 — 진영 선택 로직 변경: "공통" 옵션 제거 + 미선택 시 자동 공통 저장
+
+- **그룹 A의 "미선택 시 저장 차단" 결정을 대체** — `mTeam` select에서 `<option value="none">공통</option>`을 삭제하고 placeholder를 "선택 안 함 (공통)"으로 변경. `submitItem()`의 `if(!modalTeam){...}` 차단문을 제거하고 `const savedTeam = modalTeam || 'none';`을 한 번 계산해 edit update·vid insert·img insert 세 저장 경로 모두 재사용하도록 통일
+- **항목 추가 모달만 항상 미선택으로 시작** — `openAddModal()`이 `currentTeam`이 RED/BLUE일 때 자동으로 팀을 선택하던 로직을 제거, TOTAL/RED/BLUE/FAVORITE 어느 뷰에서 열어도 미선택 상태로 시작. 수정 모달(그룹 C)의 `openEditModal()`은 변경하지 않았고, 저장된 값이 `'none'`인 항목을 열면 select에 해당 옵션이 없어 브라우저가 자동으로 빈 값(미선택)으로 표시하는 것을 확인(별도 분기 코드 불필요)
+- Codex 리뷰 통과(지적 사항 없음). 실 Supabase에 검증용 더미 항목을 INSERT(`team:'none'`)한 뒤 `team:'red'`로 UPDATE까지 실제로 확인하고, 앱에서 TOTAL/RED/BLUE 필터링이 의도대로 동작하는 것을 확인한 뒤 사용자 승인을 받아 DELETE로 원상 복구했다. DB 스키마(CHECK 제약·RLS) 변경 없음. 세부 결정은 `docs/DECISIONS.md` 참고
+
+---
+
 # 참고
 
 - 이 문서는 커밋 단위 이력이다. 기능별 완료/진행 상태는 `TODO.md`, 설계 이유는 `DECISIONS.md`를 참고.

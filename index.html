@@ -485,10 +485,9 @@ header{
         <div id="teamWrap" style="display:none;">
           <label>진영</label>
           <select id="mTeam" onchange="modalTeam = this.value || null;">
-            <option value="">선택 안 함</option>
+            <option value="">선택 안 함 (공통)</option>
             <option value="red">RED</option>
             <option value="blue">BLUE</option>
-            <option value="none">공통</option>
           </select>
         </div>
       </div>
@@ -1391,8 +1390,8 @@ function openAddModal(tag){
   document.getElementById('modalTitle').textContent = tag + '에 추가';
   modalType = isMapLabel ? 'img' : 'vid';
 
-  modalTeam = (currentTeam === 'red' || currentTeam === 'blue') ? currentTeam : null;
-  document.getElementById('mTeam').value = modalTeam || '';
+  modalTeam = null;
+  document.getElementById('mTeam').value = '';
 
   showModalStep('paste');
 
@@ -1497,7 +1496,7 @@ function setModalMsg(t, cls){
   el.textContent = t;
 }
 async function submitItem(){
-  if(!modalTeam){ setModalMsg('진영을 선택해주세요.', 'err'); return; }
+  const savedTeam = modalTeam || 'none';
 
   if(modalMode === 'edit'){
     const original = items.find(i => i.id === editingItemId);
@@ -1510,7 +1509,7 @@ async function submitItem(){
     saveBtn.disabled = true;
     setModalMsg('저장 중...');
 
-    const payload = { title, note: note || null, team: modalTeam };
+    const payload = { title, note: note || null, team: savedTeam };
     if(modalType === 'vid'){ payload.clip_start = clipStart; payload.clip_end = clipEnd; }
 
     const { error } = await sb.from('items').update(payload).eq('id', editingItemId);
@@ -1536,7 +1535,7 @@ async function submitItem(){
     if(!p){ setModalMsg('유튜브 링크를 확인해주세요.', 'err'); saveBtn.disabled = false; return; }
 
     const { error } = await sb.from('items').insert({
-      map_id: currentMap, team: modalTeam, type: 'vid', tag: modalTag,
+      map_id: currentMap, team: savedTeam, type: 'vid', tag: modalTag,
       title, note: note || null, video_url: url, clip_start: clipStart, clip_end: clipEnd
     });
     if(error){ setModalMsg('저장 실패: ' + error.message, 'err'); saveBtn.disabled = false; return; }
@@ -1552,7 +1551,7 @@ async function submitItem(){
 
     setModalMsg('저장 중...');
     const { error } = await sb.from('items').insert({
-      map_id: currentMap, team: modalTeam, type: 'img', tag: modalTag,
+      map_id: currentMap, team: savedTeam, type: 'img', tag: modalTag,
       title, note: note || null, img_url: pub.publicUrl, video_url: null, clip_start: null, clip_end: null
     });
     if(error){ setModalMsg('저장 실패: ' + error.message, 'err'); saveBtn.disabled = false; return; }
