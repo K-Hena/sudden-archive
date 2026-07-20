@@ -154,11 +154,18 @@ header{
 }
 .card:hover .card-del{opacity:1;}
 .card .card-del:hover{color:var(--red);}
+.card .card-edit{
+  position:absolute;top:6px;right:36px;width:24px;height:24px;background:rgba(6,7,9,.8);
+  display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);
+  cursor:pointer;opacity:0;transition:opacity .15s;z-index:2;
+}
+.card:hover .card-edit{opacity:1;}
+.card .card-edit:hover{color:var(--edit-accent);}
 .card-fav{
   position:absolute;top:6px;right:6px;width:32px;height:32px;z-index:3;cursor:pointer;
   border:1px solid var(--line);background:rgba(6,7,9,.8);color:var(--muted);font-size:20px;line-height:1;
 }
-.card-fav.with-delete{right:36px;}
+.card-fav.with-delete{right:66px;}
 .card-fav.on,.card-fav:hover{color:var(--amber);border-color:var(--amber);}
 .thumb{
   height:130px;position:relative;background:linear-gradient(135deg,#1A1E24,#0F1216);
@@ -282,6 +289,7 @@ header{
 .modal-body{padding:20px;}
 .modal-body label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;letter-spacing:0.03em;}
 .modal-body input[type=text], .modal-body input[type=url], .modal-body textarea, .modal-body select{width:100%;background:#0D1013;border:1px solid var(--line);color:var(--text);padding:9px 10px;font-family:'Inter',sans-serif;font-size:13px;margin-bottom:14px;}
+.modal-body input[readonly]{opacity:.6;cursor:not-allowed;}
 .modal-body textarea{resize:vertical;min-height:44px;}
 .modal-body input[type=file]{width:100%;background:#0D1013;border:1px solid var(--line);color:var(--text);padding:9px 10px;font-family:'Inter',sans-serif;font-size:12px;margin-bottom:10px;}
 .paste-step{text-align:center;padding:24px 0 10px;}
@@ -425,7 +433,10 @@ header{
       </div>
 
       <div id="videoWrap" style="display:none;">
-        <input type="hidden" id="mVideoUrl">
+        <div id="mVideoUrlWrap" style="display:none;">
+          <label>영상 링크 (수정 불가)</label>
+          <input type="hidden" id="mVideoUrl">
+        </div>
         <div class="clip-tools" id="clipTools" style="display:none;">
           <div class="clip-player" id="clipPlayerWrap"><div id="clipPlayer"></div></div>
           <div class="clip-sliders" id="clipSliders">
@@ -478,6 +489,8 @@ header{
           </select>
         </div>
       </div>
+
+      <div id="editHint" class="hint" style="display:none;">사진이나 영상 자체를 바꾸려면 이 항목을 삭제한 뒤 새로 등록해주세요.</div>
 
       <div class="msg-modal" id="modalMsg"></div>
       <div class="modal-actions">
@@ -834,6 +847,7 @@ function renderCards(){
           const shortBadge = (p && p.isShort) ? '<div class="badge short" style="left:auto;right:8px;">쇼츠</div>' : '';
           return `
           <div class="card" onclick="openOverlay('${it.id}')">
+            ${editMode ? `<span class="card-edit" onclick="openEditModal(event,'${it.id}')" title="수정">⚙</span>` : ''}
             ${editMode ? `<span class="card-del" onclick="deleteItem(event,'${it.id}')" title="삭제">✕</span>` : ''}
             ${favoriteButton(it, editMode)}
             <div class="thumb" style="${thumbUrl ? `background-image:url('${thumbUrl}');background-size:cover;background-position:center;` : ''}">
@@ -990,6 +1004,8 @@ let modalType = 'vid';
 let modalTeam = null;
 let modalStep = 'paste';
 let cropper = null;
+let modalMode = 'add';
+let editingItemId = null;
 let clipStart = null, clipEnd = null, clipYtPlayer = null;
 let clipPreviewTimer = null;
 let clipDuration = 0;
@@ -1080,7 +1096,7 @@ function syncClipPreviewTimer(){
     }
   }, 250);
 }
-function loadClipPlayer(){
+function loadClipPlayer(onDurationReady){
   const url = document.getElementById('mVideoUrl').value.trim();
   const p = parseYouTube(url);
   if(!p){ setModalMsg('유튜브 링크를 확인해주세요.', 'err'); return; }
@@ -1121,6 +1137,7 @@ function loadClipPlayer(){
             const stable = d > 0 && d === lastDuration;
             if(stable || attempts >= 20){
               applyClipDuration(d);
+              if(onDurationReady) onDurationReady(d);
               return;
             }
             lastDuration = d;
@@ -1233,11 +1250,12 @@ function showModalStep(step){
   document.getElementById('titleWrap').style.display = step === 'details' && !isMapLabel ? 'block' : 'none';
   document.getElementById('videoWrap').style.display = step === 'media' && modalType === 'vid' ? 'block' : 'none';
   document.getElementById('imageWrap').style.display = step === 'media' && modalType === 'img' ? 'block' : 'none';
-  const showPreview = isMapLabel ? step === 'media' : step === 'details';
+  const showPreview = modalMode === 'edit' ? step === 'details' : (isMapLabel ? step === 'media' : step === 'details');
   document.getElementById('teamWrap').style.display = showPreview ? 'block' : 'none';
   document.getElementById('savePreviewWrap').style.display = showPreview ? (modalType === 'img' ? 'flex' : 'block') : 'none';
   if(showPreview) renderSavePreview();
-  document.getElementById('modalBackBtn').style.display = step === 'paste' ? 'none' : 'inline-block';
+  document.getElementById('modalBackBtn').style.display =
+    (step === 'paste' || (modalMode === 'edit' && (modalType === 'img' || step === 'media'))) ? 'none' : 'inline-block';
   const saveBtn = document.getElementById('modalSaveBtn');
   saveBtn.style.display = step === 'paste' ? 'none' : 'inline-block';
   saveBtn.textContent = step === 'details' || isMapLabel ? '저장' : '다음';
@@ -1328,14 +1346,21 @@ document.addEventListener('paste', function(e){
 
 function openAddModal(tag){
   modalTag = tag;
+  modalMode = 'add';
+  editingItemId = null;
   document.getElementById('mTitle').value = '';
   document.getElementById('mNote').value = '';
   document.getElementById('mVideoUrl').value = '';
+  document.getElementById('mVideoUrl').type = 'hidden';
+  document.getElementById('mVideoUrl').readOnly = false;
+  document.getElementById('mVideoUrlWrap').style.display = 'none';
+  document.getElementById('editHint').style.display = 'none';
   document.getElementById('mImageFile').value = '';
   document.getElementById('pasteFallback').style.display = 'none';
   document.getElementById('modalMsg').textContent = '';
   if(cropper){ cropper.destroy(); cropper = null; }
   document.getElementById('cropperWrap').style.display = 'none';
+  document.getElementById('cropperImg').src = '';
   document.getElementById('previewThumbImg').src = '';
   document.getElementById('previewCroppedImg').src = '';
   document.getElementById('previewTimeBadge').textContent = '';
@@ -1358,14 +1383,88 @@ function openAddModal(tag){
 
   document.getElementById('addModal').classList.add('active');
 }
+function openEditModal(e, id){
+  e.stopPropagation();
+  const it = items.find(i => i.id === id);
+  if(!it) return;
+
+  modalMode = 'edit';
+  editingItemId = id;
+  modalTag = it.tag;
+  modalType = it.type;
+
+  document.getElementById('mTitle').value = it.title || '';
+  document.getElementById('mNote').value = it.note || '';
+  document.getElementById('mImageFile').value = '';
+  document.getElementById('pasteFallback').style.display = 'none';
+  document.getElementById('modalMsg').textContent = '';
+  document.getElementById('previewThumbImg').src = '';
+  document.getElementById('previewCroppedImg').src = '';
+  document.getElementById('previewTimeBadge').textContent = '';
+
+  // 이미지 수정에서는 새 Cropper를 만들지 않으므로, 추가 모드에서 쓰던 크롭 상태가
+  // 남아있지 않은지 명시적으로 비워 저장된 이미지가 실수로 바뀌는 일을 막는다
+  if(cropper){ cropper.destroy(); cropper = null; }
+  document.getElementById('cropperWrap').style.display = 'none';
+  document.getElementById('cropperImg').src = '';
+
+  document.getElementById('modalTitle').textContent = it.tag + ' 항목 수정';
+  modalTeam = it.team;
+  document.getElementById('mTeam').value = modalTeam || '';
+  document.getElementById('editHint').style.display = 'block';
+
+  if(it.type === 'vid'){
+    document.getElementById('mVideoUrlWrap').style.display = 'block';
+    const urlInput = document.getElementById('mVideoUrl');
+    urlInput.type = 'text';
+    urlInput.readOnly = true;
+    urlInput.value = it.video_url || '';
+
+    showModalStep('media');
+    loadClipPlayer((duration) => {
+      // 이 콜백은 YouTube duration이 확정된 후 비동기로 실행되므로, 그 사이 모달이
+      // 닫히거나 다른 항목의 수정 모달이 열렸다면 지금 세션이 여전히 같은 항목을
+      // 수정 중인지 확인한 뒤에만 clipStart/clipEnd를 복원한다
+      if(modalMode !== 'edit' || editingItemId !== id) return;
+      clipStart = it.clip_start;
+      clipEnd = it.clip_end;
+      syncClipSliders();
+      updateClipLabel();
+      syncClipPreviewTimer();
+    });
+  } else {
+    document.getElementById('mVideoUrlWrap').style.display = 'none';
+    stopClipPreviewTimer();
+    if(clipYtPlayer && clipYtPlayer.destroy){ clipYtPlayer.destroy(); clipYtPlayer = null; }
+
+    // showModalStep()이 savePreviewWrap을 modalType 기준으로 다시 그리므로,
+    // 저장된 img_url 주입은 반드시 이 호출 다음에 실행한다
+    showModalStep('details');
+    document.getElementById('previewCroppedImg').src = it.img_url || '';
+  }
+
+  document.getElementById('addModal').classList.add('active');
+}
 function closeModal(){
   document.getElementById('addModal').classList.remove('active');
   if(cropper){ cropper.destroy(); cropper = null; }
   stopClipPreviewTimer();
   if(clipYtPlayer && clipYtPlayer.destroy){ clipYtPlayer.destroy(); clipYtPlayer = null; }
+  modalMode = 'add';
+  editingItemId = null;
+  document.getElementById('mVideoUrl').type = 'hidden';
+  document.getElementById('mVideoUrl').readOnly = false;
+  document.getElementById('mVideoUrlWrap').style.display = 'none';
+  document.getElementById('editHint').style.display = 'none';
 }
 function goBackModal(){
   setModalMsg('');
+  if(modalMode === 'edit'){
+    // 수정 모드에는 되돌아갈 유효한 paste 단계가 없다 — UI에서 이미 뒤로 버튼을
+    // 숨기지만, 방어적으로도 paste로는 절대 이동하지 않는다
+    showModalStep(modalStep === 'details' ? 'media' : modalStep);
+    return;
+  }
   showModalStep(modalStep === 'details' ? 'media' : 'paste');
 }
 function advanceAddModal(){
@@ -1384,6 +1483,29 @@ function setModalMsg(t, cls){
 }
 async function submitItem(){
   if(!modalTeam){ setModalMsg('진영을 선택해주세요.', 'err'); return; }
+
+  if(modalMode === 'edit'){
+    const original = items.find(i => i.id === editingItemId);
+    const isMapLabel = (modalTag === '맵 지명');
+    const title = isMapLabel ? (original ? original.title : '맵 전체 지명') : document.getElementById('mTitle').value.trim();
+    const note = isMapLabel ? (original ? (original.note || '') : '') : document.getElementById('mNote').value.trim();
+    if(!isMapLabel && !title){ setModalMsg('제목을 입력해주세요.', 'err'); return; }
+
+    const saveBtn = document.getElementById('modalSaveBtn');
+    saveBtn.disabled = true;
+    setModalMsg('저장 중...');
+
+    const payload = { title, note: note || null, team: modalTeam };
+    if(modalType === 'vid'){ payload.clip_start = clipStart; payload.clip_end = clipEnd; }
+
+    const { error } = await sb.from('items').update(payload).eq('id', editingItemId);
+    if(error){ setModalMsg('저장 실패: ' + error.message, 'err'); saveBtn.disabled = false; return; }
+
+    setModalMsg('수정 완료!', 'ok');
+    setTimeout(async () => { closeModal(); saveBtn.disabled = false; await loadAll(); renderCards(); }, 500);
+    return;
+  }
+
   const isMapLabel = (modalTag === '맵 지명');
   const title = isMapLabel ? '맵 전체 지명' : document.getElementById('mTitle').value.trim();
   const note = isMapLabel ? '' : document.getElementById('mNote').value.trim();

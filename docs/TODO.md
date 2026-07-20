@@ -29,11 +29,11 @@
 - **Discord 로그인 기반 즐겨찾기** — 위폭·팁 카드와 전체 제목 검색 결과에서 별 추가·해제, 본인 행 전용 RLS, 최신 즐겨찾기 우선 정렬, 로그아웃 상태 초기화 구현
 - **그룹 A: 맵 상세뷰 진영 뷰 확장(TOTAL/RED/BLUE/FAVORITE) + 진영 없음(공통) 항목 지원** — `items.team`에 `'none'`(공통) 값 추가(CHECK 제약 교체), 팀 토글 4개 버튼, TOTAL/FAVORITE 전용 진영 텍스트 배지, 항목 추가 모달의 `teamWrap`(RED/BLUE/공통 선택) 도입. RED/BLUE/공통 DB 실저장 검증 완료. 세부 결정은 `docs/DECISIONS.md` 참고
 - **그룹 B: 항목 추가 모달 붙여넣기 UI 개선 + 저장 미리보기 카드 추가** — `pasteStep`을 붙여넣기/파일 선택 두 갈래 점선 박스(`.paste-box`, 처음부터 나란히 노출)로 교체하고, 기존 `teamWrap`(`#mTeam`)을 새 `#savePreviewWrap` 카드 안으로 옮겨 영상은 유튜브 썸네일+재생아이콘+구간 시간 배지(16:9), 이미지는 크롭 결과 150×150 정사각 썸네일을 `#mTeam` 옆/위에 함께 보여준다. `savePreviewWrap`의 노출 시점은 기존 `teamWrap`과 동일(맵 지명=media 단계, 위폭/팁=details 단계)하게 맞췄다. DB 스키마 변경 없음. 세부 결정은 `docs/DECISIONS.md` 참고
+- **그룹 C: 저장된 항목 수정 기능(제목·설명·진영·클립구간)** — 기존 항목 추가 모달을 "수정 모드"(`modalMode`)로 재사용. 카드 호버 시 `.card-edit`(⚙) 아이콘으로 진입, 제목/설명/진영과(영상이면) 클립 구간만 수정 가능. 태그·타입·이미지·영상 URL은 읽기전용/변경불가로 표시하고 삭제 후 재등록을 안내. `submitItem()`이 수정 모드에서는 `insert` 대신 `update()`를 호출하며 payload에 `type`/`tag`/`video_url`/`img_url`을 포함하지 않는다. DB 스키마 변경 없음. 세부 결정은 `docs/DECISIONS.md` 참고
 
 # 예정 (AI_CONTEXT.md 기준)
 
 - 구 Admin 사이트(`sudden-archive-admin.vercel.app`) 정리 — 편집모드가 CRUD 전체를 대체한 뒤 진행
-- **그룹 C: 저장된 항목(제목/설명/구간) 수정 기능** (현재 존재 여부 확인 필요) — 타입 변경(영상↔이미지)은 지원 안 함, 삭제 후 재등록으로 유도
 - **그룹 E: 유튜브 채널명 수집 + 채널명 검색** — 외부 API 연동 방식 결정 필요, DB 컬럼 추가(ALTER TABLE) 필요
 
 # 아이디어 (AI_CONTEXT.md "향후 개발 예정", 구체화 전)

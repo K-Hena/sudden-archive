@@ -43,6 +43,7 @@ Cropper.js(CDN, `cropperjs@1.6.1`)를 이미지 크롭에 사용 — User 사이
 - **개별 항목 삭제** — `deleteItem()`, 카드 호버 시 ✕ 아이콘(`card-del`) → confirm → `items` 행 삭제. 레거시 `deleteItem()`과 동일하게 confirm 한 번만 거침
 - **클립 구간(`clip_start`/`clip_end`) 마킹** — 레거시의 `loadClipPlayer()`/`markClipStart()`/`markClipEnd()`/`clearClip()`/`updateClipLabel()`을 버튼 방식 그대로 이식. 레거시에는 없던 **슬라이더 UI**(`<input type=range>` 2개, 시작/끝)를 추가로 도입해 드래그로도 구간 지정이 가능하다. 버튼/슬라이더 모두 같은 `clipStart`/`clipEnd` 전역 변수를 공유해 항상 동기화됨(`docs/DECISIONS.md` 참고). `submitItem()`이 `modalType==='vid'`일 때 이 값들을 그대로 저장한다(더 이상 항상 `null`이 아님)
 - 모달의 클립 플레이어는 오버레이 재생용 `ytPlayer`와 이름이 겹치지 않도록 `clipYtPlayer`라는 별도 변수로 분리 (재생 중인 유튜브 IFrame API 로드 자체는 오버레이 코드와 공유)
+- **저장된 항목 수정** — 레거시 Admin에는 없던 새 기능(포팅이 아님). 카드 호버 시 ✕(`card-del`) 옆 ⚙(`card-edit`) 아이콘 → `openEditModal()`이 기존 항목 추가 모달을 `modalMode==='edit'`로 열어 제목·설명·진영·(영상이면) 클립 구간만 수정한다. 태그·타입·이미지·영상 URL은 읽기전용/변경불가로 표시하고 삭제 후 재등록을 안내. `submitItem()`이 수정 모드에서는 `insert` 대신 `update()`를 호출한다. 세부 결정은 `docs/DECISIONS.md` 참고
 
 ## 편집모드 On/Off에 따른 렌더링 차이
 `renderMapGrid()`/`renderCards()` 안에서 `editMode` 전역 변수를 직접 참조해 액션 HTML을 조건부로 문자열에 끼워 넣는다. 레거시 Admin처럼 "로그인 = 관리자 = 항상 액션 노출"이 아니라, "로그인 + admins 등록 + editMode=true"일 때만 노출되므로 조건이 하나 더 있다.
