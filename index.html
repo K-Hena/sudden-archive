@@ -134,6 +134,8 @@ header{
   .map-head{align-items:stretch;flex-direction:column;}
   .map-head .detail-search{max-width:none;}
   .detail-toolbar .back-btn{align-self:flex-start;}
+  .paste-choices{flex-direction:column;}
+  #savePreviewWrap{flex-direction:column;}
 }
 
 .tag-section{margin-bottom:34px;}
@@ -283,11 +285,24 @@ header{
 .modal-body textarea{resize:vertical;min-height:44px;}
 .modal-body input[type=file]{width:100%;background:#0D1013;border:1px solid var(--line);color:var(--text);padding:9px 10px;font-family:'Inter',sans-serif;font-size:12px;margin-bottom:10px;}
 .paste-step{text-align:center;padding:24px 0 10px;}
-.paste-primary{width:100%;padding:22px;font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;background:var(--edit-accent);color:var(--edit-accent-ink);border:0;cursor:pointer;}
-.paste-upload{margin-top:14px;background:none;border:0;color:var(--muted);font-size:11px;text-decoration:underline;cursor:pointer;}
+.paste-choices{display:flex;gap:12px;}
+.paste-box{flex:1;border:1.5px dashed var(--line);padding:26px 12px;cursor:pointer;color:var(--muted);background:none;font-family:inherit;transition:border-color .15s,color .15s;}
+.paste-box:hover{border-color:var(--red);color:var(--red);}
+.paste-box-icon{font-size:26px;margin-bottom:8px;}
+.paste-box-label{font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;color:var(--text);}
+.paste-box:hover .paste-box-label{color:var(--red);}
+.paste-box-hint{font-size:10.5px;color:var(--muted);margin-top:4px;letter-spacing:0.03em;}
 .paste-fallback{margin-top:14px;}
 .cropper-wrap{max-height:340px;margin-bottom:14px;display:none;}
 .cropper-wrap img{max-width:100%;display:block;}
+#savePreviewWrap{margin-bottom:14px;gap:14px;align-items:flex-start;}
+#savePreviewWrap #teamWrap{flex:1;min-width:0;}
+.save-thumb-16x9{position:relative;width:100%;aspect-ratio:16/9;background:#000;overflow:hidden;margin-bottom:10px;display:flex;align-items:center;justify-content:center;}
+.save-thumb-16x9 img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.save-thumb-16x9 .playicon{position:relative;z-index:1;}
+.save-thumb-badge{position:absolute;bottom:8px;right:8px;background:rgba(6,7,9,.75);color:#fff;font-family:'JetBrains Mono',monospace;font-size:11px;padding:3px 7px;letter-spacing:0.02em;z-index:1;}
+.save-thumb-sq{width:150px;height:150px;flex:none;background:#000;overflow:hidden;}
+.save-thumb-sq img{width:100%;height:100%;object-fit:cover;display:block;}
 .clip-tools{margin-bottom:14px;}
 .clip-player{width:100%;aspect-ratio:16/9;background:#000;margin-bottom:10px;}
 .clip-player.tall{width:min(100%,calc(min(60vh,480px) * 0.5625));height:auto;aspect-ratio:9/16;margin:0 auto 10px;}
@@ -387,8 +402,18 @@ header{
     </div>
     <div class="modal-body">
       <div class="paste-step" id="pasteStep">
-        <button class="paste-primary" onclick="readAddClipboard()">📋 붙여넣기</button>
-        <button class="paste-upload" onclick="document.getElementById('mImageFile').click()">붙여넣지 않고 업로드</button>
+        <div class="paste-choices">
+          <button type="button" class="paste-box" onclick="readAddClipboard()">
+            <div class="paste-box-icon">📋</div>
+            <div class="paste-box-label">붙여넣기</div>
+            <div class="paste-box-hint">Ctrl+V</div>
+          </button>
+          <button type="button" class="paste-box" onclick="document.getElementById('mImageFile').click()">
+            <div class="paste-box-icon">🖼</div>
+            <div class="paste-box-label">파일 선택</div>
+            <div class="paste-box-hint">이미지만</div>
+          </button>
+        </div>
         <textarea class="paste-fallback" id="pasteFallback" placeholder="여기에 Ctrl+V로 붙여넣어주세요" style="display:none;"></textarea>
       </div>
 
@@ -434,14 +459,24 @@ header{
         </div>
       </div>
 
-      <div id="teamWrap" style="display:none;">
-        <label>진영</label>
-        <select id="mTeam" onchange="modalTeam = this.value || null;">
-          <option value="">선택 안 함</option>
-          <option value="red">RED</option>
-          <option value="blue">BLUE</option>
-          <option value="none">공통</option>
-        </select>
+      <div id="savePreviewWrap" style="display:none;">
+        <div id="previewVideoBox" class="save-thumb-16x9" style="display:none;">
+          <img id="previewThumbImg" alt="">
+          <div class="playicon"></div>
+          <div class="save-thumb-badge" id="previewTimeBadge"></div>
+        </div>
+        <div id="previewImageBox" class="save-thumb-sq" style="display:none;">
+          <img id="previewCroppedImg" alt="">
+        </div>
+        <div id="teamWrap" style="display:none;">
+          <label>진영</label>
+          <select id="mTeam" onchange="modalTeam = this.value || null;">
+            <option value="">선택 안 함</option>
+            <option value="red">RED</option>
+            <option value="blue">BLUE</option>
+            <option value="none">공통</option>
+          </select>
+        </div>
       </div>
 
       <div class="msg-modal" id="modalMsg"></div>
@@ -1179,7 +1214,7 @@ function loadImageIntoCropper(file){
     img.src = ev.target.result;
     document.getElementById('cropperWrap').style.display = 'block';
     if(cropper) cropper.destroy();
-    cropper = new Cropper(img, { viewMode: 1, autoCropArea: 1, background: false });
+    cropper = new Cropper(img, { viewMode: 1, autoCropArea: 1, background: false, ready: renderSavePreview, cropend: renderSavePreview });
   };
   reader.readAsDataURL(file);
 }
@@ -1198,11 +1233,26 @@ function showModalStep(step){
   document.getElementById('titleWrap').style.display = step === 'details' && !isMapLabel ? 'block' : 'none';
   document.getElementById('videoWrap').style.display = step === 'media' && modalType === 'vid' ? 'block' : 'none';
   document.getElementById('imageWrap').style.display = step === 'media' && modalType === 'img' ? 'block' : 'none';
-  document.getElementById('teamWrap').style.display = (isMapLabel ? step === 'media' : step === 'details') ? 'block' : 'none';
+  const showPreview = isMapLabel ? step === 'media' : step === 'details';
+  document.getElementById('teamWrap').style.display = showPreview ? 'block' : 'none';
+  document.getElementById('savePreviewWrap').style.display = showPreview ? (modalType === 'img' ? 'flex' : 'block') : 'none';
+  if(showPreview) renderSavePreview();
   document.getElementById('modalBackBtn').style.display = step === 'paste' ? 'none' : 'inline-block';
   const saveBtn = document.getElementById('modalSaveBtn');
   saveBtn.style.display = step === 'paste' ? 'none' : 'inline-block';
   saveBtn.textContent = step === 'details' || isMapLabel ? '저장' : '다음';
+}
+function renderSavePreview(){
+  document.getElementById('previewVideoBox').style.display = modalType === 'vid' ? 'flex' : 'none';
+  document.getElementById('previewImageBox').style.display = modalType === 'img' ? 'block' : 'none';
+  if(modalType === 'vid'){
+    document.getElementById('previewThumbImg').src = ytThumb(document.getElementById('mVideoUrl').value.trim());
+    document.getElementById('previewTimeBadge').textContent = (clipStart !== null && clipEnd !== null)
+      ? `${fmtClip(clipStart)}~${fmtClip(clipEnd)}` : '전체 재생';
+  } else if(modalType === 'img' && cropper){
+    const canvas = cropper.getCroppedCanvas();
+    document.getElementById('previewCroppedImg').src = canvas ? canvas.toDataURL('image/jpeg', 0.85) : '';
+  }
 }
 
 function showPasteFallback(message){
@@ -1286,6 +1336,9 @@ function openAddModal(tag){
   document.getElementById('modalMsg').textContent = '';
   if(cropper){ cropper.destroy(); cropper = null; }
   document.getElementById('cropperWrap').style.display = 'none';
+  document.getElementById('previewThumbImg').src = '';
+  document.getElementById('previewCroppedImg').src = '';
+  document.getElementById('previewTimeBadge').textContent = '';
 
   clipStart = null; clipEnd = null; clipEndMarkGraceUntil = 0;
   applyClipDuration(0);

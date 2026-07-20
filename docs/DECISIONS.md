@@ -185,3 +185,19 @@
 **결정**: FAVORITE 버튼을 비로그인 상태로 누르면 기존 즐겨찾기 로그인 유도 confirm을 그대로 띄우고, 취소하면 `currentTeam`을 바꾸지 않고 리턴해 이전 뷰(RED/BLUE/TOTAL)와 버튼 활성 상태를 그대로 유지한다. 다만 지시서가 요구한 "로그인을 완료하면 그때 FAVORITE 뷰로 전환"은 이번 구현에 포함하지 않았다(사용자 확인 후 생략 확정).
 
 **이유**: 이 프로젝트의 Discord 로그인은 `signInWithOAuth`로 외부 사이트로 나갔다 돌아오는 전체 페이지 리다이렉트 방식이라, 리다이렉트 후에는 `currentMap`/`currentTeam`을 포함한 모든 JS 메모리 상태가 초기화되고 항상 맵 그리드 화면으로 돌아간다. 기존 카드별 즐겨찾기 버튼의 로그인 유도도 동일한 이유로 로그인 후 맵을 복원하지 않는다. "로그인 완료 후 FAVORITE 뷰로 자동 전환"을 만들려면 로그인 시도 직전 현재 맵 ID·의도한 뷰를 `sessionStorage` 등에 저장했다가 재진입 시 복원하는 새로운 내비게이션 상태 지속화 장치가 필요한데, 이는 이 프로젝트에 아직 존재하지 않는 아키텍처 패턴이라 그룹 A 범위를 넘어선다고 판단해 사용자에게 확인 후 생략했다.
+
+---
+
+## 그룹 B: 붙여넣기 UI — 처음부터 "붙여넣기/파일 선택" 두 갈래 박스로 확정
+
+**결정**: 기존에는 큰 "📋 붙여넣기" 버튼 하나만 먼저 보이고 "붙여넣지 않고 업로드"는 그 아래 작은 텍스트 링크였다. Claude(Chat) 설계 단계에서 이를 처음부터 동등한 비중의 점선 테두리 박스 2개(왼쪽 "붙여넣기"/오른쪽 "파일 선택")를 나란히 배치하는 시안으로 확정했다. 각 박스의 클릭 핸들러는 기존 `readAddClipboard()`/`document.getElementById('mImageFile').click()`을 그대로 재사용했고, Ctrl+V `paste` 이벤트 폴백과 "맵 지명" URL 차단 로직은 건드리지 않았다. 강조 색상은 새 CSS 변수를 만들지 않고 기존 `--red`만 hover 시 재사용했다(`--amber`/`--edit-accent` 사용 금지 — 편집모드 전용 강조색인 `--edit-accent`와 시각적으로 구분하기 위함, 위 "편집모드 전용 강조색" 결정 참고).
+
+**이유**: "붙여넣기"가 항상 더 우선인 흐름을 유지하면서도, 클립보드 자동 판별이 지원되지 않는 브라우저·권한 거부 상황에서 파일 선택이 "안내 문구 뒤에 숨은 보조 수단"처럼 보이지 않도록 두 경로를 동등하게 노출해달라는 설계 요구를 반영했다. Codex 리뷰에서 `<div onclick>`은 키보드로 접근할 수 없다는 지적을 받아, 최종 마크업은 `<button type="button" class="paste-box">`로 구현했다(클릭 동작과 다이얼로그 안 레이아웃은 시안과 동일하게 유지, UA 기본 버튼 스타일만 CSS로 리셋).
+
+## 그룹 B: `savePreviewWrap`을 `titleWrap`에서 분리 — `teamWrap`과 동일한 노출 시점 재사용
+
+**결정**: 저장 미리보기 카드(`#savePreviewWrap`, 영상 썸네일+구간 배지 또는 크롭 이미지 썸네일 + `#mTeam`)를 `titleWrap` 안에 넣지 않고 별도 요소로 만들었다. 노출 조건은 기존 `teamWrap`이 이미 쓰고 있던 분기(`isMapLabel ? step === 'media' : step === 'details'`)를 `showModalStep()`에서 그대로 재사용해 `teamWrap`과 완전히 동일한 타이밍에 같이 뜨고 같이 숨긴다. `teamWrap`(`#mTeam` select) 자체는 DOM 위치만 `savePreviewWrap` 내부로 옮겼을 뿐, `id`/`onchange`/옵션/기본값·미선택 차단·저장값 로직은 전혀 바꾸지 않았다.
+
+**이유**: "그룹 A: 항목 추가 모달 `teamWrap`/`modalTeam` — `titleWrap`과 분리" 결정과 같은 이유다 — `titleWrap`은 "맵 지명" 태그에서 항상 숨겨진 채 미디어 단계에서 바로 저장까지 진행되는 구조라, 미리보기를 그 안에 두면 "맵 지명"에는 저장 미리보기 자체가 노출될 방법이 사라진다. 이미 `teamWrap`이 이 두 갈래(맵 지명=media 단계 / 위폭·팁=details 단계) 노출 조건을 검증된 방식으로 쓰고 있었으므로, 새 조건을 따로 설계하는 대신 같은 조건식을 공유해 두 요소가 어긋나지 않게 했다.
+
+**렌더 시점과 Cropper 콜백 추가**: 영상 미리보기는 지시서 요구대로 `showModalStep('details')` 진입 시 그 시점의 `modalType`/영상 URL/`clipStart`/`clipEnd`를 한 번만 읽어 `renderSavePreview()`로 렌더하고, 슬라이더나 `markClipStart`/`markClipEnd` 같은 개별 함수에는 추가 렌더 호출을 넣지 않았다(클립 조작 중 매 틱마다 미리보기를 갱신하지 않음). 이미지 미리보기는 이 규칙만으로는 "맵 지명" 흐름에서 문제가 생긴다 — `startImageFlow()`가 `showModalStep('media')`를 먼저 호출하고, `Cropper` 인스턴스는 그 이후 `FileReader.onload`에서 비동기로 생성되기 때문에 `showModalStep()` 안에서만 렌더하면 아직 존재하지 않는 `cropper`를 참조하게 된다. 이를 위해 `Cropper` 생성 옵션에 `ready`/`cropend` 콜백으로 `renderSavePreview()`를 추가로 연결했다 — "위폭"/"팁" 태그(이미지가 `details` 단계에서만 보임, 그 시점엔 이미 크롭이 끝난 상태)에는 중복 렌더일 뿐이지만, "맵 지명"(크롭이 끝나야 비로소 미리보기를 그릴 수 있는 `media` 단계에서 노출)에는 필수였다. Codex 리뷰에서 `cropper.getCroppedCanvas()`가 준비 전이면 `null`을 반환할 수 있다는 지적을 받아, `null`이면 이전 미리보기 이미지를 지우고 갱신을 건너뛰도록 방어 코드를 추가했다.
