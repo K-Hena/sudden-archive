@@ -30,6 +30,11 @@
 - **그룹 A: 맵 상세뷰 진영 뷰 확장(TOTAL/RED/BLUE/FAVORITE) + 진영 없음(공통) 항목 지원** — `items.team`에 `'none'`(공통) 값 추가(CHECK 제약 교체), 팀 토글 4개 버튼, TOTAL/FAVORITE 전용 진영 텍스트 배지, 항목 추가 모달의 `teamWrap`(RED/BLUE/공통 선택) 도입. RED/BLUE/공통 DB 실저장 검증 완료. 세부 결정은 `docs/DECISIONS.md` 참고
 - **그룹 B: 항목 추가 모달 붙여넣기 UI 개선 + 저장 미리보기 카드 추가** — `pasteStep`을 붙여넣기/파일 선택 두 갈래 점선 박스(`.paste-box`, 처음부터 나란히 노출)로 교체하고, 기존 `teamWrap`(`#mTeam`)을 새 `#savePreviewWrap` 카드 안으로 옮겨 영상은 유튜브 썸네일+재생아이콘+구간 시간 배지(16:9), 이미지는 크롭 결과 150×150 정사각 썸네일을 `#mTeam` 옆/위에 함께 보여준다. `savePreviewWrap`의 노출 시점은 기존 `teamWrap`과 동일(맵 지명=media 단계, 위폭/팁=details 단계)하게 맞췄다. DB 스키마 변경 없음. 세부 결정은 `docs/DECISIONS.md` 참고
 - **그룹 C: 저장된 항목 수정 기능(제목·설명·진영·클립구간)** — 기존 항목 추가 모달을 "수정 모드"(`modalMode`)로 재사용. 카드 호버 시 `.card-edit`(⚙) 아이콘으로 진입, 제목/설명/진영과(영상이면) 클립 구간만 수정 가능. 태그·타입·이미지·영상 URL은 읽기전용/변경불가로 표시하고 삭제 후 재등록을 안내. `submitItem()`이 수정 모드에서는 `insert` 대신 `update()`를 호출하며 payload에 `type`/`tag`/`video_url`/`img_url`을 포함하지 않는다. DB 스키마 변경 없음. 세부 결정은 `docs/DECISIONS.md` 참고
+- **그룹 D 1단계: 항목 클릭수 추적 스키마 + 기록 로직** — 신규 테이블 `item_clicks`(이벤트 로그, `item_id`/`user_id`(nullable)/`created_at`) 생성, `trackClick(itemId)`를 `openOverlay(id)`에서 fire-and-forget 호출해 편집모드 여부·진입 경로(전체 검색/상세/즐겨찾기)와 무관하게 항상 기록. anon 세션으로 REST API 직접 호출해 INSERT(본인/null 허용, 타인 스푸핑 차단)·SELECT(비관리자 차단) RLS를 실제 검증. 세부 결정·알려진 한계는 `docs/DECISIONS.md`, 스키마는 `docs/DATABASE.md` 참고
+
+# 진행중
+
+- **그룹 D: 관리자 통계 대시보드** — 1단계(클릭수 추적 스키마·기록 로직) 완료, 2단계(대시보드 UI·집계 쿼리, 클릭수 외 즐겨찾기 수·유저별 선호 맵 포함) 남음
 
 # 예정 (AI_CONTEXT.md 기준)
 
@@ -42,4 +47,3 @@
 - 검색 기능 고도화 — 제목 외 필드 검색, 자동완성·초성 검색은 미구현. `docs/architecture/search-flow.md` 참고
 - UI 개선
 - 데이터 관리 기능 강화
-- **그룹 D: 관리자 통계 대시보드** — 클릭수, 즐겨찾기 수, 유저별 선호 맵

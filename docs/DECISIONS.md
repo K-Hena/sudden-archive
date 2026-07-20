@@ -221,3 +221,13 @@
 **클립 상태 리셋**: `openAddModal()`은 수정 모드였는지와 무관하게 항상 호출되는 단일 진입점이며, `clipStart`/`clipEnd`/`clipEndMarkGraceUntil` null 리셋 → `applyClipDuration(0)` → `clipTools` 숨김 → `stopClipPreviewTimer()` → `clipYtPlayer` destroy+null → `updateClipLabel()` 순서의 리셋 블록을 이미 포함하고 있었다(그룹 C 구현 때 삭제된 적 없음 — `openEditModal()`에 임시로 추가했다가 `loadClipPlayer()`가 내부적으로 동일 리셋을 이미 수행하므로 제거한 중복 블록과 혼동하기 쉬워 확인 차 재검증했다). 반대로 `openEditModal()`은 이 블록을 타지 않고, `loadClipPlayer()`의 duration 확정 콜백에서 저장된 `clip_start`/`clip_end`를 복원한다. 브라우저에서 구간(0:10~0:40)이 있는 항목을 수정 모드로 열었다가 취소하고 곧바로 "추가" 모달을 다시 열어, `clipStart`/`clipEnd`가 `null`로, 슬라이더가 `[0,0]`으로 돌아오는 것을 확인했다.
 
 **`mVideoUrl` 타입**: 이 필드의 HTML 기본값은 원래부터(붙여넣기 우선 흐름 도입 이전에는 `type="url"`인 적이 있었으나, 그 이후로는) `type="hidden"`이며, `type="url"`로 되돌아갈 히스토리상의 "원래 타입"은 아니다. 그룹 C에서 수정 모드 진입 시 읽기전용으로 노출하기 위해 `type="text"`로 바꿨던 것을, 이 필드가 유튜브 URL을 담는다는 의미에 더 맞고 기존 CSS(`input[type=url]`이 `input[type=text]`와 동일한 스타일 규칙을 이미 공유)에서도 차이가 없어 `type="url"`로 통일했다. `openAddModal()`/`closeModal()` 양쪽에서 `type="hidden"`으로 되돌리는 코드는 그룹 C 구현 시점부터 이미 있었다(수정 대상 아님). 브라우저에서 수정 모드 진입 시 `type` 값이 `"url"`로 바뀌고, 취소 후 "추가" 모달을 다시 열면 `"hidden"`으로 정확히 복원되는 것을 확인했다.
+
+---
+
+## 그룹 D 1단계: 항목 클릭수 추적 스키마 + 기록 로직
+
+**결정**: 클릭수를 "카운터 컬럼"이 아니라 `item_clicks` 이벤트 로그 테이블(클릭마다 새 행)로 쌓는다. `user_id`는 로그인 사용자만 채우고 비로그인 클릭은 `null`로 익명 카운트한다. INSERT는 `anon`/`authenticated` 모두 허용하되 `user_id is null or user_id = (select auth.uid())`로 타인 사칭만 막고, SELECT는 `admins` 등록 사용자만 허용한다. 기록 함수 `trackClick(itemId)`는 `openOverlay(id)` 최상단에서 `void trackClick(id)`로 fire-and-forget 호출해, 카드 종류(전체 검색/상세/즐겨찾기)와 무관하게 `openOverlay`를 거치는 모든 진입점에서 자동으로 기록되게 했다. 실패(응답 에러·네트워크 예외 둘 다)는 `console.warn`만 남기고 `alert`을 띄우지 않는다 — 클릭 기록 실패가 카드 열람을 막으면 안 되기 때문이다. RLS 조건은 `favorites`가 이미 쓰던 `(select auth.uid())` 감싸기 패턴을 그대로 따랐다(동작은 `auth.uid()` 직접 호출과 동일, 대량 행에서 재평가 비용을 줄이는 최신 권장 패턴).
+
+**이유**: 이벤트 로그 방식은 "언제 클릭했는지"(추후 기간별 집계, 유저별 선호 맵 분석)까지 보존하지만 카운터 컬럼은 총합만 남긴다. 1단계 목표가 "집계용 원본 데이터를 쌓기 시작하는 것"이라 로그 방식이 맞다. fire-and-forget + 조용한 실패 처리는 클릭 기록이 부가 기능(텔레메트리)이지 핵심 기능(오버레이 열람)이 아니기 때문 — 오버레이가 열리는 속도나 성공 여부가 클릭 기록에 좌우되면 안 된다.
+
+**알려진 한계(문서화만 하고 이번 범위에서 추가 방어 안 함)**: 이 RLS는 타인의 `user_id`로 스푸핑하는 것은 막지만, 로그인한 사용자가 고의로 `user_id: null`을 보내 자기 클릭을 익명 처리하는 것까지는 막지 못한다. 서버 사이드 세션 검증(예: Edge Function을 거쳐서만 INSERT 허용) 같은 방어는 2단계(대시보드) 이후 필요성이 확인되면 별도로 검토한다.

@@ -128,3 +128,17 @@ Playwright(Chromium)로 duration=35, 시작=9, 끝=19인 상태를 실제로 재
 **수정**: 편집 플레이어의 `onStateChange`에서 `clipPreviewTimer`가 없을 때만 기존 `syncClipPreviewTimer()`를 호출한다. 기존 타이머가 있으면 건드리지 않아 중복 타이머를 만들지 않고, 구간이 한쪽만 지정됐거나 초기화된 경우에는 `syncClipPreviewTimer()`의 기존 가드가 그대로 종료한다. `clipEndMarkGraceUntil`의 1.3초 유예와 `[clipStart, clipEnd)` 경계 판정은 변경하지 않았다.
 
 **재현 테스트**: 실제 Chrome 150과 YouTube iframe에서 5~9초 구간을 버튼으로 지정하고 iframe 재생 버튼을 눌러 반복 재생됨을 확인했다. 일시정지 상태에서 12초로 이동하면 5초로 복귀하면서 일시정지를 유지했다. 추가 Node 자가검사는 타이머가 없는 상태의 상한 이탈이 시작점 seek와 일시정지 유지를 수행하고, 플레이어 상태 콜백에 감시 복구 호출이 남아 있는지 확인한다.
+
+---
+
+## 그룹 D 1단계 클릭 추적: "호출 누락"으로 잘못 진단했으나 실제로는 미커밋·미배포 상태였음
+
+**증상**: `trackClick()` 구현을 완료했다고 보고했지만, 운영 Vercel URL에서 `console.log(openOverlay.toString())`으로 확인했을 때 `trackClick` 관련 코드가 전혀 보이지 않았다.
+
+**잘못된 최초 진단**: 배포본만 보고 "`openOverlay()`에 `trackClick()` 호출이 누락된 버그"로 판단했다. 실제로는 로컬 `index.html`을 확인하지 않고 배포본 증상만으로 원인을 추측한 것이었다.
+
+**실제 원인**: `git status`로 로컬을 확인한 결과 `trackClick()` 정의와 `void trackClick(id)` 호출이 이미 `index.html`에 존재했지만 커밋되지 않은 상태(`Changes not staged for commit`)였다. `git log --all -S"trackClick"`로도 관련 커밋이 전혀 없었고 `origin/main`에도 반영되지 않았다 — 즉 구현 자체는 끝났으나 커밋·푸시가 되지 않아 Vercel에 배포되지 않은 것이 정확한 원인이었다. 배포본에서 문자열 자체가 안 보였던 증상과도 정확히 들어맞는다.
+
+**수정**: 별도 코드 작성 없이 기존 미커밋 diff를 원 지시서 요구사항(에러/예외 둘 다 캐치, `alert` 금지, `openOverlay()` 최상단 fire-and-forget 호출)과 대조해 일치함을 확인한 뒤 그대로 커밋(`b743418`)하고 푸시했다. 배포 후 운영 URL의 raw HTML과 Playwright로 실제 카드 클릭 시 `POST .../item_clicks` 요청을 재확인했다.
+
+**예방**: 코드 수정을 완료했다고 보고하기 전에 반드시 `git status`로 미커밋 여부를 확인한다. 배포된 정적 사이트의 동작을 검증할 때는 로컬 파일 상태를 먼저 확인하지 않고 배포본 증상만으로 원인을 추측하지 않는다 — "코드가 잘못됐다"와 "맞는 코드가 아직 배포되지 않았다"는 증상이 같아 보여도 진단·수정 방법이 전혀 다르다.

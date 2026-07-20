@@ -86,6 +86,21 @@ Discord 로그인 사용자의 즐겨찾기. Supabase migration `create_user_fav
 - 복합 PK: `(user_id, item_id)` — 중복 즐겨찾기 방지
 - 인덱스: `(user_id, created_at DESC)`, `(item_id)`
 
+## item_clicks
+
+항목(카드) 클릭·재생 횟수를 쌓는 이벤트 로그. 맵 입장이 아니라 카드를 열 때마다 한 행씩 쌓인다. Supabase migration `create_item_clicks_table`로 생성했다. 그룹 D 1단계 범위 — 대시보드 UI는 아직 없다.
+
+| 컬럼 | 자료형/제약 |
+|---|---|
+| id | uuid PK, `gen_random_uuid()` 기본값 |
+| item_id | uuid NOT NULL, `public.items(id)` FK, ON DELETE CASCADE |
+| user_id | uuid NULL, `auth.users(id)` FK, ON DELETE SET NULL — 로그인 사용자만 채워지고 비로그인 클릭은 `null` |
+| created_at | timestamptz NOT NULL DEFAULT `now()` |
+
+- PK: `id` (favorites와 달리 복합 PK가 아니라 이벤트 로그라 클릭마다 새 행이 쌓인다)
+- 인덱스: `(item_id)`, `(user_id)`
+- DELETE 정책은 없음 — 클라이언트에서는 삭제 불가, 정리가 필요하면 관리자 권한 SQL로만 가능
+
 ---
 
 # RLS (Row Level Security)
@@ -96,6 +111,7 @@ Discord 로그인 사용자의 즐겨찾기. Supabase migration `create_user_fav
 - `maps`, `items`: **INSERT/UPDATE/DELETE는 `admins` 테이블에 등록된 `user_id`만 허용** — User 사이트 편집모드가 이 권한에 의존해서 관리자만 CRUD 버튼이 동작하도록 설계됨
 - `admins`: RLS 활성화, `pg_policies`로 직접 조회해 확인함 — `admins_select_own`, `본인 확인 가능` 두 개의 SELECT 정책이 있으며 둘 다 조건은 동일하게 `auth.uid() = user_id`(본인 행만 조회 가능, `roles: public`). INSERT/UPDATE/DELETE 정책은 없음 — `admins` 테이블 자체는 클라이언트에서 쓰기 불가하고, 관리자 등록은 Supabase 대시보드/MCP로만 이뤄진다.
 - `favorites`: RLS 활성화. `authenticated`에 SELECT/INSERT/DELETE만 부여하고 각 정책이 `(select auth.uid()) = user_id`로 본인 행만 허용한다. `anon` 권한과 UPDATE 정책은 없다.
+- `item_clicks`: RLS 활성화. INSERT는 `anon`/`authenticated` 모두 허용하되 `user_id is null or user_id = (select auth.uid())`로 본인 것이거나 `null`만 허용(타인 user_id로의 스푸핑은 차단). SELECT는 `authenticated` 중 `admins`에 등록된 사용자만 가능(`exists (select 1 from admins where admins.user_id = (select auth.uid()))`). UPDATE/DELETE 정책은 없음. 실제 anon 세션으로 REST API를 직접 호출해 검증함 — `user_id: null` INSERT 성공(201), 타인 `user_id` 스푸핑 INSERT 실패(401/`42501`), anon SELECT는 빈 배열 반환(정책이 없어 RLS가 조용히 필터링). **알려진 한계**: 로그인 사용자가 고의로 `user_id: null`을 보내 본인 클릭을 익명 처리하는 것은 이 정책으로 막지 못한다(세션 검증까지는 이번 범위 밖, `docs/DECISIONS.md` 참고). 또한 `.insert().select()`처럼 `Prefer: return=representation`을 쓰면 anon은 SELECT 정책이 없어 INSERT 자체가 롤백된다 — 앱 코드(`trackClick`)는 `.select()`를 체이닝하지 않아 영향 없음.
 
 정책 SQL은 Supabase MCP(`pg_policies` 조회) 또는 대시보드의 Authentication/Database > Policies에서 확인할 수 있다.
 

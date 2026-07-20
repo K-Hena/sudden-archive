@@ -55,6 +55,15 @@
 
 ---
 
+## 2026-07-21 — 그룹 D 1단계: 항목 클릭수 추적 스키마 + 기록 로직
+
+- **`item_clicks` 테이블 생성** — 항목(카드) 클릭·재생 횟수를 이벤트 로그 방식(클릭마다 새 행)으로 쌓는 신규 테이블. `item_id`(FK, CASCADE)/`user_id`(nullable FK, SET NULL)/`created_at`. RLS로 INSERT는 `anon`/`authenticated` 모두 허용하되 본인 `user_id` 또는 `null`만 허용(타인 사칭 차단), SELECT는 `admins` 등록 사용자만 허용. `favorites`가 쓰던 `(select auth.uid())` 감싸기 패턴을 그대로 따랐다
+- **클릭 기록 함수 `trackClick(itemId)` 추가 + `openOverlay()` 연결** — `openOverlay(id)` 최상단에서 `void trackClick(id)`로 fire-and-forget 호출해 오버레이 여는 속도에 영향이 없다. 응답 에러와 네트워크 예외 모두 `console.warn`만 남기고 `alert`은 띄우지 않아, 클릭 기록 실패가 카드 열람을 막지 않는다. `openOverlay()`를 재사용하는 모든 진입점(전체 검색/상세/즐겨찾기 카드)에서 자동으로 함께 기록된다
+- 실제 anon 세션으로 Supabase REST API를 직접 호출해 RLS를 검증(관리자 권한 SQL 조회로 정책 존재만 확인한 것이 아님) — `user_id: null` INSERT 성공, 타인 `user_id` 스푸핑 INSERT 실패, anon SELECT는 빈 배열. 배포 후 Playwright로 운영 URL에 직접 접속해 미디어 없는 테스트 항목을 클릭, `POST .../item_clicks` 201 응답을 Network 탭에서 실측 확인. 이 작업 중 최초 구현분이 한 차례 미커밋 상태로 남아있던 것을 발견해 커밋을 별도로 나눴다(`b743418`) — 자세한 경위는 `docs/TROUBLESHOOTING.md` 참고
+- 대시보드 UI·집계 쿼리는 이번 범위 밖(그룹 D 2단계). 세부 결정과 알려진 한계는 `docs/DECISIONS.md`, 스키마는 `docs/DATABASE.md` 참고
+
+---
+
 # 참고
 
 - 이 문서는 커밋 단위 이력이다. 기능별 완료/진행 상태는 `TODO.md`, 설계 이유는 `DECISIONS.md`를 참고.
