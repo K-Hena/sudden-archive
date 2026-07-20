@@ -771,6 +771,18 @@ async function toggleFavorite(e, itemId){
   }
 }
 
+async function trackClick(itemId){
+  try {
+    const { error } = await sb.from('item_clicks').insert({
+      item_id: itemId,
+      user_id: currentSession?.user?.id || null
+    });
+    if(error) console.warn('클릭 기록 실패:', error.message);
+  } catch(error){
+    console.warn('클릭 기록 실패:', error);
+  }
+}
+
 function parseYouTube(url){
   if(!url) return null;
   const short = url.match(/shorts\/([A-Za-z0-9_-]{6,})/);
@@ -876,6 +888,7 @@ let clipTimer = null;
 let overlayVideoId = null;
 let overlayHasClip = false;
 function openOverlay(id){
+  void trackClick(id);
   const it = items.find(i => i.id === id);
   const media = document.getElementById('overlayMediaContent');
   const playPauseBtn = document.getElementById('overlayPlayPause');
