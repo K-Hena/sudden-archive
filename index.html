@@ -1416,7 +1416,7 @@ function openEditModal(e, id){
   if(it.type === 'vid'){
     document.getElementById('mVideoUrlWrap').style.display = 'block';
     const urlInput = document.getElementById('mVideoUrl');
-    urlInput.type = 'text';
+    urlInput.type = 'url';
     urlInput.readOnly = true;
     urlInput.value = it.video_url || '';
 

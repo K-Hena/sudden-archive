@@ -215,3 +215,9 @@
 **결정**: 수정 가능한 필드는 제목·설명·진영과(영상이면) 클립 구간뿐이다. 태그, 타입(영상↔이미지), 이미지 자체, 영상 URL은 수정 대상에서 제외했고 `submitItem()`의 update payload에도 포함하지 않는다. 이 값들을 바꾸고 싶으면 기존 `deleteItem()`으로 삭제 후 새로 등록하도록 안내한다.
 
 **이유**: 저장된 매체(이미지 Storage 경로, 영상 URL)나 타입·태그를 바꾸는 기능은 업로드·크롭·Storage 정리 등 훨씬 큰 작업이 되고, 이미 있는 삭제+재등록 흐름으로 충분히 대체 가능하다.
+
+## 그룹 C 후속: 클립 상태 리셋 범위, `mVideoUrl` 타입 확인 결과
+
+**클립 상태 리셋**: `openAddModal()`은 수정 모드였는지와 무관하게 항상 호출되는 단일 진입점이며, `clipStart`/`clipEnd`/`clipEndMarkGraceUntil` null 리셋 → `applyClipDuration(0)` → `clipTools` 숨김 → `stopClipPreviewTimer()` → `clipYtPlayer` destroy+null → `updateClipLabel()` 순서의 리셋 블록을 이미 포함하고 있었다(그룹 C 구현 때 삭제된 적 없음 — `openEditModal()`에 임시로 추가했다가 `loadClipPlayer()`가 내부적으로 동일 리셋을 이미 수행하므로 제거한 중복 블록과 혼동하기 쉬워 확인 차 재검증했다). 반대로 `openEditModal()`은 이 블록을 타지 않고, `loadClipPlayer()`의 duration 확정 콜백에서 저장된 `clip_start`/`clip_end`를 복원한다. 브라우저에서 구간(0:10~0:40)이 있는 항목을 수정 모드로 열었다가 취소하고 곧바로 "추가" 모달을 다시 열어, `clipStart`/`clipEnd`가 `null`로, 슬라이더가 `[0,0]`으로 돌아오는 것을 확인했다.
+
+**`mVideoUrl` 타입**: 이 필드의 HTML 기본값은 원래부터(붙여넣기 우선 흐름 도입 이전에는 `type="url"`인 적이 있었으나, 그 이후로는) `type="hidden"`이며, `type="url"`로 되돌아갈 히스토리상의 "원래 타입"은 아니다. 그룹 C에서 수정 모드 진입 시 읽기전용으로 노출하기 위해 `type="text"`로 바꿨던 것을, 이 필드가 유튜브 URL을 담는다는 의미에 더 맞고 기존 CSS(`input[type=url]`이 `input[type=text]`와 동일한 스타일 규칙을 이미 공유)에서도 차이가 없어 `type="url"`로 통일했다. `openAddModal()`/`closeModal()` 양쪽에서 `type="hidden"`으로 되돌리는 코드는 그룹 C 구현 시점부터 이미 있었다(수정 대상 아님). 브라우저에서 수정 모드 진입 시 `type` 값이 `"url"`로 바뀌고, 취소 후 "추가" 모달을 다시 열면 `"hidden"`으로 정확히 복원되는 것을 확인했다.
