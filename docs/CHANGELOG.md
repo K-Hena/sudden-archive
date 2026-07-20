@@ -77,6 +77,7 @@
 - **그룹 A의 "미선택 시 저장 차단" 결정을 대체** — `mTeam` select에서 `<option value="none">공통</option>`을 삭제하고 placeholder를 "선택 안 함 (공통)"으로 변경. `submitItem()`의 `if(!modalTeam){...}` 차단문을 제거하고 `const savedTeam = modalTeam || 'none';`을 한 번 계산해 edit update·vid insert·img insert 세 저장 경로 모두 재사용하도록 통일
 - **항목 추가 모달만 항상 미선택으로 시작** — `openAddModal()`이 `currentTeam`이 RED/BLUE일 때 자동으로 팀을 선택하던 로직을 제거, TOTAL/RED/BLUE/FAVORITE 어느 뷰에서 열어도 미선택 상태로 시작. 수정 모달(그룹 C)의 `openEditModal()`은 변경하지 않았고, 저장된 값이 `'none'`인 항목을 열면 select에 해당 옵션이 없어 브라우저가 자동으로 빈 값(미선택)으로 표시하는 것을 확인(별도 분기 코드 불필요)
 - Codex 리뷰 통과(지적 사항 없음). 실 Supabase에 검증용 더미 항목을 INSERT(`team:'none'`)한 뒤 `team:'red'`로 UPDATE까지 실제로 확인하고, 앱에서 TOTAL/RED/BLUE 필터링이 의도대로 동작하는 것을 확인한 뒤 사용자 승인을 받아 DELETE로 원상 복구했다. DB 스키마(CHECK 제약·RLS) 변경 없음. 세부 결정은 `docs/DECISIONS.md` 참고
+- **후속 보완 검증(코드 변경 없음, Codex 리뷰 대상 아님)** — 최초 보고에서 빠졌던 두 케이스를 추가로 확인했다. ① FAVORITE 뷰: 로그인·즐겨찾기 상태를 클라이언트에서 시뮬레이션해 `team:'none'`(공통) 항목도 팀과 무관하게 FAVORITE 뷰에 정상 노출되는 것을 확인(`renderCards()`의 FAVORITE 필터는 `favoriteRow(id)` 기준이라 이번 변경과 무관, 회귀 없음). ② "맵 지명" 태그: 추가 모달이 TOTAL/RED/BLUE/FAVORITE 어느 뷰에서 열어도 미선택으로 시작하고 수정 모달은 red/blue 선택값·`'none'` 빈 값 표시가 위폭/팁과 동일하게 동작함을 함수 호출로 확인. 실 Supabase에도 `tag:'맵 지명'` 더미 항목을 INSERT(`team:'none'`) 후 `team:'blue'`로 UPDATE해 TOTAL(2)/BLUE(1)/RED(0) 필터링을 실제로 재확인한 뒤 사용자 승인을 받아 DELETE로 정리했다
 
 ---
 
