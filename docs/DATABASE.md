@@ -60,7 +60,7 @@ alter table public.items
   add constraint items_team_check check (team = any (array['red'::text, 'blue'::text]));
 ```
 
-2026-07-20 Supabase SELECT 재확인 결과 실제 `items_team_check`는 `red`, `blue`, `none`만 허용하며, `items` 데이터는 0건이었다. RED/BLUE/공통 실제 INSERT는 수행하지 않았으므로 그룹 A 저장 검증은 브라우저 UI와 `submitItem()` insert payload 확인 범위다.
+2026-07-20 Supabase에서 RED/BLUE/공통(`red`/`blue`/`none`) 값의 실제 INSERT/SELECT 왕복 검증을 완료했다. 세 값 모두 왜곡 없이 저장되고 `items_team_check`를 통과했으며, 사용자 승인 후 테스트 행 3건을 삭제해 `items` 0건으로 복구했다.
 
 ## admins
 
