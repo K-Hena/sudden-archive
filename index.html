@@ -858,6 +858,20 @@ function parseYouTube(url){
   if(normal) return { id: normal[1], isShort: false };
   return null;
 }
+async function fetchYouTubeChannelName(videoUrl){
+  if(!parseYouTube(videoUrl)) return null;
+  try {
+    const endpoint = `https://www.youtube.com/oembed?url=${encodeURIComponent(videoUrl)}&format=json`;
+    const res = await fetch(endpoint);
+    if(!res.ok) return null;
+    const data = await res.json();
+    const name = typeof data.author_name === 'string' ? data.author_name.trim() : '';
+    return name || null;
+  } catch(error){
+    console.warn('YouTube channel name fetch failed:', error);
+    return null;
+  }
+}
 function ytThumb(url){
   const p = parseYouTube(url);
   return p ? `https://img.youtube.com/vi/${p.id}/hqdefault.jpg` : '';
@@ -1609,9 +1623,11 @@ async function submitItem(){
     const p = parseYouTube(url);
     if(!p){ setModalMsg('유튜브 링크를 확인해주세요.', 'err'); saveBtn.disabled = false; return; }
 
+    const channelName = await fetchYouTubeChannelName(url);
     const { error } = await sb.from('items').insert({
       map_id: currentMap, team: savedTeam, type: 'vid', tag: modalTag,
-      title, note: note || null, video_url: url, clip_start: clipStart, clip_end: clipEnd
+      title, note: note || null, video_url: url, clip_start: clipStart, clip_end: clipEnd,
+      channel_name: channelName
     });
     if(error){ setModalMsg('저장 실패: ' + error.message, 'err'); saveBtn.disabled = false; return; }
   } else {

@@ -4,6 +4,11 @@
 
 ---
 
+## 2026-07-21 — 유튜브 채널명 수집 1단계
+
+- 신규 유튜브 영상 등록 시 oEmbed `author_name`을 `items.channel_name`에 저장하고, 조회 실패 시 `null`로 저장을 계속하도록 처리
+- 기존 항목 소급 수집·채널명 검색 UI·수정 모달 갱신은 후속 단계로 유지
+
 ## 2026-07-16 — User 사이트 최초 업로드
 
 - `index.html` 최초 업로드 (커밋 `e5eccc2`) — 맵 그리드, 팀별 카드, 유튜브/이미지 재생 오버레이의 기본 골격
@@ -88,6 +93,17 @@
 - **입력 필드 + 카운터** — `mTitle`/`mNote`에 `maxlength` 속성과 `oninput="updateTextCounters()"`를 연결하고, 새 공용 함수 `updateTextCounters()`를 `openAddModal()`/`openEditModal()`에서도 호출해 모달 진입 시점에도 정확한 초기 카운터가 보이도록 했다
 - **기존 저장 값 자동 절단 금지** — `openEditModal()`이 `.value`에 DB 값을 대입하는 것은 `maxlength` 적용 대상이 아니라는 브라우저 기본 동작을 그대로 이용(별도 방어 코드 없음). 실 DB 확인 결과 이 시점 기존 데이터에는 기준 초과 값이 없었고, 검증용 더미(제목 19자·설명 36자)를 INSERT해 수정 모달에서 잘리지 않고 그대로(카운터 `19/14`, `36/35`) 로드되는 것을 확인한 뒤 사용자 승인을 받아 DELETE로 정리
 - Codex 리뷰 통과 — 카운터/`maxlength`가 UTF-16 코드 유닛 기준이라 이모지 등 서로게이트 페어가 2자로 계산될 수 있다는 점을 지적받았으나, 지시서에서 명시한 알려진 한계라 별도 처리하지 않기로 확인. DB 스키마 변경 없음(`items.title`/`items.note`는 여전히 길이 제한 없는 `text`). 실측 근거·최종값은 `docs/DECISIONS.md`, DB 레벨 무제한이라는 점은 `docs/DATABASE.md` 참고
+
+---
+
+## 2026-07-21 — 카드 그리드/테마 UI 후속 개선
+
+- **카드 그리드 고정 브레이크포인트 전환 + 글자수 제한 재산정** — 유동 그리드(`auto-fill minmax`)를 고정 열 구조로 바꾸고, `renderGlobalTitleSearch()`가 지도 선택용 `.map-grid`를 상속하던 기존 버그를 `.card-grid-inner`/`.map-grid` 클래스 전환으로 수정. PC 카드 폭 기준으로 제목 `maxlength="17"`, 설명 `maxlength="41"`로 재산정했다 (`50b75f0`)
+- **라이트/다크 테마 토글 추가** — `:root[data-theme="light"]` 오버라이드, `localStorage` 키 `sa-theme`, 초기 렌더 전 테마 적용 스크립트를 추가. 포인트 컬러는 테마 무관 고정하고, 호버/포커스 반전용 `--hover-invert`를 도입했다 (`d6ad20e`)
+- **테마 토글 스위치 UI + 로고 반전** — 기존 이모지 토글을 pill 형태의 `role="switch"` 버튼으로 교체하고, `aria-checked="true"`를 라이트 테마 기준으로 갱신하도록 변경. 라이트 테마에서 흰 배경 위에 묻히던 `.reticle` 로고는 `var(--hover-invert)`로 반전했다 (`3ab9736`)
+- **카드 그리드 왼쪽 정렬** — `.card-grid-inner`의 `margin:0 auto`를 제거해 태그 라벨/구분선과 카드 시작점을 같은 왼쪽 기준선에 맞췄다 (`fc00ecc`)
+- **넓은 화면 카드 7열 적용** — 1920px급 PC에서 7열 한 줄 배치를 검증한 뒤, 넓은 화면은 `repeat(7,1fr)`/`max-width:1840px`, 1904px 이하는 3열, 600px 이하는 1열로 조정했다 (`fe49b2a`)
+- **GPT/Codex 작업 규칙 문서 보완** — 작업 완료 보고는 지시서의 테스트 확인 사항을 항목별 ✅/❌/➖로 보고하도록 하고, 코드 변경 커밋은 push 전 자체 리뷰 또는 Codex 리뷰를 예외 없이 거치도록 `docs/PROMPTS.md`에 추가했다 (`42df03f`)
 
 ---
 

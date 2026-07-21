@@ -315,3 +315,11 @@
 **결정**: 넓은 PC 화면에서는 카드 그리드를 5열에서 **7열**로 바꿨다. 1920px 뷰포트에서 임시 렌더링한 결과 7개 카드가 한 줄에 들어가고, 카드 폭이 약 249px으로 유지되며 가로 잘림/비율 변형/제목 overflow가 없었다.
 
 **구현 기준**: `.card-grid-inner`는 `grid-template-columns:repeat(7, 1fr)`와 `max-width:1840px`를 사용한다. `.view` 좌우 패딩 64px + gap 16px×6개(96px) + 카드 약 249px×7개 기준으로 총 1903px 안팎이 필요하므로, 1904px 이하에서는 기존처럼 3열로 전환한다. 600px 이하는 기존 모바일 결정대로 1열을 유지한다. 기존 `maxlength`는 230px PC 실측 기준으로 이미 249px 카드보다 보수적이라 재산정하지 않았다.
+
+---
+
+## 그룹 E 1단계: 유튜브 채널명 수집 + 저장
+
+신규 영상 등록 시 API 키가 필요 없는 YouTube oEmbed의 `author_name`을 `items.channel_name`에 저장한다. YouTube Data API와 새 라이브러리는 도입하지 않는다.
+
+oEmbed 조회 실패는 영상 저장을 막지 않고 `null`로 처리한다. 기존 항목 소급 수집과 채널명 검색 UI는 후속 단계로 남기며, 수정 모달은 `channel_name`을 갱신하지 않는다.

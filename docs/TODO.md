@@ -37,6 +37,7 @@
 - ~~제목/설명 글자수 제한 정책~~ (완료, 2단계 아이디어 목록에서 승격) — 실제 렌더링된 카드에서 한글 반복 문자열로 실측(768px 뷰포트 기준 title 16자·note 37자부터 초과)해 여유 2자를 두고 `maxlength` 제목 14자·설명 35자로 확정. `.card .title`은 1줄 말줄임(`text-overflow:ellipsis`), `.card .note`는 2줄 말줄임(`-webkit-line-clamp:2`) CSS를 추가하고, `updateTextCounters()`로 입력 중·모달 진입 시 모두 카운터를 갱신. 기존에 저장된 기준 초과 값은 수정 모달에서 자동 절단하지 않고 그대로 표시(브라우저 기본 동작). 실측 근거는 `docs/DECISIONS.md`, DB 레벨 제한 없음은 `docs/DATABASE.md` 참고 (이후 카드 그리드를 고정 브레이크포인트로 전환하면서 PC 카드 폭 기준으로 제목 17자·설명 41자로 재산정됨 — 최신 값은 아래 항목 참고)
 - ~~카드 그리드 고정 브레이크포인트 전환(PC 7열/태블릿 3열/모바일 1열) + 글자수 제한 재산정~~ (완료) — 유동 그리드(`auto-fill minmax`)를 고정 열 구조로 전환, PC 브레이크포인트를 1904px로 후속 조정(패딩 64px+gap 96px+카드 약 249px×7). `renderGlobalTitleSearch()`가 지도 선택용 `.map-grid`를 잘못 상속받던 기존 버그도 함께 발견해 수정. 새 PC 카드 폭(230px) 기준 `maxlength`를 제목 17자·설명 41자로 재산정. 세부 결정은 `docs/DECISIONS.md` 참고
 - ~~라이트/다크 테마~~ (완료, 2단계 아이디어 목록에서 승격) — CSS 변수(`:root[data-theme="light"]`) + `data-theme` 속성 + `localStorage`(`sa-theme`) 조합으로 구현. RED/BLUE/AMBER 등 포인트 컬러는 두 테마 동일 유지, 호버/포커스용 `#FFFFFF`만 `var(--hover-invert)`로 반전. 헤더/모달 입력창의 하드코딩 배경(`#0D1013` 등)이 라이트 테마에서 다크온다크가 되는 실제 버그를 발견해 `var(--bg)`로 수정. 로고·미디어 영역은 의도적으로 다크 유지(범위 밖). 세부 결정은 `docs/DECISIONS.md` 참고
+- **그룹 E 1단계: 유튜브 채널명 수집 + 저장** — 신규 영상 등록 시 YouTube oEmbed `author_name`을 `items.channel_name`에 저장. 조회 실패 시 `null`로 저장하고 영상 등록은 계속 진행. 기존 데이터 소급 수집과 검색 UI는 후속 단계로 유지
 
 # 진행중
 
@@ -45,7 +46,7 @@
 # 예정 (AI_CONTEXT.md 기준)
 
 - 구 Admin 사이트(`sudden-archive-admin.vercel.app`) 정리 — 편집모드가 CRUD 전체를 대체한 뒤 진행
-- **그룹 E: 유튜브 채널명 수집 + 채널명 검색** — 외부 API 연동 방식 결정 필요, DB 컬럼 추가(ALTER TABLE) 필요
+- **그룹 E 2~3단계: 기존 영상 채널명 소급 수집 + 채널명 검색 UI**
 
 # 아이디어 (AI_CONTEXT.md "향후 개발 예정", 구체화 전)
 
