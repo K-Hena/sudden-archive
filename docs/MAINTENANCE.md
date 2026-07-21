@@ -41,6 +41,7 @@ AI_CONTEXT.md를 프로젝트의 기준 문서(Single Source of Truth)로 두고
 | TODO.md | 완료/진행중/예정/아이디어 최신 목록 |
 | DECISIONS.md | 확정된 설계 결정과 그 이유(세부) |
 | TROUBLESHOOTING.md | 실제로 해결했던 문제와 원인/해결/예방 |
+| KNOWN_ISSUES.md | 작업 중 발견했지만 범위 밖이라 수정하지 않은, 확인된 이슈 목록 |
 | architecture/auth-flow.md | 로그인(Discord OAuth / 이메일·비밀번호) 흐름, 관리자 판별 세부 |
 | architecture/search-flow.md | 검색이 아닌 실제 탐색(맵→팀→태그) 흐름 |
 | architecture/admin-flow.md | 편집모드 이식 완료/미완료, 레거시 Admin과의 기능 격차 |
@@ -170,6 +171,8 @@ AI_CONTEXT.md를 프로젝트의 기준 문서(Single Source of Truth)로 두고
 - 인증/검색/관리자 흐름 관련 코드를 바꿨다 → architecture/ 하위 관련 문서(auth-flow.md, search-flow.md, admin-flow.md, database-flow.md) 갱신 필요 여부 확인
 - 폴더/파일 구조가 바뀌었다 → PROJECT_STRUCTURE.md 갱신 필요 여부 확인
 - 위 어디에도 해당 안 되는 단순 작업(질문 답변, 사소한 수정 등)이었다 → 문서를 건드리지 않고, 보고서에 "해당 없음"이라고 명시
+- 작업 중 지시서 범위 밖의 이슈를 발견했지만 이번 작업에서 고치지 않기로 판단했다 → `KNOWN_ISSUES.md`에 기록(추측이나 단순 개선 아이디어가 아니라 실제로 확인된 이슈만)
+- `KNOWN_ISSUES.md`에 있던 이슈를 실제로 고쳤다 → 해당 항목을 제거하고 `CHANGELOG.md`에 기록. 재발 방지 가치가 있으면 `TROUBLESHOOTING.md`에도 원인·해결·예방 기록
 
 작업 보고 마지막에 항상 아래 항목을 포함한다:
 "이번 작업으로 자동 갱신한 문서: (목록 또는 없음)"
