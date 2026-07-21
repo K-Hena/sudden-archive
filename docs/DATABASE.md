@@ -35,8 +35,8 @@ URL: `https://mvyepqqstaipxqfesalv.supabase.co` (User/Admin 두 사이트가 동
 | team | `'red'` \| `'blue'` \| `'none'` | RED/BLUE는 팀 필터 기준. `'none'`은 "진영 없음(공통)" 항목 — TOTAL/FAVORITE 뷰에서만 보이고 RED/BLUE 필터에서는 제외됨(NOT NULL, CHECK `items_team_check`로 세 값만 허용) |
 | type | `'vid'` \| `'img'` | 영상/이미지 구분 |
 | tag | 문자열. 실제 코드에서 쓰는 값: `'맵 지명'`, `'위폭'`, `'팁'` (`tagOrder` 배열 기준) | 이 외의 값도 저장 가능하지만 정렬 순서 밖으로 밀림 |
-| title | 항목 제목. `tag==='맵 지명'`이면 항상 `'맵 전체 지명'`로 고정 저장 | |
-| note | 설명, null 가능 | |
+| title | 항목 제목. `tag==='맵 지명'`이면 항상 `'맵 전체 지명'`로 고정 저장 | 컬럼 타입은 `text`로 DB 레벨 길이 제한 없음. 항목 추가 모달의 `<input id="mTitle" maxlength="14">`는 **클라이언트 입력 단계에서만** 걸리는 제한이라 DB에는 강제되지 않음(SQL이나 다른 클라이언트로는 더 긴 값도 저장 가능) — 표시 단계에서 `.card .title`의 `text-overflow:ellipsis`(1줄)로 함께 방어. 실측 근거는 `docs/DECISIONS.md` 참고 |
+| note | 설명, null 가능 | 컬럼 타입은 `text`로 DB 레벨 길이 제한 없음. `<textarea id="mNote" maxlength="35">`도 title과 동일하게 클라이언트 입력 단계 전용 제한이며, 표시 단계에서 `.card .note`의 `-webkit-line-clamp:2`(2줄)로 함께 방어. 기존에 이 기준보다 긴 값이 저장돼 있어도 수정 모달 로드 시 잘리지 않고 그대로 보인다(자동 절단 없음) |
 | video_url | 유튜브 URL (`type==='vid'`일 때) | 전체 영상 또는 `/shorts/` 모두 지원 |
 | img_url | 이미지 URL (`type==='img'`일 때) | Storage 공개 URL |
 | clip_start / clip_end | 유튜브 클립 재생 구간(초), null이면 전체 재생 | User 사이트 항목 추가 모달에서 버튼(`markClipStart`/`markClipEnd`) 또는 슬라이더로 지정한 값을 저장. 지정하지 않으면 둘 다 `null` (전체 재생) |

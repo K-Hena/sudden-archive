@@ -81,6 +81,16 @@
 
 ---
 
+## 2026-07-21 — 제목/설명 글자수 제한 (실측 기반 maxlength 적용)
+
+- **실측으로 `maxlength` 산정** — 말줄임 CSS 적용 전, 실제 렌더링된 `.card .meta .title`/`.note`에 한글 반복 문자열을 대입해 측정. 카드 폭이 가장 좁아지는 768px 뷰포트(title `clientWidth:198px`) 기준, 제목은 16자부터 `scrollWidth(199px)`가 `clientWidth`를 초과, 설명은 37자부터 2줄(`34.5px`)을 넘어 3줄(`52px`)째로 진입. 각각 여유 2자를 두고 제목 `maxlength="14"`, 설명 `maxlength="35"`로 확정
+- **CSS 안전장치** — `.card .title`에 1줄 말줄임(`white-space:nowrap;overflow:hidden;text-overflow:ellipsis`), `.card .note`에 2줄 말줄임(`overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical`) 추가. `renderGlobalTitleSearch()`도 같은 클래스를 재사용해 자동 적용됨을 확인
+- **입력 필드 + 카운터** — `mTitle`/`mNote`에 `maxlength` 속성과 `oninput="updateTextCounters()"`를 연결하고, 새 공용 함수 `updateTextCounters()`를 `openAddModal()`/`openEditModal()`에서도 호출해 모달 진입 시점에도 정확한 초기 카운터가 보이도록 했다
+- **기존 저장 값 자동 절단 금지** — `openEditModal()`이 `.value`에 DB 값을 대입하는 것은 `maxlength` 적용 대상이 아니라는 브라우저 기본 동작을 그대로 이용(별도 방어 코드 없음). 실 DB 확인 결과 이 시점 기존 데이터에는 기준 초과 값이 없었고, 검증용 더미(제목 19자·설명 36자)를 INSERT해 수정 모달에서 잘리지 않고 그대로(카운터 `19/14`, `36/35`) 로드되는 것을 확인한 뒤 사용자 승인을 받아 DELETE로 정리
+- Codex 리뷰 통과 — 카운터/`maxlength`가 UTF-16 코드 유닛 기준이라 이모지 등 서로게이트 페어가 2자로 계산될 수 있다는 점을 지적받았으나, 지시서에서 명시한 알려진 한계라 별도 처리하지 않기로 확인. DB 스키마 변경 없음(`items.title`/`items.note`는 여전히 길이 제한 없는 `text`). 실측 근거·최종값은 `docs/DECISIONS.md`, DB 레벨 무제한이라는 점은 `docs/DATABASE.md` 참고
+
+---
+
 # 참고
 
 - 이 문서는 커밋 단위 이력이다. 기능별 완료/진행 상태는 `TODO.md`, 설계 이유는 `DECISIONS.md`를 참고.
