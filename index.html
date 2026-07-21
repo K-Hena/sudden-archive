@@ -257,6 +257,14 @@ header{
   display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;
 }
 .overlay-playpause:hover{border-color:var(--edit-accent);color:var(--edit-accent);}
+.overlay-volume-btn{
+  position:absolute;bottom:14px;left:62px;z-index:5;width:40px;height:40px;border-radius:50%;
+  background:rgba(6,7,9,.75);color:#fff;border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;
+}
+.overlay-volume-btn:hover{border-color:var(--edit-accent);color:var(--edit-accent);}
+.overlay-volume-slider{position:absolute;bottom:24px;left:112px;z-index:5;width:70px;accent-color:var(--edit-accent);}
+.overlay-seekbar{position:absolute;bottom:60px;left:14px;width:calc(100% - 28px);z-index:5;accent-color:var(--edit-accent);}
 .overlay-meta{width:100%;max-width:880px;padding:14px 2px;display:flex;justify-content:space-between;align-items:flex-start;}
 .overlay-meta .note{font-size:12.5px;color:var(--muted);max-width:70%;line-height:1.5;}
 .overlay-close{
@@ -457,6 +465,9 @@ header{
     <div class="overlay-media wide" id="overlayMedia">
       <div id="overlayMediaContent">MEDIA PREVIEW</div>
       <span class="overlay-playpause" id="overlayPlayPause" onclick="toggleOverlayPlay()" style="display:none;">⏸</span>
+      <span class="overlay-volume-btn" id="overlayVolumeBtn" onclick="toggleOverlayMute()" style="display:none;" aria-label="음소거">🔊</span>
+      <input type="range" id="overlayVolumeSlider" class="overlay-volume-slider" min="0" max="100" step="1" value="50" style="display:none;" aria-label="볼륨" oninput="onOverlayVolumeInput(this.value)">
+      <input type="range" id="overlaySeekbar" class="overlay-seekbar" min="0" max="100" step="0.1" value="0" style="display:none;" aria-label="재생 위치" oninput="onOverlaySeekbarInput(this.value)" onpointerdown="overlaySeeking=true" onpointerup="overlaySeeking=false" onpointercancel="overlaySeeking=false">
     </div>
     <div class="overlay-meta">
       <div class="note" id="overlayNote"></div>
@@ -983,23 +994,123 @@ function renderCards(){
   }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">${query ? '일치하는 제목 또는 채널이 없어요.' : '이 진영에 등록된 항목이 없어요.'}</div>`;
 }
 
-let clipTimer = null;
+function getEffectiveClipRange(it, duration){
+  const start = it.clip_start != null ? it.clip_start : 0;
+  const end = it.clip_end != null ? it.clip_end : duration;
+  return { start, end };
+}
+function loadSavedVolume(){
+  const raw = localStorage.getItem('sa-volume');
+  const num = Number(raw);
+  return (raw !== null && Number.isFinite(num) && num >= 0 && num <= 100) ? num : 50;
+}
+function loadSavedMuted(){
+  return localStorage.getItem('sa-muted') === '1';
+}
+
+let overlayTimer = null;
 let overlayVideoId = null;
 let overlayHasClip = false;
+let overlayClipRange = null; // 클립 재생 중일 때만 {start,end}, 전체 영상 모드에서는 null(커스텀 시크바 없음)
+let overlaySeeking = false;
+let lastPolledVolume = null;
+let lastPolledMuted = null;
+let overlaySession = 0; // 오버레이를 열거나 모드를 바꿀 때마다 증가 — 지연된 build()/onReady가 낡은 세션에 뒤늦게 적용되는 것을 막음
+let overlayBuildTimer = null; // YT.Player API 로드 대기용 폴링(ytReady가 아직 false일 때만 사용)
+function waitForYT(session, build){
+  if(ytReady && window.YT && YT.Player){ build(); return; }
+  if(overlayBuildTimer) clearInterval(overlayBuildTimer);
+  overlayBuildTimer = setInterval(() => {
+    if(window.YT && YT.Player){
+      clearInterval(overlayBuildTimer); overlayBuildTimer = null; ytReady = true;
+      if(session === overlaySession) build();
+    }
+  }, 200);
+}
+
+function updateVolumeUI(volume, muted){
+  const btn = document.getElementById('overlayVolumeBtn');
+  const slider = document.getElementById('overlayVolumeSlider');
+  if(btn){
+    btn.textContent = (muted || volume === 0) ? '🔇' : '🔊';
+    btn.setAttribute('aria-label', muted ? '음소거 해제' : '음소거');
+  }
+  if(slider && document.activeElement !== slider) slider.value = volume;
+}
+function pollOverlayPlayer(){
+  if(!ytPlayer || !ytPlayer.getVolume || !ytPlayer.isMuted) return;
+  const volume = ytPlayer.getVolume();
+  const muted = ytPlayer.isMuted();
+  if(volume !== lastPolledVolume){ lastPolledVolume = volume; localStorage.setItem('sa-volume', String(volume)); }
+  if(muted !== lastPolledMuted){ lastPolledMuted = muted; localStorage.setItem('sa-muted', muted ? '1' : '0'); }
+  updateVolumeUI(volume, muted);
+
+  if(overlayClipRange && ytPlayer.getCurrentTime){
+    const t = ytPlayer.getCurrentTime();
+    if(t >= overlayClipRange.end){ ytPlayer.seekTo(overlayClipRange.start, true); } // 구간 반복
+    const seekbar = document.getElementById('overlaySeekbar');
+    if(seekbar && !overlaySeeking){
+      seekbar.value = Math.min(Math.max(t - overlayClipRange.start, 0), overlayClipRange.end - overlayClipRange.start);
+    }
+  }
+}
+function startOverlayTimer(){
+  if(overlayTimer) clearInterval(overlayTimer);
+  overlayTimer = setInterval(pollOverlayPlayer, 250);
+}
+function onOverlaySeekbarInput(value){
+  if(!ytPlayer || !overlayClipRange || !ytPlayer.seekTo) return;
+  const wasPaused = ytPlayer.getPlayerState && ytPlayer.getPlayerState() === YT.PlayerState.PAUSED;
+  ytPlayer.seekTo(overlayClipRange.start + Number(value), true);
+  if(wasPaused && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+}
+function onOverlayVolumeInput(value){
+  if(!ytPlayer || !ytPlayer.setVolume) return;
+  const v = Number(value);
+  ytPlayer.setVolume(v);
+  // ytPlayer.isMuted()는 postMessage 왕복 지연으로 방금 mute()/unMute() 호출 직후엔 값이
+  // 아직 갱신 안 됐을 수 있어(비동기), 우리가 직접 추적하는 lastPolledMuted를 기준으로 판단한다
+  if(v > 0 && lastPolledMuted && ytPlayer.unMute){ ytPlayer.unMute(); lastPolledMuted = false; localStorage.setItem('sa-muted', '0'); }
+  lastPolledVolume = v;
+  localStorage.setItem('sa-volume', String(v));
+  updateVolumeUI(v, lastPolledMuted);
+}
+function toggleOverlayMute(){
+  if(!ytPlayer || !ytPlayer.mute || !ytPlayer.unMute) return;
+  const nextMuted = !lastPolledMuted;
+  if(nextMuted) ytPlayer.mute(); else ytPlayer.unMute();
+  lastPolledMuted = nextMuted;
+  localStorage.setItem('sa-muted', nextMuted ? '1' : '0');
+  const slider = document.getElementById('overlayVolumeSlider');
+  if(slider) slider.style.display = slider.style.display === 'block' ? 'none' : 'block';
+  updateVolumeUI(lastPolledVolume != null ? lastPolledVolume : 50, nextMuted);
+}
+
 function openOverlay(id){
   void trackClick(id);
   const it = items.find(i => i.id === id);
   const media = document.getElementById('overlayMediaContent');
   const playPauseBtn = document.getElementById('overlayPlayPause');
   const fullBtn = document.getElementById('overlayFullBtn');
+  const volumeBtn = document.getElementById('overlayVolumeBtn');
+  const volumeSlider = document.getElementById('overlayVolumeSlider');
+  const seekbar = document.getElementById('overlaySeekbar');
 
   // 이전 플레이어/타이머 정리
-  if(clipTimer){ clearInterval(clipTimer); clipTimer = null; }
+  overlaySession += 1;
+  const session = overlaySession;
+  if(overlayBuildTimer){ clearInterval(overlayBuildTimer); overlayBuildTimer = null; }
+  if(overlayTimer){ clearInterval(overlayTimer); overlayTimer = null; }
   if(ytPlayer && ytPlayer.destroy){ ytPlayer.destroy(); ytPlayer = null; }
   playPauseBtn.style.display = 'none';
   fullBtn.style.display = 'none';
+  volumeBtn.style.display = 'none';
+  volumeSlider.style.display = 'none';
+  seekbar.style.display = 'none';
   overlayVideoId = null;
   overlayHasClip = false;
+  overlayClipRange = null;
+  overlaySeeking = false;
 
   if(it.type === 'vid' && it.video_url){
     const p = parseYouTube(it.video_url);
@@ -1014,25 +1125,34 @@ function openOverlay(id){
         const mount = document.createElement('div');
         media.innerHTML = '';
         media.appendChild(mount);
-        const start = it.clip_start != null ? it.clip_start : 0;
-        const end = it.clip_end != null ? it.clip_end : null;
         const build = () => {
           ytPlayer = new YT.Player(mount, {
             videoId: p.id,
-            playerVars: { autoplay:1, playsinline:1, controls:0, rel:0, start:start, origin:location.origin, cc_load_policy:0 },
+            playerVars: { autoplay:1, playsinline:1, controls:0, rel:0, start: it.clip_start != null ? it.clip_start : 0, origin:location.origin, cc_load_policy:0 },
             events: {
-              onReady: (e) => { e.target.setVolume(50); e.target.seekTo(start, true); e.target.playVideo(); },
+              onReady: (e) => {
+                if(session !== overlaySession) return; // 그 사이 오버레이가 닫히거나 다른 항목으로 바뀌었으면 무시
+                const range = getEffectiveClipRange(it, e.target.getDuration());
+                overlayClipRange = range;
+                const savedVolume = loadSavedVolume();
+                const savedMuted = loadSavedMuted();
+                e.target.setVolume(savedVolume);
+                if(savedMuted) e.target.mute();
+                lastPolledVolume = savedVolume;
+                lastPolledMuted = savedMuted;
+                updateVolumeUI(savedVolume, savedMuted);
+                seekbar.max = range.end - range.start;
+                seekbar.value = 0;
+                seekbar.style.display = 'block';
+                volumeBtn.style.display = 'flex';
+                e.target.seekTo(range.start, true);
+                e.target.playVideo();
+                startOverlayTimer();
+              },
               onStateChange: (e) => {
+                if(session !== overlaySession) return; // 낡은 세션의 지연된 상태 이벤트가 현재 버튼을 건드리지 않게 함
                 if(e.data === YT.PlayerState.PLAYING){
                   playPauseBtn.textContent = '⏸';
-                  if(end != null){
-                    if(clipTimer) clearInterval(clipTimer);
-                    clipTimer = setInterval(() => {
-                      if(ytPlayer && ytPlayer.getCurrentTime && ytPlayer.getCurrentTime() >= end){
-                        ytPlayer.seekTo(start, true); // 구간 반복
-                      }
-                    }, 250);
-                  }
                 } else if(e.data === YT.PlayerState.PAUSED){
                   playPauseBtn.textContent = '▶';
                 }
@@ -1040,14 +1160,13 @@ function openOverlay(id){
             }
           });
         };
-        if(ytReady && window.YT && YT.Player){ build(); }
-        else { const iv = setInterval(() => { if(window.YT && YT.Player){ clearInterval(iv); ytReady=true; build(); } }, 200); }
+        waitForYT(session, build);
 
         playPauseBtn.textContent = '⏸';
         playPauseBtn.style.display = 'flex';
         fullBtn.style.display = 'inline-block';
       } else {
-        // 구간 없으면 일반 임베드
+        // 구간 없으면 일반 임베드(iframe이라 JS API로 제어 불가 — 볼륨 기억/시크바는 이 범위 밖)
         media.innerHTML = `<iframe src="https://www.youtube.com/embed/${p.id}?rel=0&autoplay=1&playsinline=1&cc_load_policy=0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
       }
     } else {
@@ -1075,8 +1194,13 @@ function toggleOverlayPlay(){
 function showFullVideo(){
   if(!overlayVideoId || !overlayHasClip) return;
   const resumeAt = (ytPlayer && ytPlayer.getCurrentTime) ? ytPlayer.getCurrentTime() : 0;
-  if(clipTimer){ clearInterval(clipTimer); clipTimer = null; }
+  overlaySession += 1;
+  const session = overlaySession;
+  if(overlayBuildTimer){ clearInterval(overlayBuildTimer); overlayBuildTimer = null; }
+  if(overlayTimer){ clearInterval(overlayTimer); overlayTimer = null; }
   if(ytPlayer && ytPlayer.destroy){ ytPlayer.destroy(); ytPlayer = null; }
+  overlayClipRange = null; // 전체 영상 모드는 네이티브 컨트롤 사용, 커스텀 시크바 없음
+  overlaySeeking = false;
 
   const media = document.getElementById('overlayMediaContent');
   const mount = document.createElement('div');
@@ -1089,25 +1213,45 @@ function showFullVideo(){
       videoId: videoId,
       playerVars: { autoplay:1, playsinline:1, controls:1, rel:0, start: Math.floor(resumeAt), origin: location.origin, cc_load_policy:0 },
       events: {
-        onReady: (e) => { e.target.setVolume(50); e.target.seekTo(resumeAt, true); e.target.playVideo(); }
+        onReady: (e) => {
+          if(session !== overlaySession) return; // 그 사이 오버레이가 닫히거나 다시 전환됐으면 무시
+          const savedVolume = loadSavedVolume();
+          const savedMuted = loadSavedMuted();
+          e.target.setVolume(savedVolume);
+          if(savedMuted) e.target.mute();
+          lastPolledVolume = savedVolume;
+          lastPolledMuted = savedMuted;
+          e.target.seekTo(resumeAt, true);
+          e.target.playVideo();
+          startOverlayTimer(); // 네이티브 컨트롤로 조절해도 볼륨은 계속 저장됨
+        }
       }
     });
   };
-  if(ytReady && window.YT && YT.Player){ build(); }
-  else { const iv = setInterval(() => { if(window.YT && YT.Player){ clearInterval(iv); ytReady=true; build(); } }, 200); }
+  waitForYT(session, build);
 
   overlayHasClip = false;
   document.getElementById('overlayPlayPause').style.display = 'none';
   document.getElementById('overlayFullBtn').style.display = 'none';
+  document.getElementById('overlayVolumeBtn').style.display = 'none';
+  document.getElementById('overlayVolumeSlider').style.display = 'none';
+  document.getElementById('overlaySeekbar').style.display = 'none';
 }
 function closeOverlay(){
-  if(clipTimer){ clearInterval(clipTimer); clipTimer = null; }
+  overlaySession += 1;
+  if(overlayBuildTimer){ clearInterval(overlayBuildTimer); overlayBuildTimer = null; }
+  if(overlayTimer){ clearInterval(overlayTimer); overlayTimer = null; }
   if(ytPlayer && ytPlayer.destroy){ ytPlayer.destroy(); ytPlayer = null; }
   document.getElementById('overlayMediaContent').innerHTML = '';
   document.getElementById('overlayPlayPause').style.display = 'none';
   document.getElementById('overlayFullBtn').style.display = 'none';
+  document.getElementById('overlayVolumeBtn').style.display = 'none';
+  document.getElementById('overlayVolumeSlider').style.display = 'none';
+  document.getElementById('overlaySeekbar').style.display = 'none';
   overlayVideoId = null;
   overlayHasClip = false;
+  overlayClipRange = null;
+  overlaySeeking = false;
   document.getElementById('overlay').classList.remove('active');
 }
 
