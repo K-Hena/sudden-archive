@@ -84,8 +84,8 @@ header{
   background:var(--bg);
 }
 .brand{display:flex;align-items:center;gap:12px;}
-.reticle{width:26px;height:26px;position:relative;border:2px solid #FFFFFF;border-radius:50%;}
-.reticle::before,.reticle::after{content:'';position:absolute;background:#FFFFFF;}
+.reticle{width:26px;height:26px;position:relative;border:2px solid var(--hover-invert);border-radius:50%;}
+.reticle::before,.reticle::after{content:'';position:absolute;background:var(--hover-invert);}
 .reticle::before{width:2px;height:10px;left:11px;top:-6px;}
 .reticle::after{width:10px;height:2px;top:11px;left:-6px;}
 .brand h1{font-family:'Paperlogy',sans-serif;font-weight:800;font-size:26px;letter-spacing:0;line-height:1.4;}
@@ -307,17 +307,26 @@ header{
   color:var(--edit-accent-ink);
   border-color:var(--edit-accent);
 }
-.theme-toggle-btn{
-  background:none;
-  color:var(--muted);
-  border:1px solid var(--line);
-  border-radius:0;
-  width:30px;height:30px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:14px;
+.theme-switch{
+  width:44px;height:24px;flex:none;
+  border-radius:999px;
+  border:2px solid var(--text);
+  background:transparent;
+  position:relative;
   cursor:pointer;
+  padding:0;
+  transition:border-color .15s;
 }
-.theme-toggle-btn:hover{color:var(--text);border-color:var(--text);}
+.theme-switch-knob{
+  position:absolute;
+  top:2px;left:2px;
+  width:16px;height:16px;
+  border-radius:50%;
+  background:var(--text);
+  transform:translateX(18px);
+  transition:transform .15s;
+}
+:root[data-theme="light"] .theme-switch .theme-switch-knob{transform:translateX(0);}
 .map-tile .tile-actions{position:absolute;top:6px;right:6px;display:flex;gap:5px;opacity:0;transition:opacity .15s;z-index:2;}
 .map-tile:hover .tile-actions{opacity:1;}
 .tile-actions span{width:24px;height:24px;background:rgba(6,7,9,.8);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);cursor:pointer;}
@@ -400,7 +409,9 @@ header{
   <div class="status">
     <span class="mono"><b id="clipCount">-</b>&nbsp;CLIPS</span>
     <span class="mono"><b id="tipCount">-</b>&nbsp;TIPS</span>
-    <span id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleTheme()" title="테마 전환"></span>
+    <button id="themeToggleBtn" class="theme-switch" onclick="toggleTheme()" aria-label="테마 전환" role="switch" aria-checked="false">
+      <span class="theme-switch-knob"></span>
+    </button>
     <span id="authArea" style="display:flex;align-items:center;gap:10px;"></span>
   </div>
 </header>
@@ -1627,7 +1638,8 @@ async function submitItem(){
 
 function renderThemeToggle(){
   const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  document.getElementById('themeToggleBtn').textContent = isLight ? '🌙' : '☀️';
+  const btn = document.getElementById('themeToggleBtn');
+  if(btn) btn.setAttribute('aria-checked', String(isLight));
 }
 function toggleTheme(){
   const isLight = document.documentElement.getAttribute('data-theme') === 'light';
