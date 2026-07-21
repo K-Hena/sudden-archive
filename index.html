@@ -144,8 +144,17 @@ header{
   color:var(--red);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.1em;
 }
 
-.card-grid-inner{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;}
-.card{background:var(--panel);border:1px solid var(--line);cursor:pointer;transition:border-color .15s;position:relative;}
+.card-grid-inner{
+  display:grid;grid-template-columns:repeat(5, 1fr);gap:16px;
+  max-width:1344px;margin:0 auto;
+}
+@media(max-width:1408px){
+  .card-grid-inner{grid-template-columns:repeat(3, 1fr);}
+}
+@media(max-width:600px){
+  .card-grid-inner{grid-template-columns:repeat(1, 1fr);}
+}
+.card{background:var(--panel);border:1px solid var(--line);cursor:pointer;transition:border-color .15s;position:relative;min-width:0;}
 .card:hover{border-color:#FFFFFF;}
 .card .card-del{
   position:absolute;top:6px;right:6px;width:24px;height:24px;background:rgba(6,7,9,.8);
@@ -436,11 +445,11 @@ header{
 
       <div id="titleWrap" style="display:none;">
         <label>제목</label>
-        <input type="text" id="mTitle" placeholder="예: 박스 뒤 몸샷 위폭" maxlength="14" oninput="updateTextCounters()">
-        <div class="hint" id="mTitleCounter">0/14</div>
+        <input type="text" id="mTitle" placeholder="예: 박스 뒤 몸샷 위폭" maxlength="17" oninput="updateTextCounters()">
+        <div class="hint" id="mTitleCounter">0/17</div>
         <label>설명 (선택)</label>
-        <textarea id="mNote" placeholder="비워둬도 됨" maxlength="35" oninput="updateTextCounters()"></textarea>
-        <div class="hint" id="mNoteCounter">0/35</div>
+        <textarea id="mNote" placeholder="비워둬도 됨" maxlength="41" oninput="updateTextCounters()"></textarea>
+        <div class="hint" id="mNoteCounter">0/41</div>
       </div>
 
       <div id="videoWrap" style="display:none;">
@@ -534,8 +543,9 @@ try {
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 } catch(e){
   document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('mapGrid').innerHTML =
-      `<div class="loading">초기화 실패: ${e.message}</div>`;
+    const grid = document.getElementById('mapGrid');
+    grid.className = 'map-grid';
+    grid.innerHTML = `<div class="loading">초기화 실패: ${e.message}</div>`;
   });
 }
 
@@ -558,8 +568,9 @@ async function loadAll(){
       .from('items').select('*');
 
     if(mapErr || itemErr){
-      document.getElementById('mapGrid').innerHTML =
-        `<div class="loading">데이터를 불러오지 못했어요.<br>${(mapErr||itemErr).message}</div>`;
+      const grid = document.getElementById('mapGrid');
+      grid.className = 'map-grid';
+      grid.innerHTML = `<div class="loading">데이터를 불러오지 못했어요.<br>${(mapErr||itemErr).message}</div>`;
       return;
     }
     maps = mapRows;
@@ -568,14 +579,16 @@ async function loadAll(){
     document.getElementById('tipCount').textContent = items.filter(i=>i.tag==='팁').length;
     renderMapGrid();
   } catch(e){
-    document.getElementById('mapGrid').innerHTML =
-      `<div class="loading">요청 중 오류가 발생했어요.<br>${e.message}</div>`;
+    const grid = document.getElementById('mapGrid');
+    grid.className = 'map-grid';
+    grid.innerHTML = `<div class="loading">요청 중 오류가 발생했어요.<br>${e.message}</div>`;
   }
 }
 
 function renderMapGrid(){
   if(document.getElementById('globalTitleSearch').value.trim()){ renderGlobalTitleSearch(); return; }
   const grid = document.getElementById('mapGrid');
+  grid.className = 'map-grid';
   const tilesHtml = maps.map(m => {
     const count = items.filter(i => i.map_id === m.id).length;
     const safe = m.name.replace(/'/g,"\\'");
@@ -605,7 +618,9 @@ function renderGlobalTitleSearch(){
   const query = document.getElementById('globalTitleSearch').value.trim().toLowerCase();
   if(!query){ renderMapGrid(); return; }
   const filtered = sortFavorites(items.filter(it => String(it.title ?? '').toLowerCase().includes(query)));
-  document.getElementById('mapGrid').innerHTML = filtered.map(it => {
+  const grid = document.getElementById('mapGrid');
+  grid.className = 'card-grid-inner';
+  grid.innerHTML = filtered.map(it => {
     const p = it.type === 'vid' ? parseYouTube(it.video_url) : null;
     const thumbUrl = it.type === 'vid' ? ytThumb(it.video_url) : it.img_url;
     const mapName = maps.find(m => m.id === it.map_id)?.name || '알 수 없는 맵';
