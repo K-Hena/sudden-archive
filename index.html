@@ -210,6 +210,11 @@ header{
 .badge.vid{background:var(--red);color:#fff;}
 .badge.img{background:var(--blue);color:#fff;}
 .badge.short{background:#8B5CF6;color:#fff;}
+.card .channel-badge{
+  position:absolute;bottom:8px;left:8px;background:rgba(6,7,9,.85);color:var(--muted);
+  font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.05em;padding:3px 7px;z-index:1;
+  max-width:calc(100% - 16px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 .playicon{
   width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.5);
   display:flex;align-items:center;justify-content:center;color:#fff;
@@ -425,7 +430,7 @@ header{
 <div class="view active" id="viewGrid">
   <div class="map-head">
     <div class="section-label">맵 선택</div>
-    <input type="search" id="globalTitleSearch" class="detail-search" placeholder="전체 제목 검색" aria-label="전체 제목 검색" oninput="renderGlobalTitleSearch()">
+    <input type="search" id="globalTitleSearch" class="detail-search" placeholder="전체 제목 또는 채널 검색" aria-label="전체 제목 또는 채널 검색" oninput="renderGlobalTitleSearch()">
   </div>
   <div class="map-grid" id="mapGrid"><div class="loading">불러오는 중...</div></div>
 </div>
@@ -433,7 +438,7 @@ header{
 <div class="view" id="viewDetail">
   <div class="map-head detail-toolbar">
     <button class="back-btn" onclick="showMapGrid()">← 전체 맵으로</button>
-    <input type="search" id="titleSearch" class="detail-search" placeholder="제목 검색" aria-label="제목 검색" oninput="renderCards()">
+    <input type="search" id="titleSearch" class="detail-search" placeholder="제목 또는 채널 검색" aria-label="제목 또는 채널 검색" oninput="renderCards()">
   </div>
   <div class="detail-head">
     <div class="detail-title" id="detailTitle">맵명 <span id="detailCount"></span></div>
@@ -541,6 +546,10 @@ header{
         </div>
         <div id="previewImageBox" class="save-thumb-sq" style="display:none;">
           <img id="previewCroppedImg" alt="">
+        </div>
+        <div id="editChannelWrap" style="display:none;">
+          <label>🔒 채널</label>
+          <input type="text" id="editChannelValue" readonly>
         </div>
         <div id="teamWrap" style="display:none;">
           <label>진영</label>
@@ -660,7 +669,7 @@ function renderMapGrid(){
 function renderGlobalTitleSearch(){
   const query = document.getElementById('globalTitleSearch').value.trim().toLowerCase();
   if(!query){ renderMapGrid(); return; }
-  const filtered = sortFavorites(items.filter(it => String(it.title ?? '').toLowerCase().includes(query)));
+  const filtered = sortFavorites(items.filter(it => String(it.title ?? '').toLowerCase().includes(query) || String(it.channel_name ?? '').toLowerCase().includes(query)));
   const grid = document.getElementById('mapGrid');
   grid.className = 'card-grid-inner';
   grid.innerHTML = filtered.map(it => {
@@ -673,6 +682,7 @@ function renderGlobalTitleSearch(){
       <div class="thumb" style="${thumbUrl ? `background-image:url('${thumbUrl}');background-size:cover;background-position:center;` : ''}">
         <div class="badge ${it.type}">${it.type==='vid' ? '영상' : '이미지'}</div>
         ${(p && p.isShort) ? '<div class="badge short" style="left:auto;right:8px;">쇼츠</div>' : ''}
+        ${channelBadge(it)}
         ${thumbUrl
           ? (it.type==='vid' ? '<div class="playicon"></div>' : '')
           : `<span class="mono" style="font-size:10px;color:#3A4048;">${it.type==='vid' ? '아직 등록된 영상 없음' : '아직 등록된 이미지 없음'}</span>`}
@@ -683,7 +693,7 @@ function renderGlobalTitleSearch(){
         <div class="note">${mapName} · ${teamLabel(it.team) || String(it.team || '').toUpperCase()}</div>
       </div>
     </div>`;
-  }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">일치하는 제목이 없어요.</div>`;
+  }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">일치하는 제목 또는 채널이 없어요.</div>`;
 }
 
 async function addMap(){
@@ -876,6 +886,9 @@ function ytThumb(url){
   const p = parseYouTube(url);
   return p ? `https://img.youtube.com/vi/${p.id}/hqdefault.jpg` : '';
 }
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 function teamLabel(team){
   if(team === 'red') return 'RED';
@@ -891,6 +904,10 @@ function teamBadge(it){
   const bg = it.team === 'red' ? 'var(--red)' : it.team === 'blue' ? 'var(--blue)' : 'var(--muted)';
   const color = it.team === 'none' ? 'var(--bg)' : '#fff';
   return `<div class="badge" style="top:28px;left:8px;background:${bg};color:${color};">${label}</div>`;
+}
+function channelBadge(it){
+  if(it.type !== 'vid' || !it.channel_name) return '';
+  return `<div class="channel-badge">${escapeHtml(it.channel_name)}</div>`;
 }
 
 // 유튜브 IFrame API 로드 (클립 구간 제어용)
@@ -908,7 +925,7 @@ function renderCards(){
   const teamItems = currentTeam === 'total' ? mapItems
     : currentTeam === 'favorite' ? mapItems.filter(i => favoriteRow(i.id))
     : mapItems.filter(i => i.team === currentTeam);
-  const filtered = query ? teamItems.filter(i => String(i.title ?? '').toLowerCase().includes(query)) : teamItems;
+  const filtered = query ? teamItems.filter(i => String(i.title ?? '').toLowerCase().includes(query) || String(i.channel_name ?? '').toLowerCase().includes(query)) : teamItems;
   document.getElementById('detailCount').textContent = '(' + filtered.length + ')';
 
   const groups = {};
@@ -947,6 +964,7 @@ function renderCards(){
               <div class="badge ${it.type}">${it.type==='vid' ? '영상' : '이미지'}</div>
               ${shortBadge}
               ${teamBadge(it)}
+              ${channelBadge(it)}
               ${thumbUrl
                 ? (it.type==='vid' ? '<div class="playicon"></div>' : '')
                 : `<span class="mono" style="font-size:10px;color:#3A4048;">${it.type==='vid' ? '아직 등록된 영상 없음' : '아직 등록된 이미지 없음'}</span>`
@@ -962,7 +980,7 @@ function renderCards(){
       </div>
     </div>
   `;
-  }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">${query ? '일치하는 제목이 없어요.' : '이 진영에 등록된 항목이 없어요.'}</div>`;
+  }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">${query ? '일치하는 제목 또는 채널이 없어요.' : '이 진영에 등록된 항목이 없어요.'}</div>`;
 }
 
 let clipTimer = null;
@@ -1346,6 +1364,7 @@ function showModalStep(step){
   document.getElementById('imageWrap').style.display = step === 'media' && modalType === 'img' ? 'block' : 'none';
   const showPreview = modalMode === 'edit' ? step === 'details' : (isMapLabel ? step === 'media' : step === 'details');
   document.getElementById('teamWrap').style.display = showPreview ? 'block' : 'none';
+  document.getElementById('editChannelWrap').style.display = (showPreview && modalMode === 'edit' && modalType === 'vid') ? 'block' : 'none';
   document.getElementById('savePreviewWrap').style.display = showPreview ? (modalType === 'img' ? 'flex' : 'block') : 'none';
   if(showPreview) renderSavePreview();
   document.getElementById('modalBackBtn').style.display =
@@ -1522,6 +1541,7 @@ function openEditModal(e, id){
     urlInput.type = 'url';
     urlInput.readOnly = true;
     urlInput.value = it.video_url || '';
+    document.getElementById('editChannelValue').value = it.channel_name || '채널명 없음';
 
     showModalStep('media');
     loadClipPlayer((duration) => {

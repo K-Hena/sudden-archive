@@ -323,3 +323,13 @@
 신규 영상 등록 시 API 키가 필요 없는 YouTube oEmbed의 `author_name`을 `items.channel_name`에 저장한다. YouTube Data API와 새 라이브러리는 도입하지 않는다.
 
 oEmbed 조회 실패는 영상 저장을 막지 않고 `null`로 처리한다. 기존 항목 소급 수집과 채널명 검색 UI는 후속 단계로 남기며, 수정 모달은 `channel_name`을 갱신하지 않는다.
+
+## 그룹 E 2~3단계: 채널명 표시 UI + 소급 수집 + 통합 검색
+
+**추가 모달엔 채널명 칸을 넣지 않은 이유**: 채널명은 URL을 입력한 시점이 아니라 실제 `insert()` 시점에 `fetchYouTubeChannelName()`으로 조회된다(그룹 E 1단계). 추가 모달에 미리 칸을 두면 URL 입력 시점에 별도로 oEmbed를 한 번 더 호출하거나, 저장 전 임시 상태를 만들어 화면에 보여줘야 해서 왕복(호출)이 늘고 로직이 복잡해진다. "수정" 모달은 이미 DB에 저장된 `channel_name`을 그대로 읽어 보여주기만 하면 되므로 `openEditModal()`에만 `#editChannelWrap`(🔒 채널 + readonly input)을 추가했다. `showModalStep()`에서 `modalMode==='edit' && modalType==='vid'`일 때만 노출하도록 중앙에서 한 번에 제어해 이미지/맵 지명/추가 모달에는 나타나지 않는다. `channel_name`이 `null`이면 "채널명 없음"을 표시하고, `submitItem()`의 수정 payload에는 여전히 포함하지 않는다(그룹 E 1단계 결정 유지).
+
+**소급 수집을 MCP + 임시 스크립트 조합으로 처리한 이유**: Supabase 접속 정보(anon key)를 임시로 작성한 로컬 Node 스크립트에 넣고 싶지 않았다. 그래서 조회·UPDATE는 모두 Claude Code가 Supabase MCP로 직접 실행하고, 임시 스크립트(`backfill-channel-names.js`, 작업 후 삭제)는 대상 `id`/`video_url` 목록을 하드코딩으로 받아 YouTube oEmbed만 순차 호출해 `{id, channel_name}` 목록을 만드는 역할만 맡았다. 요청 간 400ms 지연과 10초 타임아웃(`AbortController`)을 둬서 응답이 느리거나 삭제된 영상이 있어도 전체 작업이 멈추지 않게 했다. 이번 실행 대상은 2건(`6a9be733-...`, `e5d61592-...`)이었고 둘 다 조회 성공, 실패 0건. `channel_name IS NULL` 조건이 이미 재실행 시 완료된 행을 자동 제외하므로 별도 멱등성 처리는 추가하지 않았다.
+
+**검색 통합 방식**: 상세 뷰(`renderCards()`)와 첫 화면 전체 검색(`renderGlobalTitleSearch()`) 양쪽의 검색 필터 조건에 `String(it.channel_name ?? '').toLowerCase().includes(query)`를 OR로 추가했다. 별도 검색창을 새로 만들지 않고 기존 제목 검색 입력을 그대로 재사용했다(placeholder를 "제목 또는 채널 검색" 계열로 변경). `channel_name`이 `null`인 항목은 빈 문자열로 처리돼 채널명 매칭에서 자연히 제외된다.
+
+**이스케이프 처리**: `channel_name`은 YouTube oEmbed가 돌려주는 외부(비신뢰) 문자열이라, 카드 배지에 `innerHTML` 템플릿으로 꽂기 전에 새로 추가한 `escapeHtml()`로 이스케이프한다. 수정 모달의 채널명 칸은 `innerHTML`이 아니라 `<input readonly>`의 `.value`에 대입하는 방식을 택해 애초에 HTML 파싱 경로를 타지 않으므로 이스케이프가 필요 없다(더 안전한 API를 우선 선택). 참고로 기존 카드 템플릿의 `title`/`note`는 이번 작업 범위가 아니라 손대지 않았지만, 마찬가지로 이스케이프 없이 `innerHTML`에 꽂히고 있다는 점을 확인했다 — 다만 두 필드 모두 편집모드 관리자가 직접 입력하는 값(외부 유래 아님)이라 이번 작업의 위험도와는 다르다.

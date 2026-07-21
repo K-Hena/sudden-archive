@@ -38,6 +38,7 @@
 - ~~카드 그리드 고정 브레이크포인트 전환(PC 7열/태블릿 3열/모바일 1열) + 글자수 제한 재산정~~ (완료) — 유동 그리드(`auto-fill minmax`)를 고정 열 구조로 전환, PC 브레이크포인트를 1904px로 후속 조정(패딩 64px+gap 96px+카드 약 249px×7). `renderGlobalTitleSearch()`가 지도 선택용 `.map-grid`를 잘못 상속받던 기존 버그도 함께 발견해 수정. 새 PC 카드 폭(230px) 기준 `maxlength`를 제목 17자·설명 41자로 재산정. 세부 결정은 `docs/DECISIONS.md` 참고
 - ~~라이트/다크 테마~~ (완료, 2단계 아이디어 목록에서 승격) — CSS 변수(`:root[data-theme="light"]`) + `data-theme` 속성 + `localStorage`(`sa-theme`) 조합으로 구현. RED/BLUE/AMBER 등 포인트 컬러는 두 테마 동일 유지, 호버/포커스용 `#FFFFFF`만 `var(--hover-invert)`로 반전. 헤더/모달 입력창의 하드코딩 배경(`#0D1013` 등)이 라이트 테마에서 다크온다크가 되는 실제 버그를 발견해 `var(--bg)`로 수정. 로고·미디어 영역은 의도적으로 다크 유지(범위 밖). 세부 결정은 `docs/DECISIONS.md` 참고
 - **그룹 E 1단계: 유튜브 채널명 수집 + 저장** — 신규 영상 등록 시 YouTube oEmbed `author_name`을 `items.channel_name`에 저장. 조회 실패 시 `null`로 저장하고 영상 등록은 계속 진행. 기존 데이터 소급 수집과 검색 UI는 후속 단계로 유지
+- **그룹 E 2~3단계: 채널명 표시 UI + 기존 영상 소급 수집 + 제목/채널명 통합 검색** — 수정 모달(`openEditModal()`)에만 읽기전용 채널명 칸(🔒, `null`이면 "채널명 없음") 추가, 카드 썸네일에 채널 배지(`escapeHtml()` 처리, 긴 이름은 말줄임) 노출. 기존 영상 2건(대상 전원)을 Supabase MCP 조회 + 임시 Node 스크립트(oEmbed 전용, 작업 후 삭제) + Supabase MCP UPDATE로 소급 수집, 전부 성공(실패 0건). 상세 뷰·첫 화면 검색 모두 `title` OR `channel_name` 부분 일치로 확장, placeholder·빈 결과 문구도 "제목 또는 채널" 계열로 변경. 세부 결정은 `docs/DECISIONS.md` 참고
 
 # 진행중
 
@@ -46,7 +47,6 @@
 # 예정 (AI_CONTEXT.md 기준)
 
 - 구 Admin 사이트(`sudden-archive-admin.vercel.app`) 정리 — 편집모드가 CRUD 전체를 대체한 뒤 진행
-- **그룹 E 2~3단계: 기존 영상 채널명 소급 수집 + 채널명 검색 UI**
 
 # 아이디어 (AI_CONTEXT.md "향후 개발 예정", 구체화 전)
 
