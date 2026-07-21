@@ -279,3 +279,27 @@
 **PC 카드 폭 기준 글자수 재실측**: 같은 방법론(한글 반복 문자열, 말줄임 CSS가 실제로 측정을 가리지 않도록 임시로 무력화한 뒤 측정 — `.title`은 `white-space:nowrap`이 이미 적용돼 있어 그대로도 측정 가능했지만, `.note`는 이전 작업에서 이미 `-webkit-line-clamp:2`가 적용돼 있어 `offsetHeight`가 2줄에서 인위적으로 막혀 있었다. 측정 동안만 `display:block;-webkit-line-clamp:unset;overflow:visible`로 임시 해제한 뒤 측정하고 원래 상태로 복원했다)을 새 PC 카드 폭 기준으로 재실행했다. 고정 그리드 덕분에 PC 구간 전체(1409~2560px)에서 `.title` 요소의 `clientWidth`가 항상 230px로 일정해, 여러 뷰포트를 스캔할 필요 없이 이 값 하나로 측정했다. **제목**: 18자까지 `scrollWidth === clientWidth(230px)`이다가 19자에서 `scrollWidth 236px`로 처음 초과 → 여유 2자로 `maxlength=17`. **설명**: `line-height 17.25px` 기준 2줄(34.5px) 경계에서 42자까지 `offsetHeight 35px`이다가 43자에서 `52px`(3줄)로 처음 초과 → 여유 2자로 `maxlength=41`. 각각 17자/41자로 렌더링해 PC에서 말줄임 없이 정확히 들어맞는 것과, 601px(태블릿 하한)처럼 더 좁은 폭에서는 같은 17자 제목이 실제로 말줄임 처리되는 것(의도된 정상 동작)을 함께 확인했다. 이 시점 기준으로도 기존 DB에는 새 기준(17/41)을 초과하는 실사용 데이터가 없었다(SELECT 재확인).
 
 **이유**: 그리드를 고정 폭으로 바꾼 이상, 더 이상 "가장 불리한 폭"을 찾을 필요가 없어졌다 — PC 구간은 항상 정확히 256px(제목 요소 230px)이므로 그 값 하나로 결정론적인 기준을 잡을 수 있다. 태블릿/모바일에서는 카드가 이보다 좁아질 수 있어 말줄임표가 뜰 수 있지만, 이는 `.card .title`/`.note`의 CSS 안전장치(1줄/2줄 말줄임)가 그대로 담당하므로 별도로 막지 않았다.
+
+---
+
+## 2단계: 라이트/다크 테마 토글
+
+**전환 방식**: CSS 변수(`:root`) + `data-theme` 속성 + `localStorage` 3단 조합으로 구현했다. 다크 팔레트는 기존 `:root`에 그대로 두고, `:root[data-theme="light"]`에 라이트 팔레트를 오버라이드로만 추가했다(다크가 여전히 "속성 없음"이라는 기본 상태). `toggleTheme()`이 `document.documentElement`의 `data-theme` 속성을 붙였다 뗐다 하고 `localStorage`(키 `sa-theme`)에 저장하며, `<head>`의 `<meta charset>` 바로 다음(모든 CSS/DOM 렌더링보다 먼저)에 동기 인라인 스크립트를 두어 저장된 값이 `'light'`일 때만 속성을 미리 설정한다 — 값이 없거나 `'dark'`면 아무 것도 하지 않아 기본값(다크)이 자연스럽게 유지된다. 이 스크립트가 CSS 파싱/첫 페인트보다 먼저 실행되어야 다크→라이트 전환 깜빡임(FOUC)이 없는데, Playwright로 `page.reload({waitUntil:'commit'})` 시점(첫 페인트 직전)에 이미 `data-theme`이 반영돼 있는 것을 확인해 이 순서를 검증했다.
+
+**포인트 컬러 고정 원칙**: `--red`/`--blue`/`--amber`/`--edit-accent`/`--green`/`--edit-accent-ink`는 라이트 테마 블록에서 오버라이드하지 않는다. RED/BLUE 배지, 즐겨찾기 별, 편집모드 강조색처럼 "브랜드 정체성"에 해당하는 색은 다크/라이트 어느 쪽에서 봐도 동일해야 사용자가 같은 서비스로 인지할 수 있다는 지시서 방향을 그대로 따랐다. 이 색들 위에 얹히는 `#fff` 텍스트(`.badge.vid/img/short`, `discord-btn:hover`, `teamBadge()`의 JS 인라인 색상)도 함께 고정해야 대비가 유지되므로 건드리지 않았다 — 이 값들은 "호버 반전 대상"이 아니라 "포인트 컬러 배경 위 텍스트"로 분류해 `var(--hover-invert)`로 바꾸지 않았다.
+
+**`#FFFFFF`/`#fff` 전수 분류 결과**:
+- 호버/포커스 반전(→ `var(--hover-invert)`로 교체): `.map-tile:hover`, `.detail-search:focus`, `.card:hover`, `.back-btn:hover`
+- 로고(`.reticle`의 border/`::before`/`::after`): 지시서에 따라 건드리지 않음. 라이트 테마에서 실제로 `rgb(255,255,255)` 그대로 유지되는 것을 확인했고, 흰 배경 위 흰 로고가 잘 안 보이는 부작용도 실제로 나타남(스크린샷으로 확인) — 코드는 고치지 않고 이 결정만 기록한다. 로고를 라이트 테마에서 어떤 색으로 바꿀지는 별도 디자인 판단이 필요해 이번 범위 밖이다.
+- 포인트 컬러 배경 위 텍스트(그대로 유지): `.badge.vid`/`.badge.img`(red/blue 배경)/`.badge.short`(보라 배경), `.discord-btn:hover`(red 배경), JS `teamBadge()`의 `'#fff'`(red/blue 배경)
+- 미디어 오버레이(그대로 유지): `.playicon`/`.playicon::before`, `.overlay-playpause`, `.save-thumb-badge`
+
+**하드코딩 어두운 배경/색상 전수 목록 및 처리**:
+- **버그로 판단해 교체**: `.modal-body input[type=text|url]/textarea/select`, `.modal-body input[type=file]`, `.clip-range-track`, `.clip-btns button`이 `background:#0D1013`(고정)과 `color:var(--text)`(라이트에서 뒤집힘)를 같이 써서 라이트 테마에서 다크온다크(글자가 안 보임)가 되는 실제 버그였다. 전부 `var(--bg)`로 교체. 슬라이더 thumb의 `border:2px solid #0A0C0F`도 배경과 시각적으로 짝을 맞추기 위해 `var(--bg)`로 함께 교체. `header{background:linear-gradient(180deg,#0D1013,#0A0C0F)}`도 헤더 텍스트가 `var(--text)`를 상속해 같은 이유로 버그였는데, 원래 두 색의 차이가 3~4/255로 극히 미세해 그라디언트를 유지할 실익이 없어 `var(--bg)` 단색으로 단순화했다(다크 테마에서 시각적 차이가 없음을 스크린샷으로 확인).
+- **미디어 영역이라 유지**: `.overlay-media`/`.save-thumb-16x9`/`.save-thumb-sq`/`.clip-player`의 `background:#000`, `.card-del`/`.card-edit`/`.tile-actions span`/`.overlay-playpause`/`.save-thumb-badge`의 `rgba(6,7,9,...)` 오버레이 배경, `.card-fav`의 `text-shadow:rgba(0,0,0,.6)`, `.thumb`/`.map-thumb`(6종)의 그라디언트 placeholder — 전부 실제 이미지/영상이 렌더링되거나 그 자리를 대신하는 미디어 영역이라 콘텐츠 가독성을 위해 다크로 남겼다.
+- **대비 문제 없어 유지(판단 후 미변경)**: `.subbar .sep`/`.map-thumb .no-img`/썸네일 placeholder 텍스트의 `color:#3A4048`, `.site-footer`의 `color:#4A515B`, `.hint`의 `color:#5A626D`. 셋 다 라이트 배경 위에서도 대비가 충분해(계산상 7:1 이상) 읽는 데 문제가 없고, 미디어 placeholder 위 텍스트(`#3A4048` 두 곳)는 배경 자체가 유지 대상이라 자연히 그대로 둬야 한다. 톤의 "무게감"이 두 테마에서 살짝 달라 보일 수 있다는 점만 알려진 사소한 차이로 남긴다.
+- **모달 스크림(`.modal{background:rgba(6,7,9,.9)}`)**: 미디어 영역은 아니지만, 모달 뒤 배경을 어둡게 딤 처리하는 것은 라이트/다크 관계없이 흔한 UI 패턴이라 유지했다. 모달 콘텐츠 자체(`.modal-box`)는 이미 `var(--panel)`로 테마에 맞게 반응한다.
+
+**로그인/로그아웃 반복 시 토글 버튼 생존**: `#themeToggleBtn`을 `renderAuthArea()`가 통째로 갈아엎는 `#authArea`의 자식이 아니라 같은 `.status` 안의 형제 요소로 추가했다. `renderAuthArea(null)`을 5회 연속 호출해도 버튼이 사라지지 않고 아이콘·클릭 핸들러가 그대로 유지되는 것을 확인했다 — `authArea.contains(toggle) === false`라는 구조적 사실 자체가 이 안정성을 보장한다.
+
+**이유**: 프레임워크 없는 단일 HTML 구조에서 별도 테마 상태 관리 라이브러리 없이 CSS 커스텀 프로퍼티만으로 전체 팔레트를 뒤집을 수 있어 최소 변경으로 구현할 수 있었다. `data-theme` 속성 + `localStorage` 조합은 이 프로젝트에 이미 있던 패턴(`editMode`처럼 전역 상태를 두고 필요한 곳에서만 참조)과 결이 같아 새로운 아키텍처를 들이지 않았다.
