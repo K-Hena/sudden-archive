@@ -203,6 +203,7 @@ header{
   height:130px;position:relative;background:linear-gradient(135deg,#1A1E24,#0F1216);
   display:flex;align-items:center;justify-content:center;
 }
+.thumb>img,.map-thumb>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}
 .thumb .badge{
   position:absolute;top:8px;left:8px;font-family:'JetBrains Mono',monospace;font-size:9px;
   letter-spacing:0.05em;padding:3px 7px;text-transform:uppercase;
@@ -216,6 +217,7 @@ header{
   max-width:calc(100% - 16px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .playicon{
+  position:relative;z-index:1;
   width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.5);
   display:flex;align-items:center;justify-content:center;color:#fff;
 }
@@ -664,8 +666,8 @@ function renderMapGrid(){
     return `
     <div class="map-tile cut-sm" onclick="openMap('${m.id}','${safe}')">
       ${actions}
-      <div class="map-thumb" style="${m.img ? `background-image:url('${m.img}');background-size:cover;background-position:center;` : ''}">
-        ${m.img ? '' : '<span class="no-img">이미지 없음</span>'}
+      <div class="map-thumb">
+        ${m.img ? `<img loading="lazy" src="${m.img}" alt="">` : '<span class="no-img">이미지 없음</span>'}
       </div>
       <div class="info">
         <div class="name">${m.name}</div>
@@ -690,7 +692,8 @@ function renderGlobalTitleSearch(){
     return `
     <div class="card" onclick="openOverlay('${it.id}')">
       ${favoriteButton(it)}
-      <div class="thumb" style="${thumbUrl ? `background-image:url('${thumbUrl}');background-size:cover;background-position:center;` : ''}">
+      <div class="thumb">
+        ${thumbUrl ? `<img loading="lazy" src="${thumbUrl}" alt="">` : ''}
         <div class="badge ${it.type}">${it.type==='vid' ? '영상' : '이미지'}</div>
         ${(p && p.isShort) ? '<div class="badge short" style="left:auto;right:8px;">쇼츠</div>' : ''}
         ${channelBadge(it)}
@@ -971,7 +974,8 @@ function renderCards(){
             ${editMode ? `<span class="card-edit" onclick="openEditModal(event,'${it.id}')" title="수정">⚙</span>` : ''}
             ${editMode ? `<span class="card-del" onclick="deleteItem(event,'${it.id}')" title="삭제">✕</span>` : ''}
             ${favoriteButton(it, editMode)}
-            <div class="thumb" style="${thumbUrl ? `background-image:url('${thumbUrl}');background-size:cover;background-position:center;` : ''}">
+            <div class="thumb">
+              ${thumbUrl ? `<img loading="lazy" src="${thumbUrl}" alt="">` : ''}
               <div class="badge ${it.type}">${it.type==='vid' ? '영상' : '이미지'}</div>
               ${shortBadge}
               ${teamBadge(it)}

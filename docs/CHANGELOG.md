@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-07-23 — 썸네일 lazy loading 전환
+
+- 맵 그리드(`.map-thumb`), 상세 카드 그리드·전체 제목 검색 결과(`.thumb`) 3곳의 썸네일을 `background-image` 인라인 스타일에서 `<img loading="lazy">`로 전환해 네이티브 지연 로딩이 적용되도록 함
+- 배지·채널 배지·재생 아이콘이 이미지 위에 올바르게 겹치도록 `.playicon`에 `position:relative;z-index:1` 추가(기존 업로드 미리보기의 `.save-thumb-16x9 .playicon`과 동일한 패턴)
+- 썸네일 없는 경우의 placeholder(그라디언트 배경 + 안내 문구) 로직은 그대로 유지
+
 ## 2026-07-21 — 유튜브 채널명 수집 1단계
 
 - 신규 유튜브 영상 등록 시 oEmbed `author_name`을 `items.channel_name`에 저장하고, 조회 실패 시 `null`로 저장을 계속하도록 처리
