@@ -1887,10 +1887,27 @@ async function renderAuthArea(session){
   rerenderCurrentView();
 }
 
+const INACTIVITY_LIMIT_MS = 30 * 24 * 60 * 60 * 1000; // 30일간 사이트 재방문이 없으면 로그아웃(client-side, Free 플랜은 서버 세션 만료 기능이 없어 대체)
+
 async function initAuth(){
-  const { data: { session } } = await sb.auth.getSession();
+  let { data: { session } } = await sb.auth.getSession();
+  if(session){
+    const lastActive = Number(localStorage.getItem('sa-last-active'));
+    if(lastActive && Date.now() - lastActive > INACTIVITY_LIMIT_MS){
+      const { error } = await sb.auth.signOut();
+      if(!error){
+        localStorage.removeItem('sa-last-active');
+        session = null;
+      } // signOut 실패 시 타임스탬프를 건드리지 않아 다음 방문에도 계속 재시도되게 함
+    } else {
+      localStorage.setItem('sa-last-active', String(Date.now()));
+    }
+  }
   await renderAuthArea(session);
   sb.auth.onAuthStateChange((event, session) => {
+    if(event === 'INITIAL_SESSION') return; // initAuth()가 이미 위에서 만료 판정을 처리했으므로 중복 갱신 방지(실패 시 재시도 타이머 보존)
+    if(session) localStorage.setItem('sa-last-active', String(Date.now()));
+    else localStorage.removeItem('sa-last-active');
     renderAuthArea(session);
   });
 }

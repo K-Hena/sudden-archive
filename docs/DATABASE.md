@@ -145,3 +145,9 @@ Discord 로그인 사용자의 즐겨찾기. Supabase migration `create_user_fav
 - **레거시 Admin 사이트** (`sudden-archive-admin`): Supabase Auth의 **이메일/비밀번호 로그인** (`sb.auth.signInWithPassword`). User 사이트의 편집모드와는 별개의 인증 방식이며, AI_CONTEXT.md 기준 이 사이트 자체가 정리(폐기) 예정이다.
 
 두 인증 방식이 당분간 공존한다는 점에 주의 — 자세한 흐름은 `docs/architecture/auth-flow.md` 참고.
+
+## 세션 유지 정책
+
+- Supabase 프로젝트 Authentication > Sessions의 "Inactivity timeout"/"Time-box user sessions"는 **Pro 플랜 이상 전용 기능**이며, 이 프로젝트가 속한 조직(`Hena`, organization id `ygkyinzqhvyytddgfjos`)은 2026-07-24 확인 기준 **Free 플랜**이라 대시보드에서도 켤 수 없는 상태(둘 다 미설정/사용 불가)
+- 대신 `index.html`의 `initAuth()`에 client-side 30일 비활성 로그아웃을 구현(`INACTIVITY_LIMIT_MS`, `localStorage`의 `sa-last-active` 키). 상세 배경과 한계는 `docs/DECISIONS.md`의 "로그인 세션 유지 정책: 30일 비활성 로그아웃 (client-side)" 참고
+- Free → Pro로 업그레이드하면 이 문서를 갱신하고 Supabase 관리형 기능으로 전환을 재검토할 것
