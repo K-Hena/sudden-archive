@@ -40,10 +40,11 @@
 - **그룹 E 1단계: 유튜브 채널명 수집 + 저장** — 신규 영상 등록 시 YouTube oEmbed `author_name`을 `items.channel_name`에 저장. 조회 실패 시 `null`로 저장하고 영상 등록은 계속 진행. 기존 데이터 소급 수집과 검색 UI는 후속 단계로 유지
 - **그룹 E 2~3단계: 채널명 표시 UI + 기존 영상 소급 수집 + 제목/채널명 통합 검색** — 수정 모달(`openEditModal()`)에만 읽기전용 채널명 칸(🔒, `null`이면 "채널명 없음") 추가, 카드 썸네일에 채널 배지(`escapeHtml()` 처리, 긴 이름은 말줄임) 노출. 기존 영상 2건(대상 전원)을 Supabase MCP 조회 + 임시 Node 스크립트(oEmbed 전용, 작업 후 삭제) + Supabase MCP UPDATE로 소급 수집, 전부 성공(실패 0건). 상세 뷰·첫 화면 검색 모두 `title` OR `channel_name` 부분 일치로 확장, placeholder·빈 결과 문구도 "제목 또는 채널" 계열로 변경. 세부 결정은 `docs/DECISIONS.md` 참고
 - **재생 볼륨 기억 + 클립 재생 중 구간 내 탭 시크 진행바** — 클립 재생·"전체 영상 보기"(둘 다 `YT.Player`) 한정으로 볼륨/음소거를 `localStorage`(`sa-volume`/`sa-muted`)에 기억. `onVolumeChange` 이벤트가 없어 기존 250ms 타이머(`overlayTimer`로 통합·개칭)에서 폴링, 변경 감지 시에만 저장. 클릭으로 열리는 볼륨 슬라이더 + 음소거 버튼을 재생/일시정지 버튼 옆에 추가. 클립 구간 계산을 `getEffectiveClipRange()`로 통일해(시작/끝 한쪽만 지정된 경우 포함) 네이티브 `<input type="range">` 탭 시크 진행바(클립 재생 중에만) 구현. 구간 미지정 일반 영상(`<iframe>`)은 범위 밖(알려진 제한). 세부 결정은 `docs/DECISIONS.md` 참고
+- **그룹 D-2 1단계: Master 버튼 + 페이지 셸(사이드바) + 통계 탭** — 관리자 전용 Master 버튼(기본/활성 2상태), `#viewMaster` 셸(기존 `.view`/`.view.active` 패턴 재사용, 좌측 사이드바+콘텐츠), 사이드바 4탭 중 통계만 활성화(나머지 3개 `<button disabled>`). 통계 탭: 요약 카드 3개(전체 클릭수/전체 즐겨찾기/등록된 항목 수) + 항목별 클릭수·즐겨찾기 테이블(클릭수 내림차순). `favorites` 테이블에 `item_clicks`와 동일한 "admins can select" RLS 정책을 추가해(사용자 확인 후 실행) 관리자가 전체 즐겨찾기를 집계할 수 있게 함. 세부 결정은 `docs/DECISIONS.md`, RLS 변경은 `docs/DATABASE.md` 참고
 
 # 진행중
 
-- **그룹 D: 관리자 통계 대시보드** — 1단계(클릭수 추적 스키마·기록 로직) 완료, 2단계(대시보드 UI·집계 쿼리, 클릭수 외 즐겨찾기 수·유저별 선호 맵 포함) 남음
+- **그룹 D-2: 관리자 Master 대시보드** — 1단계(Master 버튼·페이지 셸·통계 탭) 완료, 2단계(영상 추가) 남음. 이후 3단계(항목 관리)·4단계(기존 편집모드 CRUD 이관)·5단계(댓글)로 이어질 예정
 
 # 예정 (AI_CONTEXT.md 기준)
 

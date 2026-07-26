@@ -358,4 +358,20 @@ oEmbed 조회 실패는 영상 저장을 막지 않고 `null`로 처리한다. �
 
 **한계(사용자에게도 고지함)**: 이건 서버가 강제하는 진짜 세션 만료가 아니다. Supabase의 refresh token 자체는 Free 플랜에서 무기한 유효하므로, 브라우저에서 이 사이트를 거치지 않고 토큰을 직접 재사용하면 이 검사를 우회할 수 있다. 또한 "활동"의 기준이 실제 마우스/키보드 입력이 아니라 "사이트를 열어 `initAuth()`가 실행된 시점"이라, 탭을 켜둔 채 방치해도 `onAuthStateChange`의 백그라운드 토큰 갱신이 활동으로 간주될 수 있다. 관리자 소수만 Discord로 로그인하는 개인 프로젝트 규모에서는 실용적으로 충분하다고 판단해 이 단순한 구현을 택했다(디바이스 활동 감지 등 정교한 방식은 이번 범위에서 도입하지 않음).
 
+---
+
+## 그룹 D-2 1단계: Master 대시보드 셸(버튼 2상태 + 사이드바 + 통계 탭)
+
+**진행 배경**: 그룹 D-2(관리자 대시보드)를 5단계로 나눠 진행하기로 했고, 이번은 1단계(버튼 + 페이지 셸 + 통계 탭만)다. 기존 편집모드(카드 호버 수정·삭제 아이콘)는 이번 단계에서 건드리지 않고, 항목 관리 탭(3단계) 완성 후 4단계에서 한 번에 이관하기로 했다(지시서 `master_dashboard_stage1_instructions.md`).
+
+**Master 버튼 2상태**: 헤더 `.status` 안에 `#themeToggleBtn`과 `#authArea` 사이의 형제 요소로 `#masterBtn`을 정적 HTML로 두고 `style="display:none"`으로 시작했다. `renderAuthArea()`가 이미 계산하는 지역 변수 `isAdmin`을 함수 스코프로 끌어올려 재사용해서(중복 조회 없이) 전역 `isAdminUser`에 반영하고, 그 값으로 `#masterBtn`의 `display`를 토글한다. 기본 상태는 `background:#2A1420; color:var(--edit-accent)`, 활성 상태(Master 페이지 안)는 `background:var(--edit-accent); color:var(--edit-accent-ink); font-weight:700`으로, 새 CSS 변수 없이 기존 `--edit-accent`/`--edit-accent-ink`만 재사용했다. `#authArea`의 `innerHTML`을 통째로 갈아엎는 영역 밖에 뒀기 때문에 로그인/로그아웃 렌더와 독립적으로 갱신된다.
+
+**화면 전환**: 기존 `showMapGrid()`/`openMap()`이 `#viewGrid`/`#viewDetail`의 `active` 클래스를 수동으로 토글하는 패턴을 그대로 따라 `openMaster()`를 추가했다. 다만 세 함수 모두 세 `.view`(`viewGrid`/`viewDetail`/`viewMaster`) 전체의 active를 정리하도록 고쳤다 — 안 그러면 Master 진입 후 "전체 맵" 클릭 시 `showMapGrid()`가 `viewMaster.active`를 안 지워서 두 뷰가 동시에 활성화되는 문제가 있었다(설계 리뷰에서 발견). 세션이 바뀌어 관리자 권한을 잃었는데 Master 화면에 있는 경우 `renderAuthArea()`가 자동으로 `showMapGrid()`를 호출해 빠져나오게 했다.
+
+**사이드바 4탭 중 3개 비활성화**: `pointer-events:none` 대신 네이티브 `<button disabled>`를 썼다(설계 리뷰 제안 — 키보드 포커스·스크린리더 모두 자연스럽게 비활성으로 처리됨, 지시서의 "클릭해도 반응 없음" 조건과도 부합).
+
+**통계 집계 방식(1단계 한정)**: 항목별 클릭수·즐겨찾기 집계를 위한 별도 RPC/뷰를 만들지 않고, `item_clicks`/`favorites`를 각각 `item_id`만 select해 전체 행을 내려받은 뒤 클라이언트에서 `Map`으로 집계했다(`items`는 이미 `loadAll()`이 전역 `items[]`에 로드해둔 것을 재사용, 추가 쿼리 없음). 코드에 `ponytail:` 주석으로 한계를 남겼다 — `item_clicks`는 계속 쌓이는 이벤트 로그라 항목 수·클릭 수가 크게 늘면 PostgREST 기본 행 제한에 걸리거나 페이로드가 커질 수 있으니, 그때는 서버 집계(RPC/뷰)로 전환할 것.
+
+**favorites RLS 정책 추가(고위험, 사용자 확인 완료)**: 기존 `favorites` SELECT 정책은 `authenticated`의 본인 행만 허용해서, 관리자도 전체 즐겨찾기 수를 조회할 수 없었다. `item_clicks`에 이미 있던 "admins can select clicks" 패턴과 동일하게 `admins can select favorites` SELECT 정책(`exists(select 1 from admins where admins.user_id = (select auth.uid()))`)을 추가했다 — 기존 본인 행 SELECT 정책은 그대로 두고 OR로 합쳐진다. 실행 전 사용자에게 실시간으로 확인받았다(승인, 2026-07-27). 실행 SQL과 시점은 `docs/DATABASE.md`에도 반영.
+
 **Time-box user sessions는 다루지 않음**: 지시서에서도 활동 기반 연장 방식만 요청했고, 절대 만료 정책은 이번 결정 범위 밖이다.
