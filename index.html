@@ -168,6 +168,10 @@ header{
 .master-tab.active{color:var(--edit-accent);border-left-color:var(--edit-accent);background:var(--panel);}
 .master-tab:disabled{color:#3A4048;cursor:default;}
 .master-content{flex:1;min-width:0;}
+.master-pane{display:none;}
+.master-pane.active{display:block;}
+.master-add-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:4px;}
+.master-select{background:var(--bg);border:1px solid var(--line);color:var(--text);padding:9px 10px;font-family:'Inter',sans-serif;font-size:13px;}
 .master-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}
 .master-stat{background:var(--panel);border:1px solid var(--line);padding:16px 18px;}
 .master-stat b{display:block;font-family:'Paperlogy',sans-serif;font-weight:800;font-size:26px;color:var(--text);}
@@ -183,6 +187,7 @@ header{
   .master-tab{border-left:none;border-bottom:2px solid transparent;}
   .master-tab.active{border-left-color:transparent;border-bottom-color:var(--edit-accent);}
   .master-summary{grid-template-columns:1fr;}
+  .master-add-row{flex-direction:column;align-items:stretch;}
 }
 
 .tag-section{margin-bottom:34px;}
@@ -500,22 +505,36 @@ header{
 <div class="view" id="viewMaster">
   <div class="master-shell">
     <nav class="master-sidebar">
-      <button class="master-tab active">📊 통계</button>
-      <button class="master-tab" disabled>🎬 영상 추가</button>
+      <button class="master-tab active" data-tab="stats" onclick="switchMasterTab('stats')">📊 통계</button>
+      <button class="master-tab" data-tab="add" onclick="switchMasterTab('add')">🎬 영상 추가</button>
       <button class="master-tab" disabled>🗂 항목 관리</button>
       <button class="master-tab" disabled>💬 댓글</button>
     </nav>
     <div class="master-content">
-      <div class="map-head">
-        <div class="section-label">통계</div>
-        <button class="back-btn" onclick="showMapGrid()">← 일반 화면으로</button>
+      <div class="master-pane active" id="masterPaneStats">
+        <div class="map-head">
+          <div class="section-label">통계</div>
+          <button class="back-btn" onclick="showMapGrid()">← 일반 화면으로</button>
+        </div>
+        <div class="master-summary">
+          <div class="master-stat"><b id="statTotalClicks">-</b><span>전체 클릭수</span></div>
+          <div class="master-stat"><b id="statTotalFavorites">-</b><span>전체 즐겨찾기</span></div>
+          <div class="master-stat"><b id="statTotalItems">-</b><span>등록된 항목 수</span></div>
+        </div>
+        <div id="masterTableWrap"></div>
       </div>
-      <div class="master-summary">
-        <div class="master-stat"><b id="statTotalClicks">-</b><span>전체 클릭수</span></div>
-        <div class="master-stat"><b id="statTotalFavorites">-</b><span>전체 즐겨찾기</span></div>
-        <div class="master-stat"><b id="statTotalItems">-</b><span>등록된 항목 수</span></div>
+      <div class="master-pane" id="masterPaneAdd">
+        <div class="map-head">
+          <div class="section-label">영상 추가</div>
+          <button class="back-btn" onclick="showMapGrid()">← 일반 화면으로</button>
+        </div>
+        <div class="master-add-row">
+          <select id="masterAddMap" class="master-select"></select>
+          <select id="masterAddTag" class="master-select"></select>
+        </div>
+        <button class="btn-primary" onclick="startMasterAdd()">등록 시작</button>
+        <div class="msg-modal" id="masterAddMsg"></div>
       </div>
-      <div id="masterTableWrap"></div>
     </div>
   </div>
 </div>
@@ -859,7 +878,40 @@ function openMaster(){
   document.getElementById('masterBtn').classList.add('active');
   document.getElementById('crumbMap').style.display = 'none';
   document.getElementById('crumbSep').style.display = 'none';
-  loadMasterStats();
+  switchMasterTab('stats');
+}
+
+function switchMasterTab(tab){
+  document.querySelectorAll('.master-tab[data-tab]').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+  document.getElementById('masterPaneStats').classList.toggle('active', tab === 'stats');
+  document.getElementById('masterPaneAdd').classList.toggle('active', tab === 'add');
+  if(tab === 'stats') loadMasterStats();
+  if(tab === 'add') renderMasterAddTab();
+}
+
+function renderMasterAddTab(){
+  document.getElementById('masterAddMap').innerHTML = '<option value="">맵을 선택해주세요</option>' +
+    maps.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+  document.getElementById('masterAddTag').innerHTML = '<option value="">태그를 선택해주세요</option>' +
+    tagOrder.map(t => `<option value="${t}">${t}</option>`).join('');
+  document.getElementById('masterAddMsg').textContent = '';
+}
+
+function startMasterAdd(){
+  const mapId = document.getElementById('masterAddMap').value;
+  const tag = document.getElementById('masterAddTag').value;
+  const msg = document.getElementById('masterAddMsg');
+  if(!mapId || !tag){
+    msg.className = 'msg-modal err';
+    msg.textContent = '맵과 태그를 모두 선택해주세요.';
+    return;
+  }
+  msg.className = 'msg-modal';
+  msg.textContent = '';
+  const map = maps.find(m => m.id === mapId);
+  currentMap = mapId;
+  currentMapName = map ? map.name : '';
+  openAddModal(tag);
 }
 
 async function loadMasterStats(){

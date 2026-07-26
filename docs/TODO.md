@@ -41,10 +41,11 @@
 - **그룹 E 2~3단계: 채널명 표시 UI + 기존 영상 소급 수집 + 제목/채널명 통합 검색** — 수정 모달(`openEditModal()`)에만 읽기전용 채널명 칸(🔒, `null`이면 "채널명 없음") 추가, 카드 썸네일에 채널 배지(`escapeHtml()` 처리, 긴 이름은 말줄임) 노출. 기존 영상 2건(대상 전원)을 Supabase MCP 조회 + 임시 Node 스크립트(oEmbed 전용, 작업 후 삭제) + Supabase MCP UPDATE로 소급 수집, 전부 성공(실패 0건). 상세 뷰·첫 화면 검색 모두 `title` OR `channel_name` 부분 일치로 확장, placeholder·빈 결과 문구도 "제목 또는 채널" 계열로 변경. 세부 결정은 `docs/DECISIONS.md` 참고
 - **재생 볼륨 기억 + 클립 재생 중 구간 내 탭 시크 진행바** — 클립 재생·"전체 영상 보기"(둘 다 `YT.Player`) 한정으로 볼륨/음소거를 `localStorage`(`sa-volume`/`sa-muted`)에 기억. `onVolumeChange` 이벤트가 없어 기존 250ms 타이머(`overlayTimer`로 통합·개칭)에서 폴링, 변경 감지 시에만 저장. 클릭으로 열리는 볼륨 슬라이더 + 음소거 버튼을 재생/일시정지 버튼 옆에 추가. 클립 구간 계산을 `getEffectiveClipRange()`로 통일해(시작/끝 한쪽만 지정된 경우 포함) 네이티브 `<input type="range">` 탭 시크 진행바(클립 재생 중에만) 구현. 구간 미지정 일반 영상(`<iframe>`)은 범위 밖(알려진 제한). 세부 결정은 `docs/DECISIONS.md` 참고
 - **그룹 D-2 1단계: Master 버튼 + 페이지 셸(사이드바) + 통계 탭** — 관리자 전용 Master 버튼(기본/활성 2상태), `#viewMaster` 셸(기존 `.view`/`.view.active` 패턴 재사용, 좌측 사이드바+콘텐츠), 사이드바 4탭 중 통계만 활성화(나머지 3개 `<button disabled>`). 통계 탭: 요약 카드 3개(전체 클릭수/전체 즐겨찾기/등록된 항목 수) + 항목별 클릭수·즐겨찾기 테이블(클릭수 내림차순). `favorites` 테이블에 `item_clicks`와 동일한 "admins can select" RLS 정책을 추가해(사용자 확인 후 실행) 관리자가 전체 즐겨찾기를 집계할 수 있게 함. 세부 결정은 `docs/DECISIONS.md`, RLS 변경은 `docs/DATABASE.md` 참고
+- **그룹 D-2 2단계: Master "영상 추가" 탭** — 사이드바 "영상 추가" 탭 활성화(맵 드롭다운 + 태그 드롭다운 + "등록 시작" 버튼), 클릭 시 `currentMap`/`currentMapName`을 선택된 맵으로 설정한 뒤 기존 `openAddModal(tag)` 흐름을 그대로 재사용(새 모달 없음, `openAddModal()`/`submitItem()` 내부 미수정). 통계·영상 추가 두 탭 콘텐츠는 항상 DOM에 함께 유지하고 표시만 전환(`switchMasterTab()`). 세부 결정은 `docs/DECISIONS.md` 참고
 
 # 진행중
 
-- **그룹 D-2: 관리자 Master 대시보드** — 1단계(Master 버튼·페이지 셸·통계 탭) 완료, 2단계(영상 추가) 남음. 이후 3단계(항목 관리)·4단계(기존 편집모드 CRUD 이관)·5단계(댓글)로 이어질 예정
+- **그룹 D-2: 관리자 Master 대시보드** — 1단계(Master 버튼·페이지 셸·통계 탭), 2단계(영상 추가) 완료. 3단계(항목 관리) 남음. 이후 4단계(기존 편집모드 CRUD 이관)·5단계(댓글)로 이어질 예정
 
 # 예정 (AI_CONTEXT.md 기준)
 

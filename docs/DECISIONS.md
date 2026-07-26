@@ -374,4 +374,18 @@ oEmbed 조회 실패는 영상 저장을 막지 않고 `null`로 처리한다. �
 
 **favorites RLS 정책 추가(고위험, 사용자 확인 완료)**: 기존 `favorites` SELECT 정책은 `authenticated`의 본인 행만 허용해서, 관리자도 전체 즐겨찾기 수를 조회할 수 없었다. `item_clicks`에 이미 있던 "admins can select clicks" 패턴과 동일하게 `admins can select favorites` SELECT 정책(`exists(select 1 from admins where admins.user_id = (select auth.uid()))`)을 추가했다 — 기존 본인 행 SELECT 정책은 그대로 두고 OR로 합쳐진다. 실행 전 사용자에게 실시간으로 확인받았다(승인, 2026-07-27). 실행 SQL과 시점은 `docs/DATABASE.md`에도 반영.
 
+---
+
+## 그룹 D-2 2단계: Master "영상 추가" 탭 — 새 모달 없이 기존 항목 추가 모달 재사용
+
+**결정**: Master 사이드바의 "영상 추가" 탭에 별도 모달을 새로 만들지 않고, 기존 `openAddModal(tag)`/`submitItem()`/`closeModal()` 흐름(붙여넣기 → 클립·진영 선택 → 제목/설명 → 저장)을 그대로 재사용했다(지시서 `master_dashboard_stage2_instructions.md`, B안). `openAddModal()`/`submitItem()` 내부는 전혀 수정하지 않았다.
+
+**연결 방식**: 기존 `openAddModal(tag)`는 어떤 맵에 저장할지를 전역 `currentMap`/`currentMapName`이 이미 설정돼 있다는 전제로 동작한다(지금까지는 `openMap()`이 맵 상세 진입 시 항상 먼저 설정해줬기 때문에 이 전제가 성립했다). Master는 맵 상세 화면 밖에서 진입하므로, 새 `startMasterAdd()` 함수가 "등록 시작" 버튼 클릭 시 **유효성 검사(맵·태그 둘 다 선택됐는지)를 통과한 직후** 선택된 맵의 id/이름으로 `currentMap`/`currentMapName`을 설정한 뒤 `openAddModal(tag)`를 호출한다. 드롭다운 `onchange` 시점이 아니라 검증 통과 직후로 정한 이유는 설계 리뷰에서 나온 지적대로, 단순히 드롭다운을 선택·변경하는 것만으로 전역 내비게이션 상태(`currentMap`)가 바뀌는 것을 피하기 위해서다.
+
+**탭 전환 구조**: 사이드바에 탭이 "통계" 하나만 있던 1단계와 달리 이번엔 2개(통계/영상 추가)가 활성화되므로 `switchMasterTab(tab)`을 새로 추가했다. 두 탭의 콘텐츠(`#masterPaneStats`/`#masterPaneAdd`)는 항상 DOM에 함께 존재하고 `.master-pane.active` 클래스로 표시만 전환한다 — `.master-content.innerHTML`을 통째로 갈아끼우는 방식은 쓰지 않았다. 이유(설계 리뷰에서 확인): 1단계에서 만든 `loadAll()`의 "`#viewMaster`가 active면 `loadMasterStats()` 재호출" 훅이 통계 탭 DOM 요소(`#statTotalClicks` 등)가 항상 존재한다고 가정하고 곧바로 접근하는데, innerHTML 교체 방식을 쓰면 영상 추가 탭이 보이는 동안 그 요소들이 DOM에서 사라져 저장 후 `loadAll()`이 null 참조 오류를 낼 수 있었다. 두 패널을 항상 유지하는 방식에서는 영상 추가 탭을 보고 있어도 통계가 백그라운드에서 계속 최신 상태로 갱신되므로 이후 통계 탭으로 돌아가도 문제가 없다.
+
+**Master 재진입 시 기본 탭**: 지시서에 명시되지 않은 부분이라, 일반 화면에서 Master 버튼을 눌러 다시 들어올 때는 항상 "통계" 탭으로 초기화하도록 결정했다(1단계 때부터의 기존 진입 동작과 동일하게 유지, 가장 단순하고 예측 가능한 기본값). 반면 모달을 열었다 취소만 한 경우는 애초에 `#viewMaster`를 벗어난 적이 없어(모달은 `.view`와 완전히 독립된 오버레이) 보고 있던 탭·드롭다운 선택값이 그대로 유지된다 — 이 둘은 서로 다른 시나리오다.
+
+**모달·안내 메시지**: 맵·태그 미선택 상태에서 "등록 시작"을 눌렀을 때 기존 `#modalMsg`를 재사용하지 않고 새 `#masterAddMsg` 요소를 추가했다(같은 `.msg-modal`/`.err` CSS 클래스만 재사용). 이유: `#modalMsg`는 닫혀 있는 `#addModal` 내부 요소라 모달을 열기 전 단계의 안내 메시지를 표시하는 데 쓸 수 없다(설계 리뷰에서 확인).
+
 **Time-box user sessions는 다루지 않음**: 지시서에서도 활동 기반 연장 방식만 요청했고, 절대 만료 정책은 이번 결정 범위 밖이다.
