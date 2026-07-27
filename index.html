@@ -180,6 +180,13 @@ header{
 .master-table th,.master-table td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left;}
 .master-table th{color:var(--muted);font-weight:600;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;}
 .master-table td.num{font-family:'JetBrains Mono',monospace;}
+.master-table td.thumb-cell{width:48px;}
+.master-table td.thumb-cell img{width:40px;height:40px;object-fit:cover;display:block;}
+.master-table .icon-btn{cursor:pointer;color:var(--muted);font-size:14px;}
+.master-table .icon-btn:hover{color:var(--edit-accent);}
+.master-table .icon-btn.del:hover{color:var(--red);}
+.master-table-wrap{overflow-x:auto;}
+.master-table-wrap .master-table{min-width:640px;}
 @media(max-width:768px){
   .master-btn-label{display:none;}
   .master-shell{flex-direction:column;}
@@ -507,7 +514,7 @@ header{
     <nav class="master-sidebar">
       <button class="master-tab active" data-tab="stats" onclick="switchMasterTab('stats')">📊 통계</button>
       <button class="master-tab" data-tab="add" onclick="switchMasterTab('add')">🎬 영상 추가</button>
-      <button class="master-tab" disabled>🗂 항목 관리</button>
+      <button class="master-tab" data-tab="items" onclick="switchMasterTab('items')">🗂 항목 관리</button>
       <button class="master-tab" disabled>💬 댓글</button>
     </nav>
     <div class="master-content">
@@ -534,6 +541,26 @@ header{
         </div>
         <button class="btn-primary" onclick="startMasterAdd()">등록 시작</button>
         <div class="msg-modal" id="masterAddMsg"></div>
+      </div>
+      <div class="master-pane" id="masterPaneItems">
+        <div class="map-head">
+          <div class="section-label">항목 관리</div>
+          <button class="back-btn" onclick="showMapGrid()">← 일반 화면으로</button>
+        </div>
+        <div class="master-add-row">
+          <select id="masterItemsMapFilter" class="master-select" onchange="renderMasterItemsTable()"></select>
+          <select id="masterItemsTagFilter" class="master-select" onchange="renderMasterItemsTable()">
+            <option value="">태그 전체</option>
+          </select>
+          <select id="masterItemsTeamFilter" class="master-select" onchange="renderMasterItemsTable()">
+            <option value="">진영 전체</option>
+            <option value="red">RED</option>
+            <option value="blue">BLUE</option>
+            <option value="none">공통</option>
+          </select>
+          <input type="search" id="masterItemsSearch" class="master-select" placeholder="제목 검색" oninput="renderMasterItemsTable()">
+        </div>
+        <div class="master-table-wrap" id="masterItemsTableWrap"></div>
       </div>
     </div>
   </div>
@@ -721,7 +748,11 @@ async function loadAll(){
     document.getElementById('clipCount').textContent = items.filter(i=>i.type==='vid').length;
     document.getElementById('tipCount').textContent = items.filter(i=>i.tag==='팁').length;
     renderMapGrid();
-    if(document.getElementById('viewMaster').classList.contains('active')) loadMasterStats();
+    if(document.getElementById('viewMaster').classList.contains('active')){
+      const activeTab = document.querySelector('.master-tab.active')?.dataset.tab;
+      if(activeTab === 'items') renderMasterItemsTable();
+      else if(activeTab === 'stats') loadMasterStats();
+    }
   } catch(e){
     const grid = document.getElementById('mapGrid');
     grid.className = 'map-grid';
@@ -885,8 +916,10 @@ function switchMasterTab(tab){
   document.querySelectorAll('.master-tab[data-tab]').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
   document.getElementById('masterPaneStats').classList.toggle('active', tab === 'stats');
   document.getElementById('masterPaneAdd').classList.toggle('active', tab === 'add');
+  document.getElementById('masterPaneItems').classList.toggle('active', tab === 'items');
   if(tab === 'stats') loadMasterStats();
   if(tab === 'add') renderMasterAddTab();
+  if(tab === 'items') renderMasterItemsTab();
 }
 
 function renderMasterAddTab(){
@@ -895,6 +928,62 @@ function renderMasterAddTab(){
   document.getElementById('masterAddTag').innerHTML = '<option value="">태그를 선택해주세요</option>' +
     tagOrder.map(t => `<option value="${t}">${t}</option>`).join('');
   document.getElementById('masterAddMsg').textContent = '';
+}
+
+function renderMasterItemsTab(){
+  const mapSel = document.getElementById('masterItemsMapFilter');
+  const prevMap = mapSel.value;
+  mapSel.innerHTML = '<option value="">맵 전체</option>' +
+    maps.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+  mapSel.value = prevMap;
+
+  const tagSel = document.getElementById('masterItemsTagFilter');
+  const prevTag = tagSel.value;
+  tagSel.innerHTML = '<option value="">태그 전체</option>' +
+    tagOrder.map(t => `<option value="${t}">${t}</option>`).join('');
+  tagSel.value = prevTag;
+
+  renderMasterItemsTable();
+}
+
+function renderMasterItemsTable(){
+  const wrap = document.getElementById('masterItemsTableWrap');
+  if(items.length === 0){
+    wrap.innerHTML = '<div class="loading">등록된 항목이 없어요.</div>';
+    return;
+  }
+  const mapId = document.getElementById('masterItemsMapFilter').value;
+  const tag = document.getElementById('masterItemsTagFilter').value;
+  const team = document.getElementById('masterItemsTeamFilter').value;
+  const query = document.getElementById('masterItemsSearch').value.trim().toLowerCase();
+  const filtered = items.filter(it =>
+    (!mapId || it.map_id === mapId) &&
+    (!tag || it.tag === tag) &&
+    (!team || it.team === team) &&
+    (!query || String(it.title ?? '').toLowerCase().includes(query))
+  );
+  if(filtered.length === 0){
+    wrap.innerHTML = '<div class="loading">조건에 맞는 항목이 없어요.</div>';
+    return;
+  }
+  const rows = filtered.map(it => {
+    const mapName = maps.find(m => m.id === it.map_id)?.name || '알 수 없는 맵';
+    const thumbUrl = it.type === 'vid' ? ytThumb(it.video_url) : it.img_url;
+    return `<tr>
+      <td class="thumb-cell">${thumbUrl ? `<img loading="lazy" src="${thumbUrl}" alt="">` : ''}</td>
+      <td>${escapeHtml(it.title)}</td>
+      <td>${escapeHtml(mapName)}</td>
+      <td>${escapeHtml(it.tag||'')}</td>
+      <td>${escapeHtml(teamLabel(it.team) || '')}</td>
+      <td><span class="icon-btn" onclick="openEditModal(event,'${it.id}')" title="수정">⚙</span></td>
+      <td><span class="icon-btn del" onclick="deleteItem(event,'${it.id}')" title="삭제">✕</span></td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `
+    <table class="master-table">
+      <thead><tr><th>미리보기</th><th>제목</th><th>맵</th><th>태그</th><th>진영</th><th>수정</th><th>삭제</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
 
 function startMasterAdd(){

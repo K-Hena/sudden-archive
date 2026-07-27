@@ -389,3 +389,17 @@ oEmbed 조회 실패는 영상 저장을 막지 않고 `null`로 처리한다. �
 **모달·안내 메시지**: 맵·태그 미선택 상태에서 "등록 시작"을 눌렀을 때 기존 `#modalMsg`를 재사용하지 않고 새 `#masterAddMsg` 요소를 추가했다(같은 `.msg-modal`/`.err` CSS 클래스만 재사용). 이유: `#modalMsg`는 닫혀 있는 `#addModal` 내부 요소라 모달을 열기 전 단계의 안내 메시지를 표시하는 데 쓸 수 없다(설계 리뷰에서 확인).
 
 **Time-box user sessions는 다루지 않음**: 지시서에서도 활동 기반 연장 방식만 요청했고, 절대 만료 정책은 이번 결정 범위 밖이다.
+
+---
+
+## 그룹 D-2 3단계: Master "항목 관리" 탭 — 별도 쿼리 없이 기존 `items` 메모리 배열 재사용
+
+**결정**: 사이드바 3번째 탭("항목 관리")에 새 Supabase 쿼리를 추가하지 않고, `loadAll()`이 이미 전역 `items[]`/`maps[]`에 로드해둔 데이터를 그대로 클라이언트 사이드에서 필터링·렌더링했다(지시서 `master_dashboard_stage3_instructions.md`). 맵/태그/진영 드롭다운과 제목 검색 입력 모두 `onchange`/`oninput`에서 즉시 `renderMasterItemsTable()`을 다시 호출하는 방식이라 서버 왕복이 없다.
+
+**`renderCards()` 가드는 추가하지 않음(설계 리뷰에서 재확인)**: 지시서는 `deleteItem()`이 삭제 후 무조건 호출하는 `renderCards()`가 `#viewDetail`이 비활성 상태(Master 화면)에서 에러를 낼 수 있다고 우려했다. 실제 코드를 확인한 결과 `renderCards()`가 참조하는 `#titleSearch`/`#cardGrid`/`#detailCount`는 `.view`/`.view.active` CSS 패턴(`display:none`↔`block`)으로만 화면을 전환하므로 `#viewDetail`이 비활성이어도 DOM에서 제거되지 않고, `items.filter(i => i.map_id === currentMap)`도 `currentMap`이 `null`이거나 다른 맵이어도 예외 없이 빈 배열/다른 맵 항목만 반환한다 — 즉 JS 에러는 발생하지 않고 숨겨진 카드 그리드를 무의미하게 다시 그리는 낭비 작업으로 끝난다. Codex 설계 리뷰도 동일하게 확인했고, 추가로 같은 성격의 무조건 `renderCards()` 호출이 `submitItem()`(수정/추가 저장 성공 경로)에도 있어 `deleteItem()`에만 가드를 넣으면 두 함수 간 처리가 일관되지 않는다는 점, 지시서 자체도 "가드 적용 여부와 무관하게 최종적으로 에러가 안 나야 함"이라고 못 박아 가드를 필수 조건으로 요구하지 않는다는 점을 근거로 `deleteItem()`/`submitItem()` 내부는 전혀 수정하지 않기로 했다(최소 변경).
+
+**항목 관리 탭 갱신은 `loadAll()`에서 처리**: 삭제(`deleteItem()`)와 저장(`submitItem()`) 모두 마지막에 `loadAll()`을 호출하므로, `loadAll()` 안의 "`#viewMaster`가 active일 때" 훅을 확장해 활성 탭이 `items`면 `renderMasterItemsTable()`을, `stats`면 기존처럼 `loadMasterStats()`를 호출하도록 분기했다(이전엔 `viewMaster`만 active면 탭 종류와 무관하게 항상 `loadMasterStats()`를 호출해 "영상 추가" 탭을 보고 있을 때도 불필요한 클릭/즐겨찾기 집계 쿼리가 실행되고 있었다 — 설계 리뷰에서 지적받아 이번에 함께 정리했다). 항목 관리 탭 자체는 `items[]` 로컬 배열만 다시 필터링하는 동기 함수라 추가 DB 쿼리가 없다.
+
+**필터 UI는 기존 `.master-add-row`/`.master-select` 클래스 재사용**: 새 CSS 변수나 레이아웃 클래스를 만들지 않고 2단계("영상 추가" 탭)에서 쓰던 가로 배치 클래스를 그대로 재사용했다. 진영 필터 값은 화면 표기(RED/BLUE/공통)와 달리 실제 저장값(`'red'`/`'blue'`/`'none'`)을 그대로 옵션 값으로 써서 `it.team`과 직접 비교했다(설계 리뷰에서 지적 — 표기 그대로 비교하면 매칭이 안 됨). 제목 검색은 지시서 문구("제목 검색창")를 그대로 따라 `items.title`만 대상으로 했고, 기존 상세 화면 검색(`renderCards()`)처럼 `channel_name`까지 포함하지는 않았다.
+
+**테이블 가로 스크롤**: 좁은 화면에서 7개 컬럼(미리보기/제목/맵/태그/진영/수정/삭제)이 찌그러지지 않도록 `.master-table-wrap{overflow-x:auto}` + 내부 테이블 `min-width:640px`을 추가했다(지시서의 "테이블이 넓으면 가로 스크롤 등 자연스러운 처리" 요구사항, 설계 리뷰에서도 동일하게 지적).
