@@ -6,7 +6,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '📖 파일 수정 완료 — docs/MAINTENANCE.md의 문서 자동 동기화 규칙에 따라 TODO.md / CHANGELOG.md / DECISIONS.md 갱신 필요 여부를 확인하세요.'"
+            "command": "echo '\ud83d\udcd6 \ud30c\uc77c \uc218\uc815 \uc644\ub8cc \u2014 docs/MAINTENANCE.md\uc758 \ubb38\uc11c \uc790\ub3d9 \ub3d9\uae30\ud654 \uaddc\uce59\uc5d0 \ub530\ub77c TODO.md / CHANGELOG.md / DECISIONS.md \uac31\uc2e0 \ud544\uc694 \uc5ec\ubd80\ub97c \ud655\uc778\ud558\uc138\uc694.'"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat >/dev/null || true; command -v code-review-graph >/dev/null 2>&1 || exit 0; git rev-parse --git-dir >/dev/null 2>&1 && code-review-graph update --skip-flows --repo \"$(git rev-parse --show-toplevel 2>/dev/null)\" || true",
+            "timeout": 30
           }
         ]
       }
@@ -18,6 +28,18 @@
           {
             "type": "command",
             "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/block-db-commands.sh\""
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat >/dev/null || true; command -v code-review-graph >/dev/null 2>&1 || exit 0; git rev-parse --git-dir >/dev/null 2>&1 && code-review-graph status --repo \"$(git rev-parse --show-toplevel 2>/dev/null)\" || echo 'Not a git repo, skipping'",
+            "timeout": 10
           }
         ]
       }
