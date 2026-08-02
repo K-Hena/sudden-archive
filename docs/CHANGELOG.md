@@ -4,6 +4,13 @@
 
 ---
 
+## 2026-07-28 — code-review-graph 정식 연동 (KNOWN_ISSUES "자동 갱신 훅 누락" 해결)
+
+- `AGENTS.md`/`CLAUDE.md`에 code-review-graph MCP 툴 사용 가이드 블록 추가 — 코드 탐색 시 Grep/Glob보다 그래프 툴(`semantic_search_nodes_tool`, `query_graph_tool`, `detect_changes_tool` 등)을 우선 쓰도록 안내
+- `.claude/settings.json`에 훅 2개 추가: `Edit|Write` 후 `code-review-graph update --skip-flows`로 그래프 자동 갱신, `SessionStart`에 `code-review-graph status` 표시 — `docs/KNOWN_ISSUES.md`에 있던 "code-review-graph 자동 갱신 훅 누락"(2026-07-27 발견, 최소 1회 그래프 갱신 누락 사례) 문제를 이 정식 훅으로 해결해 해당 항목 제거
+- `.gitignore`에 `.code-review-graph/`(그래프 캐시 `graph.db`) 추가
+- 별개로, `codex exec review`가 이 저장소에서 code-review-graph MCP 툴 호출 시 무한 대기하던 문제(codex-cli 0.144.6의 세션 간 elicitation 라우팅 버그)는 `~/.codex/config.toml`의 `default_tools_approval_mode = "approve"` 설정(전역, 저장소 외부)으로 별도 해결됨 — 이 저장소에는 흔적이 남지 않음
+
 ## 2026-07-23 — 썸네일 lazy loading 전환
 
 - 맵 그리드(`.map-thumb`), 상세 카드 그리드·전체 제목 검색 결과(`.thumb`) 3곳의 썸네일을 `background-image` 인라인 스타일에서 `<img loading="lazy">`로 전환해 네이티브 지연 로딩이 적용되도록 함
