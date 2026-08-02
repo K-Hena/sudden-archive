@@ -4,6 +4,14 @@
 
 ---
 
+## 2026-08-03 — viewport meta 태그 추가 + 헤더·모달 모바일 오버플로우 수정
+
+- `<head>`에 없던 `<meta name="viewport" content="width=device-width, initial-scale=1">` 추가. 이 태그가 없으면 모바일 브라우저가 ~980px 레이아웃 뷰포트를 가정해 페이지를 축소 표시하므로, 지금까지 `page.setViewportSize()` 리사이즈만으로 해온 모바일 QA가 실제 기기 렌더링과 다를 수 있었음을 확인 — 이후 Playwright 실제 디바이스 에뮬레이션(`isMobile:true`, iPhone UA)으로 재검증하는 방식으로 QA 방법론을 교정
+- **헤더**: `@media(max-width:600px)`에 `header`/`.brand`/`.status`/`#authArea` 규칙 추가 — padding 축소, `flex-wrap` 허용, 타이틀 폰트 축소(26px→18px, `white-space:nowrap`으로 글자 단위 세로 줄바꿈 방지), CLIPS/TIPS 카운터 숨김, 닉네임 말줄임(`text-overflow:ellipsis`, `max-width:110px`)으로 로그인/Master 버튼이 항상 보이고 클릭 가능하도록 함. `document.body.scrollWidth`가 672px(오버플로우 282px)에서 390px(뷰포트와 동일, 오버플로우 없음)로 개선됨을 실제 디바이스 에뮬레이션으로 확인(로그아웃/관리자+긴 닉네임 두 시나리오 모두)
+- **모달**: `.modal` padding 30px→12px, `.modal-box` 폭 계산을 `min(560px,95vw)`에서 `min(560px, calc(100vw - 24px))`로 교체해 실제 사용 가능 폭과 정확히 맞물리도록 함. 구현 중 이 오버라이드를 처음엔 다른 `@media(max-width:600px)` 블록(153번째 줄 부근)에 넣었다가, `.modal`/`.modal-box`의 기본(비반응형) 선언이 소스상 더 뒤에 있어 CSS 캐스케이드 동률 규칙(소스 순서상 나중 것이 우선)에 따라 오버라이드가 무시되는 버그를 실측(모달 실제 폭 330px, 기대값 366px 불일치)으로 발견 — `.modal-box` 기본 선언 바로 뒤에 새 `@media(max-width:600px)` 블록을 둬서 해결
+- 같은 재검증 과정에서 Master "항목 관리"/"맵 관리" 탭 테이블이 390px에서 페이지 전체 가로 스크롤을 유발하는 별개의 기존 문제를 새로 발견 — 이번 작업 범위 밖이라 수정하지 않고 `docs/KNOWN_ISSUES.md`에 기록
+- 데스크톱(1920/1440px)·태블릿(768px)에서 회귀 없음을 확인(모든 모바일 규칙은 `max-width:600px` 안에만 있어 그 위 폭에는 영향 없음)
+
 ## 2026-08-03 — 그룹 D-2 4단계: Master "맵 관리" 탭 추가 + 편집모드 완전 제거
 
 - 사이드바 5번째 탭 "맵 관리" 추가 — 기존 `addMap()`/`renameMap()`/`deleteMap()`/`pickMapImage()`를 재사용하는 테이블(썸네일/맵 이름/항목 수/이미지 변경/이름 변경/삭제)

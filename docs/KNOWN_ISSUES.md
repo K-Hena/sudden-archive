@@ -30,10 +30,14 @@
 - **상태**: 미해결
 - **참고**: Master 버튼도 이 동일한 `isAdmin` 값을 재사용하도록 구현했다(지시서가 "기존 판정 로직 재사용, 새로 만들지 않음"을 명시). 오류 처리 보강은 이번 작업 범위 밖이라 그대로 두었다
 
-## 헤더가 좁은 화면(≈390px)에서 타이틀·닉네임 텍스트가 한 글자씩 세로로 줄바꿈됨
+## Master 대시보드의 "항목 관리"/"맵 관리" 탭 테이블이 좁은 화면(≈390px)에서 페이지 전체 가로 스크롤을 유발함
 
-- **발견 시점**: Master 버튼을 `.status`에서 `.brand`로 옮기는 작업(`master_button_reposition.md`) 중 모바일 QA
-- **내용**: `header{display:flex;justify-content:space-between}`이고 `.brand`/`.status` 둘 다 `display:flex`이지만, `header`에 `flex-wrap`이 없고 `.brand`/`.status`나 `h1`/닉네임 `span`에 `white-space:nowrap`·`min-width` 보호가 없다. 390px 같은 좁은 뷰포트에서 두 flex 그룹(`.brand`: 로고+제목(+Master 버튼), `.status`: 카운터+테마 토글+로그인 영역)이 공간을 나눠 쓰다 `h1`과(로그인 상태라면) 닉네임 `span`이 한 줄에 다 들어갈 폭을 확보하지 못해, 한글은 공백 없이도 글자 단위로 줄바꿈되는 기본 동작 때문에 "서\n든\n아\n카\n이\n브"처럼 세로로 한 글자씩 쌓인다
-- **위험도**: 낮음 — 겹침이나 클리핑(잘림)은 아니고 텍스트는 전부 보이지만, 심하게 보기 나쁘고 헤더 세로 높이가 크게 늘어난다. Master 버튼을 옮기기 전부터 존재했음을 커밋 `HEAD`(이동 전 버전)로 직접 재현해 확인함 — 이번 이동 작업이 원인이 아니라 기존부터 있던 문제
+- **발견 시점**: 헤더·모달 모바일 오버플로우 수정 작업(`mobile_header_modal_overflow_fix.md`) 중 작업 3(다른 기능 실기기 재확인) 스팟체크에서 발견
+- **내용**: `.master-table-wrap{overflow-x:auto}` + `.master-table-wrap .master-table{min-width:640px}`는 표 자체의 가로 스크롤을 의도한 것이지만(3단계 "항목 관리" 탭 도입 시 결정, `docs/DECISIONS.md` 참고), 실제로는 표 컨테이너 스크롤이 아니라 **페이지 전체**가 넓어진다. Playwright 실제 디바이스 에뮬레이션(iPhone, 390px)으로 각 요소의 `getBoundingClientRect().width`를 추적한 결과:
+  - `.master-shell`: 326px (정상 — `@media(max-width:768px)`로 `flex-direction:column` 적용됨)
+  - `.master-content`(`flex:1;min-width:0`), `.master-pane`, `#masterItemsTableWrap`, `.master-table`, `.master-add-row`: 전부 640px
+  
+  `.master-content{min-width:0}`은 데스크톱(가로 flex) 레이아웃에서 flex 아이템이 내용 때문에 무한정 늘어나는 것을 막는 용도인데, 390px처럼 `.master-shell`이 `flex-direction:column`으로 바뀐 모바일 레이아웃에서는 `.master-content`가 교차축(너비) 기준으로 부모 폭(326px)에 stretch되지 않고 자식(`.master-table`)의 `min-width:640px`를 그대로 따라가며, 그 상위 조상들(`.master-content`/`.master-pane`/`#masterItemsTableWrap`) 어디에도 `width:100%` 같은 명시적 폭 제한이 없어 640px가 body까지 그대로 전파된다. 결과적으로 `document.body.scrollWidth`가 672px(뷰포트 390px 대비 282px 초과)로 나오고, `.master-table-wrap`의 `overflow-x:auto`는 사실상 아무 효과가 없다(래핑하는 박스 자체가 이미 640px로 늘어나 있어 넘칠 내용이 없음). "맵 관리" 탭(4단계에서 추가, 같은 `.master-table-wrap`/`.master-table` 패턴 재사용)도 동일한 원인으로 동일하게 672px 확인됨. "통계"/"영상 추가" 탭은 이 패턴을 안 써서 정상(390px)
+- **위험도**: 중간 — 관리자가 휴대폰으로 Master "항목 관리"/"맵 관리" 탭에 들어가면 표를 보기 위해 페이지 전체를 가로로 스크롤해야 하고, 그 사이 헤더·사이드바 탭도 함께 밀려 사용성이 떨어진다. 다만 관리자 전용 화면이라 일반 사용자에게는 영향 없음
 - **상태**: 미해결
-- **참고**: `master_button_reposition.md`는 버튼 위치 이동만 지시했고 헤더 반응형 전면 개편은 범위 밖이라 이번 작업에서는 고치지 않았다. 고칠 때는 `header`에 `flex-wrap` 허용, 좁은 화면에서 로고 텍스트를 아이콘만 남기거나 줄임, `#authArea` 닉네임에 말줄임(`text-overflow:ellipsis`) 적용 등을 검토
+- **참고**: `mobile_header_modal_overflow_fix.md`는 헤더·모달만 실제로 고치도록 범위를 한정했고, 이 이슈는 "이번 지시서 범위와 무관한 것은 기록만 하라"는 지시에 따라 수정하지 않았다. 고칠 때는 `.master-content`/`.master-pane`/`#masterItemsTableWrap`(`#masterMapsTableWrap`도 동일) 중 하나에 `width:100%`(모바일 컬럼 레이아웃 한정)를 명시하거나, `.master-table-wrap`에 `max-width:100%`를 추가해 실제로 내부 스크롤이 발동하도록 하는 방향을 검토

@@ -429,3 +429,33 @@ oEmbed 조회 실패는 영상 저장을 막지 않고 `null`로 처리한다. �
 **`.status` 잔여 요소 간격은 그대로 유지**: Master 버튼이 빠져도 `.status{gap:18px}`는 flex 간격이라 자동으로 재배치되며 빈 공간이나 이중 간격이 남지 않는다(설계 리뷰로 확인). CLIPS/TIPS 카운터·테마 토글·`#authArea` 사이 간격을 조정할 필요는 없었다.
 
 **모바일(390px) 검증 중 발견한 기존 버그는 이번 작업 범위 밖으로 분류**: 헤더에 `flex-wrap`이 없고 `.brand`/`.status`·타이틀·닉네임 텍스트에 `white-space:nowrap` 보호가 없어, 390px처럼 좁은 화면에서는 한글 타이틀·관리자 닉네임이 글자 단위로 세로 줄바꿈된다. 이동 전 커밋(`HEAD`)으로 동일 조건을 재현해 이 버튼 이동과 무관한 기존 문제임을 확인했다. 지시서는 버튼 위치 이동만 요청했고 헤더 반응형 전면 개편은 범위 밖이라 이번 작업에서는 고치지 않고 `docs/KNOWN_ISSUES.md`에 기록했다.
+
+---
+
+## `<meta name="viewport">` 추가 + Playwright 실제 디바이스 에뮬레이션으로 모바일 QA 방법론 교정
+
+**결정**: `index.html` `<head>`에 `<meta name="viewport" content="width=device-width, initial-scale=1">`가 없던 것을 확인하고 추가했다. 이 태그가 없으면 모바일 브라우저가 기본적으로 약 980px 레이아웃 뷰포트를 가정해 페이지를 축소 표시하므로(글자는 작아 보이지만 레이아웃 자체는 깨지지 않음), 지금까지 이 저장소에서 해온 "Playwright `page.setViewportSize()`로 390px 리사이즈" 방식의 모바일 QA는 실제 모바일 기기가 렌더링하는 방식과 다를 수 있다는 것을 이번에 확인했다.
+
+**검증 방법 교정(중요)**: `page.setViewportSize()` 단독 리사이즈는 `isMobile`/`hasTouch`/디바이스 UA를 함께 설정하지 않으므로 데스크톱 브라우저가 그냥 좁은 창을 그리는 것과 같다. 진짜 모바일 렌더링을 확인하려면 `browser.newContext({ viewport, isMobile:true, hasTouch:true, deviceScaleFactor, userAgent })`처럼 디바이스 에뮬레이션 컨텍스트를 새로 만들어야 한다. 이번에 이 방식으로 재검증한 결과, 기존 `docs/KNOWN_ISSUES.md`의 "헤더 텍스트 세로 줄바꿈" 항목이 viewport 태그 추가만으로는 해결되지 않고, 오히려 실제 기기 조건에서는 로그인 버튼이 화면 밖으로 잘리고(`document.body.scrollWidth`가 뷰포트보다 282px 더 큼) 가로 스크롤까지 발생한다는 더 심각한 사실을 새로 확인해 해당 항목의 위험도를 "낮음"에서 "중간"으로 올렸다. 같은 검증 과정에서 항목 추가/수정 모달(`#addModal`)도 390px에서 화면 밖으로 넘치는 것을 추가로 발견해 `docs/KNOWN_ISSUES.md`에 새 항목으로 기록했다.
+
+**카드 그리드·Master 대시보드는 정상 확인됨(→ 이후 정정, 아래 "헤더·모달 모바일 오버플로우 수정" 절 참고)**: 같은 실제 디바이스 에뮬레이션으로 맵 상세 카드 그리드(`renderCards()`)와 Master 대시보드(맵 관리 탭 포함)를 열어봤을 때는 기존 `@media(max-width:600px)`/`@media(max-width:768px)` 규칙이 의도대로 동작해 한 열로 정상 전환되고 가로 오버플로우가 없었다 — 문제는 헤더와 모달 두 곳에 한정된다. **정정**: 이때는 `document.body.scrollWidth`를 명시적으로 측정하지 않고 스크린샷 육안 확인만 했다. 다음 작업(`mobile_header_modal_overflow_fix.md`)에서 `scrollWidth`를 직접 측정해보니 Master "맵 관리"/"항목 관리" 탭은 실제로는 672px로 오버플로우하고 있었다(당시 스크린샷의 원본 해상도가 이미 2016px였던 것이 그 증거였는데 놓쳤다). 카드 그리드는 재검증해도 정상이었다. 앞으로 실기기 QA에서는 스크린샷 육안 확인만으로 끝내지 말고 `scrollWidth` 수치를 함께 남길 것.
+
+**이번 작업에서 고치지 않은 것**: 헤더 flex-wrap 정리와 모달 폭 제한은 viewport 태그 추가 확인이라는 이번 작업 범위 밖이라 손대지 않았다. 두 이슈 모두 `docs/KNOWN_ISSUES.md`에 남겨뒀다.
+
+---
+
+## 헤더·모달 모바일 오버플로우 수정 (`mobile_header_modal_overflow_fix.md`)
+
+**결정**: `docs/KNOWN_ISSUES.md`에 기록돼 있던 헤더 390px 오버플로우와 모달 오버플로우 두 항목을 실제로 고쳤다. 기존 `@media(max-width:600px)` 블록(153번째 줄 부근)에 헤더·`#authArea` 규칙을 추가했다.
+
+- `header{padding:14px 16px;flex-wrap:wrap;row-gap:10px;}`, `.brand{flex-wrap:wrap;}` — 좁은 화면에서 `.brand`/`.status`가 한 줄에 안 들어가면 자연스럽게 두 줄로 쌓이도록 허용(지시서가 명시적으로 허용한 방향)
+- `.brand h1{font-size:18px;white-space:nowrap;}` — 타이틀을 글자 단위로 세로 줄바꿈시키는 대신 폰트 크기를 줄여 한 줄에 들어가게 함(26px→18px, "서든 아카이브" 6글자 기준 실측으로 여유 있게 들어가는 값을 확인)
+- `.status span.mono:has(#clipCount),.status span.mono:has(#tipCount){display:none;}` — CLIPS/TIPS 카운터를 좁은 화면에서 숨김(지시서가 "덜 중요한 요소를 숨기거나 줄여서 로그인/Master 버튼을 항상 보이게" 허용). `:has()`를 쓴 이유: 카운터 span과 로그인 상태의 닉네임 span이 둘 다 `class="mono"`를 공유해서 클래스만으로는 구분이 안 되고, `:nth-child` 같은 구조 선택자는 로그인 여부에 따라 DOM 구성이 달라져 취약하다(Codex 설계 리뷰에서 지적) — `#clipCount`/`#tipCount`라는 안정된 id를 자식으로 갖는지로 구분하는 것이 가장 안전했다. 이 저장소가 이미 `navigator.clipboard.read()` 등 최신 브라우저 API에 의존하므로 `:has()`(모든 현역 브라우저 지원) 사용에 새 제약이 생기지 않는다
+- `#authArea{max-width:100%;} #authArea>span.mono{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` — 관리자 닉네임이 아무리 길어도 로그아웃 버튼을 밀어내지 않도록 말줄임 처리(`#authArea`의 직계 자식만 선택해 `renderAuthArea()`가 `innerHTML`을 통째로 갈아끼워도 항상 적용됨, `docs/PROJECT_STRUCTURE.md`에 정리된 "`#authArea`는 요소 자체가 아니라 내부 `innerHTML`만 교체" 패턴과 맞물림)
+- 새 CSS 변수는 추가하지 않았다(지시서 요구사항)
+
+**모달은 별도의 새 `@media(max-width:600px)` 블록으로 분리(중요한 버그 수정)**: 처음에는 지시서 지시대로 위 헤더 규칙과 함께 153번째 줄 블록에 넣었지만, `.modal`/`.modal-box`의 기본(비반응형) 선언이 소스상 353번째 줄 부근으로 더 뒤에 있어 CSS 캐스케이드의 "동일 명시도면 소스 순서상 나중 것이 우선" 규칙에 따라 153번째 줄의 오버라이드가 무시되는 것을 실제 디바이스 에뮬레이션 측정으로 발견했다(모달 실제 폭이 계산상 기대값 366px가 아니라 330px로 나왔고, 역산해보니 기본 선언의 `padding:30px`/`width:min(560px,95vw)`가 그대로 적용된 상태에서 flexbox가 축소시킨 값과 정확히 일치했다). 그래서 모달 전용 오버라이드(`.modal{padding:12px;} .modal-box{width:min(560px, calc(100vw - 24px));}`)는 `.modal-box` 기본 선언 바로 뒤(353번째 줄 부근)에 새 `@media(max-width:600px)` 블록을 만들어 넣었다 — "기존 블록 재사용"이라는 지시서 취지는 지키되, 이 저장소에 이미 `.card-grid-inner` 전용 `@media(max-width:600px)` 블록이 컴포넌트 옆에 따로 있는 기존 패턴(214번째 줄)과도 일관된다. 모달 폭 계산은 Codex 설계 리뷰가 사전에 검산해 정확함을 확인했다(패딩 12px×2=24px, `calc(100vw - 24px)`).
+
+**Master "항목 관리"/"맵 관리" 탭의 가로 오버플로우는 발견만 하고 고치지 않음**: 작업 3(다른 기능 실기기 재확인) 스팟체크 중 `document.body.scrollWidth`가 672px로 나오는 것을 발견했다. 진단해보니 `.master-table{min-width:640px}`가 `.master-shell`이 `flex-direction:column`으로 바뀌는 모바일 레이아웃에서 상위 조상(`.master-content`/`.master-pane`/`#masterItemsTableWrap`) 어디에도 폭 제한이 없어 그대로 body까지 전파되는 것이 원인이었다. 지시서가 "이번 지시서 범위(헤더·모달)와 무관한 것은 기록만 하고 고치지 마세요"라고 명시했으므로 `docs/KNOWN_ISSUES.md`에 진단 내용과 함께 기록만 하고 수정하지 않았다.
+
+**검증 방법**: 모든 확인은 Playwright 실제 디바이스 에뮬레이션(`isMobile:true`, `hasTouch:true`, iPhone UA, `deviceScaleFactor:3`, 390px)으로 했고, 수정 전/후 `document.body.scrollWidth`를 비교했다(로그아웃 상태, 관리자+긴 닉네임 상태, 모달 열림 상태 각각 672→390 확인). 데스크톱(1920px/1440px)과 태블릿(768px)도 별도 컨텍스트로 열어 `scrollWidth`와 `header`의 `padding-left` 계산값(둘 다 32px 그대로)을 확인해 회귀가 없음을 검증했다 — 모든 새 규칙이 `max-width:600px` 안에만 있어 그 위 폭에는 영향을 주지 않기 때문이다.

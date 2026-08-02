@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <script>
 (function(){
   try {
@@ -156,6 +157,13 @@ header{
   .detail-toolbar .back-btn{align-self:flex-start;}
   .paste-choices{flex-direction:column;}
   #savePreviewWrap{flex-direction:column;}
+  header{padding:14px 16px;flex-wrap:wrap;row-gap:10px;}
+  .brand{flex-wrap:wrap;}
+  .brand h1{font-size:18px;white-space:nowrap;}
+  .status{flex-wrap:wrap;gap:10px;}
+  .status span.mono:has(#clipCount),.status span.mono:has(#tipCount){display:none;}
+  #authArea{max-width:100%;}
+  #authArea>span.mono{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 }
 
 .master-shell{display:flex;gap:24px;align-items:flex-start;}
@@ -350,6 +358,10 @@ header{
 .modal{display:none;position:fixed;inset:0;background:rgba(6,7,9,.9);z-index:60;align-items:center;justify-content:center;padding:30px;overflow:auto;}
 .modal.active{display:flex;}
 .modal-box{background:var(--panel);border:1px solid var(--line);width:min(560px,95vw);max-height:90vh;overflow:auto;}
+@media(max-width:600px){
+  .modal{padding:12px;}
+  .modal-box{width:min(560px, calc(100vw - 24px));}
+}
 .modal-head{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
 .modal-head h3{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.04em;}
 .modal-head .x{cursor:pointer;color:var(--muted);font-family:'JetBrains Mono';}
