@@ -403,3 +403,17 @@ oEmbed 조회 실패는 영상 저장을 막지 않고 `null`로 처리한다. �
 **필터 UI는 기존 `.master-add-row`/`.master-select` 클래스 재사용**: 새 CSS 변수나 레이아웃 클래스를 만들지 않고 2단계("영상 추가" 탭)에서 쓰던 가로 배치 클래스를 그대로 재사용했다. 진영 필터 값은 화면 표기(RED/BLUE/공통)와 달리 실제 저장값(`'red'`/`'blue'`/`'none'`)을 그대로 옵션 값으로 써서 `it.team`과 직접 비교했다(설계 리뷰에서 지적 — 표기 그대로 비교하면 매칭이 안 됨). 제목 검색은 지시서 문구("제목 검색창")를 그대로 따라 `items.title`만 대상으로 했고, 기존 상세 화면 검색(`renderCards()`)처럼 `channel_name`까지 포함하지는 않았다.
 
 **테이블 가로 스크롤**: 좁은 화면에서 7개 컬럼(미리보기/제목/맵/태그/진영/수정/삭제)이 찌그러지지 않도록 `.master-table-wrap{overflow-x:auto}` + 내부 테이블 `min-width:640px`을 추가했다(지시서의 "테이블이 넓으면 가로 스크롤 등 자연스러운 처리" 요구사항, 설계 리뷰에서도 동일하게 지적).
+
+---
+
+## 그룹 D-2 4단계: Master "맵 관리" 탭 추가 + 기존 편집모드 완전 제거 (5개 탭 체제 확정)
+
+**결정**: 사이드바 5번째 탭으로 "맵 관리"를 추가하고(지시서 `master_dashboard_stage4_instructions.md`), 동시에 User 사이트의 기존 편집모드(관리자 뱃지·"편집모드" 버튼·맵 타일 호버 액션·카드 호버 아이콘·태그 섹션 "+추가" 타일)를 전역 `editMode` 변수와 함께 완전히 제거했다. 이제 맵/항목 CRUD는 전부 Master 안에서만 이뤄진다. 3단계("항목 관리" 탭)와 동일하게 새 Supabase 쿼리 없이 이미 메모리에 있는 `maps[]`/`items[]`를 재사용했고, 각 행의 이미지 변경(🖼)/이름 변경(✎)/삭제(✕) 버튼은 기존 `pickMapImage()`/`renameMap()`/`deleteMap()`을 그대로 호출한다(신규 함수 없음). 갱신 방식도 3단계와 동일한 패턴: `switchMasterTab()`에 `maps` 케이스를 추가하고, `loadAll()`의 Master 활성 탭 분기(`items`/`stats`)에 `maps`를 추가해 `renderMasterMapsTable()`이 최신 상태로 다시 그려지도록 했다.
+
+**작업 0(실 DB 왕복 검증) 방식은 지시서 원안에서 조정**: 지시서는 "기존 항목 중 영향 적은 것"을 수정→삭제해도 된다고 했지만, Codex 설계 리뷰에서 `deleteItem()`이 실제 hard DELETE이고 `favorites`/`item_clicks`가 `items`에 `ON DELETE CASCADE`로 걸려 있어 기존 실 항목을 삭제하면 그 항목의 즐겨찾기·클릭 이력까지 함께 영구 삭제되어 "원래 값으로 복구"가 불가능하다는 점을 지적받았다. 이 저장소 `docs/CLAUDE_CODE_RULES.md`의 "SQL 실행 규칙"도 DELETE는 사전에 사용자에게 명시하고 확인받은 후 실행하도록 요구한다. 사용자에게 확인한 결과 데이터 손실 위험이 없는 대안(Claude Code가 Supabase MCP로 새 테스트 항목을 INSERT하고, 사용자가 배포된 앱의 Master "항목 관리" 탭에서 그 항목을 직접 수정→삭제, 이후 Claude Code가 SELECT로 반영 여부 확인)으로 진행하기로 했다. 실제 검증 결과는 이 지시서의 보고서(작업 완료 후 최종 보고) 참고.
+
+**`favoriteButton()`의 `withDelete` 파라미터 제거**: 기존에는 상세 카드에서 `favoriteButton(it, editMode)`로 호출해 편집모드일 때만 즐겨찾기 별을 삭제 아이콘(`.card-del`)과 안 겹치도록 `right:66px`로 밀어냈다(`.card-fav.with-delete`). 삭제 아이콘 자체가 카드에서 완전히 사라지므로 이 오프셋도 항상 죽은 코드가 된다 — 지시서가 "더 깔끔한 쪽으로 판단해도 된다"고 명시했으므로, 인자를 유지한 채 항상 `false`로 취급하는 대신 함수 시그니처에서 `withDelete` 파라미터와 `.card-fav.with-delete` CSS 규칙을 함께 삭제했다(Codex 설계 리뷰에서도 이 방향을 최소 변경으로 권고).
+
+**미사용 CSS 함께 정리**: "완전 제거"를 문자 그대로 적용해 편집모드 전용이었던 `.admin-badge`, `.editmode-btn`(+`:hover`/`.on`), `.map-tile .tile-actions`, `.tile-actions span`, `.card .card-edit`, `.card .card-del`, `.add-tile`(맵 타일·태그 섹션 양쪽에서 쓰이던 것 모두 제거되어 완전히 미사용) 선택자를 전부 삭제했다. 표시용 맵 이름은 `escapeHtml(m.name)`, 인라인 `onclick` 인자는 기존 `renderMapGrid()`의 작은따옴표 이스케이프(`safe`) 패턴을 그대로 재사용해 "맵 관리" 탭 테이블에도 동일하게 적용했다.
+
+**로컬 정적 서버 + Playwright로 시각 QA**: 실제 배포/커밋 전에 `python -m http.server`로 로컬 서빙 후 Playwright로 (1) 비로그인 일반 화면에 편집모드 흔적이 전혀 없는지, (2) `isAdminUser`를 콘솔에서 강제로 켜고 Master "맵 관리" 탭이 데스크톱/모바일(390px) 폭 모두에서 정상 렌더링되는지, (3) 카드 그리드의 즐겨찾기 별이 삭제 아이콘 없이도 정상 위치(우측 상단)에 있는지 확인했다. DB에 쓰기가 발생하는 액션(새 맵 추가/이름변경/삭제/이미지변경 버튼 클릭)은 실제로 누르지 않고 렌더링만 검증했다.

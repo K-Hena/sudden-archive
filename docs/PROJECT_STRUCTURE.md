@@ -32,7 +32,7 @@ sudden-archive/                     (이 저장소, User 사이트 — github.co
     └── index.html                  Admin 사이트 전체 (HTML+CSS+JS 단일 파일)
 ```
 
-`sudden-archive-admin/`은 `github.com/K-Hena/sudden-archive-admin`이라는 **완전히 별개의 git 저장소**이며, 이 저장소(`sudden-archive`) 안에는 로컬 참고용으로만 존재한다 (`.gitignore`에 `sudden-archive-admin/` 등록됨). 편집모드 이식 작업 시 로직을 참고하는 용도로 쓰인다.
+`sudden-archive-admin/`은 `github.com/K-Hena/sudden-archive-admin`이라는 **완전히 별개의 git 저장소**이며, 이 저장소(`sudden-archive`) 안에는 로컬 참고용으로만 존재한다 (`.gitignore`에 `sudden-archive-admin/` 등록됨). Master 대시보드로 CRUD를 이식하는 작업 시 로직을 참고하는 용도로 쓰인다.
 
 빌드 도구, package.json, 프레임워크가 전혀 없다. Vercel이 두 저장소를 각각 정적 사이트로 배포한다.
 
@@ -45,8 +45,9 @@ CDN으로 불러오는 외부 라이브러리: `@supabase/supabase-js@2`, `cropp
 단일 파일 안에서 `<style>`, `<body>`, `<script>` 세 영역으로 구성된다.
 
 ## CSS (`<style>`)
-- `:root`에 색상 변수 정의: `--bg/--panel/--line/--text/--muted` (베이스), `--red/--blue` (팀 컬러), `--amber` (기존 강조색, 편집모드에는 미사용), `--edit-accent/--edit-accent-ink` (편집모드 전용 강조색), `--green` (성공 메시지)
-- 컴포넌트별 스타일: 헤더/브랜드, 맵 그리드(`map-tile`), 검색창(`detail-search`)과 첫 화면·상세 상단 검색 행(`map-head`, 모바일 세로 배치), 카드 그리드(`card`, `card-del`), 재생 오버레이(`overlay`), 편집모드 UI(`tile-actions`, `add-tile`, `editmode-btn`, `admin-badge`), 항목 추가 모달(`modal`, `type-toggle`, `cropper-wrap`, `clip-tools`, `clip-btns`, `clip-range`), 구간 슬라이더(`clip-sliders`, `clip-range-slider`/`clip-range-track`/`clip-range-fill`/`clip-range-input` — 겹친 단일 트랙 + thumb만 `pointer-events:auto`, `docs/DECISIONS.md` 참고)
+- `:root`에 색상 변수 정의: `--bg/--panel/--line/--text/--muted` (베이스), `--red/--blue` (팀 컬러), `--amber` (즐겨찾기 별 등에 사용), `--edit-accent/--edit-accent-ink` (Master 버튼·탭·강조 요소 전용 강조색), `--green` (성공 메시지)
+- 컴포넌트별 스타일: 헤더/브랜드, 맵 그리드(`map-tile`), 검색창(`detail-search`)과 첫 화면·상세 상단 검색 행(`map-head`, 모바일 세로 배치), 카드 그리드(`card`, `card-fav`), 재생 오버레이(`overlay`), Master 대시보드(`master-shell`, `master-sidebar`, `master-tab`, `master-content`, `master-pane`, `master-table`, `master-btn`), 항목 추가 모달(`modal`, `type-toggle`, `cropper-wrap`, `clip-tools`, `clip-btns`, `clip-range`), 구간 슬라이더(`clip-sliders`, `clip-range-slider`/`clip-range-track`/`clip-range-fill`/`clip-range-input` — 겹친 단일 트랙 + thumb만 `pointer-events:auto`, `docs/DECISIONS.md` 참고)
+- 과거 편집모드 전용이었던 `tile-actions`/`add-tile`/`editmode-btn`/`admin-badge`/`card-edit`/`card-del`/`card-fav.with-delete`는 그룹 D-2 4단계에서 기능과 함께 CSS도 완전히 삭제됨
 
 ## HTML (`<body>`)
 - `header`: 로고, CLIPS/TIPS 카운트, `#authArea`(로그인 상태에 따라 JS가 채움)
@@ -54,46 +55,49 @@ CDN으로 불러오는 외부 라이브러리: `@supabase/supabase-js@2`, `cropp
 - `#viewGrid`: 맵 선택 화면 — 맵 선택 문구와 전체 제목 검색창(`#globalTitleSearch`) 아래 `#mapGrid`에 맵 타일 또는 검색 결과 카드 표시
 - `#viewDetail`: 맵 상세 화면 — 상단 `map-head detail-toolbar` 안에 뒤로가기 버튼(왼쪽)과 제목 검색창(`#titleSearch`, 오른쪽), 그 아래 맵 제목·RED/BLUE 팀 토글과 `#cardGrid`
 - `#overlay`: 영상/이미지 재생 오버레이 — 실제 미디어(iframe/img)는 `#overlayMediaContent`에만 그리고, 그 위에 뜨는 재생/일시정지 버튼(`#overlayPlayPause`)과 클립 항목 전용 "전체 영상 보기" 버튼(`#overlayFullBtn`)은 형제 요소로 분리해 `innerHTML` 교체로 지워지지 않게 함
-- `#addModal`: 편집모드 항목 추가 모달 — `#pasteStep` → `#videoWrap/#imageWrap` → `#titleWrap` 3단계 화면 전환. 유튜브 URL/이미지를 자동 판별하고, 이미지는 Cropper.js, 영상은 `#clipTools`(버튼 + 슬라이더)로 연결. "맵 지명" 태그는 이미지 고정
+- `#addModal`: 항목 추가/수정 모달(Master "영상 추가"·"항목 관리" 탭에서 진입) — `#pasteStep` → `#videoWrap/#imageWrap` → `#titleWrap` 3단계 화면 전환. 유튜브 URL/이미지를 자동 판별하고, 이미지는 Cropper.js, 영상은 `#clipTools`(버튼 + 슬라이더)로 연결. "맵 지명" 태그는 이미지 고정
 - `#mapImgInput`: 맵 이미지 업로드용 숨김 `<input type=file>`
+- `#viewMaster`: 관리자 전용 Master 대시보드 — `.master-sidebar`(통계/영상 추가/항목 관리/맵 관리/댓글(비활성) 5탭) + `.master-content`(탭별 `.master-pane`, `switchMasterTab()`으로 표시만 전환하고 DOM은 항상 유지)
 
 ## JS (`<script>`)
 - Supabase 클라이언트 초기화 (`sb`)
-- 전역 상태: `maps`, `items`, `currentMap`, `currentMapName`, `currentTeam`, `currentSession`, `favorites`, `favoritePending`, `editMode`, `modalTag`, `modalType`, `modalStep`, `cropper`, `pendingMapId`, `clipStart`, `clipEnd`, `clipDuration`, `clipYtPlayer`(재생 오버레이용 `ytPlayer`와는 별도 — `docs/DECISIONS.md` 참고), `clipPreviewTimer`(편집 미리보기 구간 감시 전용, 일반 오버레이 `clipTimer`와 분리), `clipScrubLastSeek`(드래그 스크러빙 스로틀용)
-- 데이터 로드: `loadAll()` — `maps`/`items` 테이블을 조회해 전역 배열을 채우고 `renderMapGrid()` 호출
-- 맵 그리드: `renderMapGrid()`는 전역 검색어가 없으면 맵 타일을, 있으면 `renderGlobalTitleSearch()`를 통해 전체 `items.title` 검색 결과 카드를 표시. 결과 카드는 `maps`에서 맵 이름을 찾아 진영과 함께 표시하고 `openOverlay()` 재사용. 편집모드 전용 `addMap()/renameMap()/deleteMap()/pickMapImage()`
-- 상세 카드: `renderCards()`가 현재 맵·팀과 제목으로 필터링한 뒤 위폭·팁 즐겨찾기를 최신순 우선 정렬. `favoriteButton()/toggleFavorite()`가 상세·전체 검색 카드의 별 버튼과 DB 성공 후 상태 갱신을 담당하고 `favoritePending`으로 중복 요청을 차단. 편집모드 전용 `openAddModal()/showModalStep()/readAddClipboard()/startVideoFlow()/startImageFlow()/advanceAddModal()/submitItem()/deleteItem()`, 이미지 크롭 `loadImageIntoCropper()`
+- 전역 상태: `maps`, `items`, `currentMap`, `currentMapName`, `currentTeam`, `currentSession`, `favorites`, `favoritePending`, `isAdminUser`, `modalTag`, `modalType`, `modalStep`, `cropper`, `pendingMapId`, `clipStart`, `clipEnd`, `clipDuration`, `clipYtPlayer`(재생 오버레이용 `ytPlayer`와는 별도 — `docs/DECISIONS.md` 참고), `clipPreviewTimer`(편집 미리보기 구간 감시 전용, 일반 오버레이 `clipTimer`와 분리), `clipScrubLastSeek`(드래그 스크러빙 스로틀용)
+- 데이터 로드: `loadAll()` — `maps`/`items` 테이블을 조회해 전역 배열을 채우고 `renderMapGrid()` 호출, Master 화면이 활성이면 활성 탭(`items`/`maps`/`stats`)에 맞는 렌더 함수도 함께 호출
+- 맵 그리드: `renderMapGrid()`는 전역 검색어가 없으면 맵 타일을(액션 아이콘 없음, 관리자·비관리자 동일), 있으면 `renderGlobalTitleSearch()`를 통해 전체 `items.title` 검색 결과 카드를 표시. 결과 카드는 `maps`에서 맵 이름을 찾아 진영과 함께 표시하고 `openOverlay()` 재사용. 맵 CRUD 함수 `addMap()/renameMap()/deleteMap()/pickMapImage()`는 Master "맵 관리" 탭(`renderMasterMapsTable()`)에서만 호출됨
+- 상세 카드: `renderCards()`가 현재 맵·팀과 제목으로 필터링한 뒤 위폭·팁 즐겨찾기를 최신순 우선 정렬(액션 아이콘 없음, 관리자·비관리자 동일). `favoriteButton()/toggleFavorite()`가 상세·전체 검색 카드의 별 버튼과 DB 성공 후 상태 갱신을 담당하고 `favoritePending`으로 중복 요청을 차단. 항목 CRUD용 `openAddModal()/showModalStep()/readAddClipboard()/startVideoFlow()/startImageFlow()/advanceAddModal()/submitItem()/deleteItem()`, 이미지 크롭 `loadImageIntoCropper()`는 Master "영상 추가"·"항목 관리" 탭에서만 진입함
 - 클립 구간 지정: `loadClipPlayer()/markClipStart()/markClipEnd()/clearClip()/updateClipLabel()`(버튼), `onClipStartInput()/onClipStartChange()/onClipEndInput()/onClipEndChange()/syncClipSliders()/updateClipSliderLabels()/updateClipRangeFill()`(단일 트랙 슬라이더 — `min`/`max`는 항상 `[0, clipDuration]`로 고정, 교차 방지는 각 입력 핸들러가 자기 자신의 value만 clamp하는 방식), `onClipScrubStart()/scrubClipPreview()`(드래그 중 일시정지 + 스로틀된 정지 프레임 미리보기), `applyClipDuration(duration)`(`getDuration()`이 안정된 값으로 확정됐을 때만 슬라이더 `min`/`max`/`value`에 반영 — 모달 초기화 시 `0`으로도 호출해 이전 영상 상태를 리셋), `syncClipPreviewTimer()/stopClipPreviewTimer()`(양쪽 경계가 있을 때만 `[clipStart, clipEnd)` 감시, 초기화·영상 교체·이미지 전환·모달 종료 시 정리) — 버튼과 슬라이더 모두 `clipStart`/`clipEnd`를 공유
 - 재생: `openOverlay()/closeOverlay()` — 유튜브 IFrame API로 클립 구간 반복 재생 지원, 클립 항목은 `controls:0`으로 컨트롤바를 숨기고 `toggleOverlayPlay()`(커스텀 재생/일시정지)와 `showFullVideo()`(같은 위치에서 이어서 `controls:1` 플레이어로 재생성, 구간 제한 해제)를 제공. 상태는 `overlayVideoId`/`overlayHasClip`에 저장되며 오버레이를 닫으면 초기화됨(전체 모드 전환은 세션 한정, `docs/DECISIONS.md` 참고)
-- 인증: `initAuth()/renderAuthArea()/discordLogin()/loadFavorites()` — Discord OAuth 로그인, 로그인 사용자의 즐겨찾기 조회·로그아웃 초기화, `admins` 테이블 조회로 관리자 판별, `toggleEditMode()`
+- 인증: `initAuth()/renderAuthArea()/discordLogin()/loadFavorites()` — Discord OAuth 로그인, 로그인 사용자의 즐겨찾기 조회·로그아웃 초기화, `admins` 테이블 조회로 관리자 판별해 `isAdminUser` 갱신 → `#masterBtn` 노출 여부 결정
+- Master 대시보드: `openMaster()/switchMasterTab()` — `#viewMaster` 진입·탭 전환. `renderMasterMapsTable()/renderMasterItemsTable()/renderMasterItemsTab()/renderMasterAddTab()/loadMasterStats()/startMasterAdd()`가 각 탭 렌더링을 담당
 
 ---
 
 # 데이터 흐름
 
-## 일반 사용자 (비로그인 / editMode=false)
+## 비로그인 / 일반 로그인 사용자
 ```
 initAuth() + loadAll() 동시 시작
   → loadAll(): maps/items 테이블 SELECT → renderMapGrid()
   → 맵 타일 클릭 → openMap() → renderCards() (팀 필터 + 태그별 그룹핑)
   → 카드 클릭 → openOverlay() (유튜브 임베드 또는 이미지 표시)
 ```
+관리자로 로그인해도 이 화면(맵 그리드·카드 그리드)의 모습은 동일하다 — CRUD 액션이 전혀 섞여 들어가지 않는다.
 
-## 로그인 + 관리자 (editMode=true)
+## 로그인 + 관리자 (Master 대시보드)
 
-로그인 → 관리자 판별 → 편집모드 진입의 자세한 흐름은 `docs/architecture/auth-flow.md`를,
-편집모드에서 실제로 어떤 CRUD가 이식/미이식 상태인지는 `docs/architecture/admin-flow.md`를 참고한다.
-여기서는 데이터가 화면과 어떻게 얽혀 있는지만 짚는다: 편집모드 액션(맵 이미지 변경/이름 변경/삭제/추가, 항목 추가)은
-전부 `renderMapGrid()`/`renderCards()`가 그리는 화면 안에서 발생하며, Supabase에 쓴 뒤 항상 `loadAll()`로
+로그인 → 관리자 판별 → Master 진입의 자세한 흐름은 `docs/architecture/auth-flow.md`를,
+Master에서 실제로 어떤 CRUD가 이식/미이식 상태인지는 `docs/architecture/admin-flow.md`를 참고한다.
+여기서는 데이터가 화면과 어떻게 얽혀 있는지만 짚는다: 맵/항목 CRUD 액션(맵 이미지 변경/이름 변경/삭제/추가, 항목 추가/수정/삭제)은
+전부 `#viewMaster`(Master 대시보드) 안에서만 발생하며, Supabase에 쓴 뒤 항상 `loadAll()`로
 전체 목록을 다시 불러와 화면을 갱신하는 패턴을 공유한다 (부분 갱신 없음, `docs/architecture/database-flow.md` 참고).
 
 ---
 
 # 수정 시 주의사항
 
-- **단일 파일 + 전역 변수 구조**: `maps`, `items`, `currentMap`, `currentTeam`, `editMode` 등은 모두 스크립트 최상단의 전역 변수다. 여러 렌더 함수(`renderMapGrid`, `renderCards`)가 이 전역 상태를 직접 참조하므로, 상태를 바꾸는 코드를 추가할 때는 관련된 모든 렌더 함수를 다시 호출해줘야 화면이 갱신된다 (예: `toggleEditMode()`와 로그아웃 처리에서 `renderMapGrid()`/`renderCards()`를 함께 호출하는 이유).
+- **단일 파일 + 전역 변수 구조**: `maps`, `items`, `currentMap`, `currentTeam`, `isAdminUser` 등은 모두 스크립트 최상단의 전역 변수다. 여러 렌더 함수(`renderMapGrid`, `renderCards`, Master의 `renderMasterMapsTable`/`renderMasterItemsTable`)가 이 전역 상태를 직접 참조하므로, 상태를 바꾸는 코드를 추가할 때는 관련된 모든 렌더 함수를 다시 호출해줘야 화면이 갱신된다 (예: `addMap()`/`deleteItem()` 등이 성공 후 항상 `loadAll()`을 호출해 `renderMapGrid()`와 Master의 활성 탭 렌더 함수를 함께 갱신시키는 이유).
 - **인라인 onclick과 함수명 결합**: 카드/타일 HTML은 템플릿 리터럴로 `onclick="함수명(...)"` 문자열을 직접 만든다. 전역 함수명을 바꾸면 HTML 문자열 안의 문자열도 함께 바꿔야 한다 — 타입 체커나 링터가 잡아주지 않는다.
 - **문자열 이스케이프**: 맵/항목 이름에 작은따옴표(`'`)가 들어가면 onclick 인라인 속성이 깨지므로, `renderMapGrid()`에서 `m.name.replace(/'/g,"\\'")`로 이스케이프한 `safe` 값을 사용한다. 이름을 쓰는 새 UI를 추가할 때 이 패턴을 재사용해야 한다.
 - **Supabase 에러 패턴**: 비동기 Supabase 호출은 예외를 던지지 않고 `{ data, error }`를 반환한다. 새 코드도 이 패턴(`if(error){ alert(...); return; }`)을 따라야 한다 — CODING_RULES.md 참고.
 - **재생 오버레이의 YouTube 플레이어 정리**: `openOverlay()`를 다시 열거나 닫을 때 기존 `ytPlayer`/`clipTimer`를 정리하지 않으면 중복 재생/누수가 생긴다. 관련 코드를 건드릴 때는 이 정리 로직을 유지해야 한다.
-- **`sudden-archive-admin/`은 이 저장소의 일부가 아니다**: 편집모드 로직을 이식할 때 참고는 하되, 그 폴더 자체를 수정해도 이 저장소에는 반영되지 않는다 (별도 git 저장소, `.gitignore` 처리됨).
+- **`sudden-archive-admin/`은 이 저장소의 일부가 아니다**: Master 대시보드로 로직을 이식할 때 참고는 하되, 그 폴더 자체를 수정해도 이 저장소에는 반영되지 않는다 (별도 git 저장소, `.gitignore` 처리됨).

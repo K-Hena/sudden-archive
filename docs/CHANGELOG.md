@@ -4,6 +4,13 @@
 
 ---
 
+## 2026-08-03 — 그룹 D-2 4단계: Master "맵 관리" 탭 추가 + 편집모드 완전 제거
+
+- 사이드바 5번째 탭 "맵 관리" 추가 — 기존 `addMap()`/`renameMap()`/`deleteMap()`/`pickMapImage()`를 재사용하는 테이블(썸네일/맵 이름/항목 수/이미지 변경/이름 변경/삭제)
+- User 사이트의 관리자 뱃지·"편집모드" 버튼·맵 타일 호버 액션·카드 호버 수정·삭제 아이콘·태그 섹션 "+추가" 타일과 전역 `editMode`/`toggleEditMode()`를 완전히 삭제, 관련 CSS(`admin-badge`/`editmode-btn`/`tile-actions`/`add-tile`/`card-edit`/`card-del`/`card-fav.with-delete`)도 함께 제거 — 맵/항목 CRUD는 이제 Master 대시보드에서만 가능
+- `favoriteButton()`에서 삭제 아이콘과의 오프셋용 `withDelete` 인자 제거
+- 실 DB 왕복 검증(수정→삭제)은 새로 만든 테스트 항목으로 진행, 통과 확인
+
 ## 2026-07-28 — code-review-graph 정식 연동 (KNOWN_ISSUES "자동 갱신 훅 누락" 해결)
 
 - `AGENTS.md`/`CLAUDE.md`에 code-review-graph MCP 툴 사용 가이드 블록 추가 — 코드 탐색 시 Grep/Glob보다 그래프 툴(`semantic_search_nodes_tool`, `query_graph_tool`, `detect_changes_tool` 등)을 우선 쓰도록 안내

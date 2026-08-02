@@ -215,27 +215,12 @@ header{
 }
 .card{background:var(--panel);border:1px solid var(--line);cursor:pointer;transition:border-color .15s;position:relative;min-width:0;}
 .card:hover{border-color:var(--hover-invert);}
-.card .card-del{
-  position:absolute;top:6px;right:6px;width:24px;height:24px;background:rgba(6,7,9,.8);
-  display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);
-  cursor:pointer;opacity:0;transition:opacity .15s;z-index:2;
-}
-.card:hover .card-del{opacity:1;}
-.card .card-del:hover{color:var(--red);}
-.card .card-edit{
-  position:absolute;top:6px;right:36px;width:24px;height:24px;background:rgba(6,7,9,.8);
-  display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);
-  cursor:pointer;opacity:0;transition:opacity .15s;z-index:2;
-}
-.card:hover .card-edit{opacity:1;}
-.card .card-edit:hover{color:var(--edit-accent);}
 .card-fav{
   position:absolute;top:6px;right:6px;width:32px;height:32px;z-index:3;cursor:pointer;font-size:20px;line-height:1;
   display:flex;align-items:center;justify-content:center;
   padding:0;border:0;background:transparent;color:var(--muted);
   text-shadow:0 1px 2px rgba(0,0,0,.6);
 }
-.card-fav.with-delete{right:66px;}
 .card-fav.on,.card-fav:hover{color:var(--amber);}
 .card-fav:focus-visible{outline:1px solid var(--amber);outline-offset:2px;}
 .thumb{
@@ -333,34 +318,6 @@ header{
   cursor:pointer;
 }
 .discord-btn:hover{background:var(--red);color:#fff;}
-.admin-badge{
-  background:var(--red-dim);
-  color:var(--red);
-  border:1px solid var(--red);
-  padding:3px 8px;
-  font-family:'Rajdhani',sans-serif;
-  font-weight:700;
-  font-size:10px;
-  letter-spacing:0.08em;
-}
-.editmode-btn{
-  background:none;
-  color:var(--muted);
-  border:1px solid var(--line);
-  border-radius:0;
-  padding:7px 16px;
-  font-family:'Rajdhani',sans-serif;
-  font-weight:600;
-  font-size:12px;
-  letter-spacing:0.06em;
-  cursor:pointer;
-}
-.editmode-btn:hover{border-color:var(--edit-accent);color:var(--edit-accent);}
-.editmode-btn.on{
-  background:var(--edit-accent);
-  color:var(--edit-accent-ink);
-  border-color:var(--edit-accent);
-}
 .master-btn{
   display:inline-flex;align-items:center;gap:6px;
   background:#2A1420;color:var(--edit-accent);border:none;
@@ -388,15 +345,6 @@ header{
   transition:transform .15s;
 }
 :root[data-theme="light"] .theme-switch .theme-switch-knob{transform:translateX(0);}
-.map-tile .tile-actions{position:absolute;top:6px;right:6px;display:flex;gap:5px;opacity:0;transition:opacity .15s;z-index:2;}
-.map-tile:hover .tile-actions{opacity:1;}
-.tile-actions span{width:24px;height:24px;background:rgba(6,7,9,.8);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);cursor:pointer;}
-.tile-actions span:hover{color:var(--edit-accent);}
-.tile-actions span.del:hover{color:var(--red);}
-.add-tile{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;border:1px dashed var(--line);color:var(--muted);cursor:pointer;min-height:130px;}
-.add-tile:hover{color:var(--edit-accent);border-color:var(--edit-accent);}
-.add-tile .plus{font-size:28px;font-family:'Rajdhani';}
-.add-tile .label{font-size:12px;letter-spacing:0.06em;}
 
 .modal{display:none;position:fixed;inset:0;background:rgba(6,7,9,.9);z-index:60;align-items:center;justify-content:center;padding:30px;overflow:auto;}
 .modal.active{display:flex;}
@@ -515,6 +463,7 @@ header{
       <button class="master-tab active" data-tab="stats" onclick="switchMasterTab('stats')">📊 통계</button>
       <button class="master-tab" data-tab="add" onclick="switchMasterTab('add')">🎬 영상 추가</button>
       <button class="master-tab" data-tab="items" onclick="switchMasterTab('items')">🗂 항목 관리</button>
+      <button class="master-tab" data-tab="maps" onclick="switchMasterTab('maps')">🗺 맵 관리</button>
       <button class="master-tab" disabled>💬 댓글</button>
     </nav>
     <div class="master-content">
@@ -561,6 +510,14 @@ header{
           <input type="search" id="masterItemsSearch" class="master-select" placeholder="제목 검색" oninput="renderMasterItemsTable()">
         </div>
         <div class="master-table-wrap" id="masterItemsTableWrap"></div>
+      </div>
+      <div class="master-pane" id="masterPaneMaps">
+        <div class="map-head">
+          <div class="section-label">맵 관리</div>
+          <button class="back-btn" onclick="showMapGrid()">← 일반 화면으로</button>
+        </div>
+        <button class="btn-primary" onclick="addMap()">새 맵 추가</button>
+        <div class="master-table-wrap" id="masterMapsTableWrap"></div>
       </div>
     </div>
   </div>
@@ -751,6 +708,7 @@ async function loadAll(){
     if(document.getElementById('viewMaster').classList.contains('active')){
       const activeTab = document.querySelector('.master-tab.active')?.dataset.tab;
       if(activeTab === 'items') renderMasterItemsTable();
+      else if(activeTab === 'maps') renderMasterMapsTable();
       else if(activeTab === 'stats') loadMasterStats();
     }
   } catch(e){
@@ -767,15 +725,8 @@ function renderMapGrid(){
   const tilesHtml = maps.map(m => {
     const count = items.filter(i => i.map_id === m.id).length;
     const safe = m.name.replace(/'/g,"\\'");
-    const actions = editMode ? `
-      <div class="tile-actions">
-        <span onclick="pickMapImage(event,'${m.id}')" title="이미지 변경">🖼</span>
-        <span onclick="renameMap(event,'${m.id}','${safe}')" title="이름 변경">✎</span>
-        <span class="del" onclick="deleteMap(event,'${m.id}','${safe}')" title="맵 삭제">✕</span>
-      </div>` : '';
     return `
     <div class="map-tile cut-sm" onclick="openMap('${m.id}','${safe}')">
-      ${actions}
       <div class="map-thumb">
         ${m.img ? `<img loading="lazy" src="${m.img}" alt="">` : '<span class="no-img">이미지 없음</span>'}
       </div>
@@ -785,8 +736,7 @@ function renderMapGrid(){
       </div>
     </div>
   `;}).join('');
-  const addTile = editMode ? `<div class="map-tile add-tile cut-sm" onclick="addMap()"><div class="plus">+</div><div class="label">맵 추가</div></div>` : '';
-  grid.innerHTML = (tilesHtml || (editMode ? '' : `<div class="loading">등록된 맵이 없어요.</div>`)) + addTile;
+  grid.innerHTML = tilesHtml || `<div class="loading">등록된 맵이 없어요.</div>`;
 }
 
 function renderGlobalTitleSearch(){
@@ -917,9 +867,11 @@ function switchMasterTab(tab){
   document.getElementById('masterPaneStats').classList.toggle('active', tab === 'stats');
   document.getElementById('masterPaneAdd').classList.toggle('active', tab === 'add');
   document.getElementById('masterPaneItems').classList.toggle('active', tab === 'items');
+  document.getElementById('masterPaneMaps').classList.toggle('active', tab === 'maps');
   if(tab === 'stats') loadMasterStats();
   if(tab === 'add') renderMasterAddTab();
   if(tab === 'items') renderMasterItemsTab();
+  if(tab === 'maps') renderMasterMapsTable();
 }
 
 function renderMasterAddTab(){
@@ -982,6 +934,31 @@ function renderMasterItemsTable(){
   wrap.innerHTML = `
     <table class="master-table">
       <thead><tr><th>미리보기</th><th>제목</th><th>맵</th><th>태그</th><th>진영</th><th>수정</th><th>삭제</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function renderMasterMapsTable(){
+  const wrap = document.getElementById('masterMapsTableWrap');
+  if(maps.length === 0){
+    wrap.innerHTML = '<div class="loading">등록된 맵이 없어요.</div>';
+    return;
+  }
+  const rows = maps.map(m => {
+    const count = items.filter(i => i.map_id === m.id).length;
+    const safe = m.name.replace(/'/g,"\\'");
+    return `<tr>
+      <td class="thumb-cell">${m.img ? `<img loading="lazy" src="${m.img}" alt="">` : ''}</td>
+      <td>${escapeHtml(m.name)}</td>
+      <td class="num">${count}</td>
+      <td><span class="icon-btn" onclick="pickMapImage(event,'${m.id}')" title="이미지 변경">🖼</span></td>
+      <td><span class="icon-btn" onclick="renameMap(event,'${m.id}','${safe}')" title="이름 변경">✎</span></td>
+      <td><span class="icon-btn del" onclick="deleteMap(event,'${m.id}','${safe}')" title="삭제">✕</span></td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `
+    <table class="master-table">
+      <thead><tr><th>썸네일</th><th>맵 이름</th><th>항목 수</th><th>이미지 변경</th><th>이름 변경</th><th>삭제</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 }
@@ -1075,10 +1052,10 @@ function sortFavorites(list){
     return af ? -1 : (bf ? 1 : 0);
   });
 }
-function favoriteButton(it, withDelete = false){
+function favoriteButton(it){
   if(it.tag !== '위폭' && it.tag !== '팁') return '';
   const active = !!favoriteRow(it.id);
-  return `<button type="button" class="card-fav${active ? ' on' : ''}${withDelete ? ' with-delete' : ''}" aria-label="즐겨찾기 ${active ? '해제' : '추가'}" onclick="toggleFavorite(event,'${it.id}')">${active ? '★' : '☆'}</button>`;
+  return `<button type="button" class="card-fav${active ? ' on' : ''}" aria-label="즐겨찾기 ${active ? '해제' : '추가'}" onclick="toggleFavorite(event,'${it.id}')">${active ? '★' : '☆'}</button>`;
 }
 function rerenderCurrentView(){
   if(document.getElementById('viewDetail').classList.contains('active')) renderCards();
@@ -1215,7 +1192,7 @@ function renderCards(){
   tagOrder.forEach(t => { if(!groups[t]) groups[t] = []; });
 
   const sortedTags = Object.keys(groups)
-    .filter(t => (editMode && !query) || groups[t].length > 0)
+    .filter(t => groups[t].length > 0)
     .sort((a, b) => {
       const ai = tagOrder.indexOf(a), bi = tagOrder.indexOf(b);
       return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
@@ -1225,7 +1202,6 @@ function renderCards(){
   container.innerHTML = sortedTags.map(tag => {
     const list = sortFavorites(groups[tag]);
     const isMapLabel = tag === '맵 지명';
-    const addTileHtml = editMode && !query ? `<div class="add-tile cut-sm" onclick="openAddModal('${tag}')"><div class="plus">+</div><div class="label">${tag}에 추가</div></div>` : '';
     return `
     <div class="tag-section">
       <div class="section-label"><b>${tag}</b></div>
@@ -1236,9 +1212,7 @@ function renderCards(){
           const shortBadge = (p && p.isShort) ? '<div class="badge short" style="left:auto;right:8px;">쇼츠</div>' : '';
           return `
           <div class="card" onclick="openOverlay('${it.id}')">
-            ${editMode ? `<span class="card-edit" onclick="openEditModal(event,'${it.id}')" title="수정">⚙</span>` : ''}
-            ${editMode ? `<span class="card-del" onclick="deleteItem(event,'${it.id}')" title="삭제">✕</span>` : ''}
-            ${favoriteButton(it, editMode)}
+            ${favoriteButton(it)}
             <div class="thumb">
               ${thumbUrl ? `<img loading="lazy" src="${thumbUrl}" alt="">` : ''}
               <div class="badge ${it.type}">${it.type==='vid' ? '영상' : '이미지'}</div>
@@ -1256,7 +1230,7 @@ function renderCards(){
               ${it.note ? `<div class="note">${it.note}</div>` : ''}
             </div>`}
           </div>
-        `;}).join('') + addTileHtml}
+        `;}).join('')}
       </div>
     </div>
   `;
@@ -2102,18 +2076,6 @@ function toggleTheme(){
   renderThemeToggle();
 }
 
-let editMode = false;
-function toggleEditMode(){
-  editMode = !editMode;
-  const btn = document.getElementById('editModeBtn');
-  if(btn){
-    btn.classList.toggle('on', editMode);
-    btn.textContent = editMode ? '편집모드 ON' : '편집모드';
-  }
-  renderMapGrid();
-  if(document.getElementById('viewDetail').classList.contains('active')) renderCards();
-}
-
 async function renderAuthArea(session){
   const userId = session && session.user.id;
   const previousUserId = currentSession && currentSession.user.id;
@@ -2134,18 +2096,12 @@ async function renderAuthArea(session){
 
     el.innerHTML = `
       <span class="mono" style="font-size:12px;color:var(--text);">${nickname}</span>
-      ${isAdmin ? '<span class="admin-badge">관리자</span>' : ''}
-      ${isAdmin ? '<button id="editModeBtn" class="editmode-btn">편집모드</button>' : ''}
       <button id="logoutBtn" class="discord-btn">로그아웃</button>
     `;
     document.getElementById('logoutBtn').onclick = async () => {
       await sb.auth.signOut();
     };
-    if(isAdmin){
-      document.getElementById('editModeBtn').onclick = toggleEditMode;
-    }
   } else {
-    editMode = false;
     el.innerHTML = `<button id="discordLoginBtn" class="discord-btn">디스코드로 로그인</button>`;
     document.getElementById('discordLoginBtn').onclick = discordLogin;
   }

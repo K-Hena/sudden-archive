@@ -1,6 +1,6 @@
 # admin-flow.md
 
-> 관리자 기능이 현재 **두 곳에 나뉘어 존재**한다 — 레거시 Admin 사이트(전체 CRUD)와 User 사이트의 편집모드(일부만 이식됨). 둘 다 실제 코드를 근거로 정리했다.
+> 관리자 기능이 현재 **두 곳에 나뉘어 존재**한다 — 레거시 Admin 사이트(전체 CRUD)와 User 사이트의 Master 대시보드(맵/항목 CRUD 이식 완료). 둘 다 실제 코드를 근거로 정리했다.
 
 ---
 
@@ -28,28 +28,32 @@ Cropper.js(CDN, `cropperjs@1.6.1`)를 이미지 크롭에 사용 — User 사이
 
 ---
 
-# User 사이트 편집모드 (`index.html`, 이식 진행 중)
+# User 사이트 Master 대시보드 (`index.html`, 맵/항목 CRUD 이식 완료)
 
-로그인 + `admins` 테이블 등록 여부로 관리자를 판별한다(`auth-flow.md`). 레거시 Admin과 달리 **모든 사용자가 보는 같은 화면**에서 `editMode` 상태에 따라 액션 UI를 조건부로 보여주거나 숨긴다.
+로그인 + `admins` 테이블 등록 여부로 관리자를 판별한다(`auth-flow.md`). 관리자면 헤더에 "Master" 버튼이 노출되고, 클릭하면 `#viewMaster`(사이드바 탭 + 콘텐츠)로 전환된다(`openMaster()`). 일반 사용자가 보는 맵 그리드·카드 그리드 화면에는 CRUD 액션이 전혀 섞여 들어가지 않는다 — **과거에는 같은 화면에서 `editMode` 토글로 액션을 켜고 끄는 방식이었지만, 그룹 D-2 4단계에서 이 방식을 완전히 폐기하고 지금의 별도 Master 대시보드 방식으로 바꿨다.**
 
-## 이식 완료
-- 맵 타일 호버 액션(이미지 변경 / 이름 변경 / 삭제) — 레거시 `pickMapImage`/`renameMap`/`deleteMap`과 동일 로직
-- "맵 추가" 타일 — 레거시 `addMap`과 동일 로직
-- 태그 섹션별 "+추가" 타일 → `openAddModal(tag)` → 모달
+## Master 사이드바 탭 (전부 이식 완료)
+- **통계**: 항목별 클릭수·즐겨찾기 집계 테이블(그룹 D-2 1단계)
+- **영상 추가**: 맵/태그 선택 후 기존 `openAddModal(tag)` 모달 재사용(그룹 D-2 2단계)
+- **항목 관리**: 맵/태그/진영 필터 + 제목 검색 + 테이블, 각 행의 ⚙(수정)/✕(삭제) 버튼이 기존 `openEditModal()`/`deleteItem()`을 그대로 호출(그룹 D-2 3단계)
+- **맵 관리**: 맵 목록 테이블, 각 행의 🖼(이미지 변경)/✎(이름 변경)/✕(삭제) 버튼이 기존 `pickMapImage()`/`renameMap()`/`deleteMap()`을 그대로 호출, 상단 "새 맵 추가" 버튼이 `addMap()` 호출(그룹 D-2 4단계)
+- **댓글**: 아직 비활성(그룹 J 이후, 5단계)
+
+## 항목 추가/수정 모달 (레거시 Admin에서 이식, Master "영상 추가"·"항목 관리" 탭에서 진입)
 - **붙여넣기 우선 3단계 모달** — `paste → media → details` 순서로 같은 모달 안에서 화면만 전환한다. 첫 화면은 `readAddClipboard()` 버튼과 이미지 업로드 링크만 노출하고, 자동 판별된 유튜브 URL은 기존 `loadClipPlayer()`, 이미지는 기존 Cropper.js 흐름으로 보낸다. media/details 단계에는 뒤로가기를 제공한다.
 - **클립보드 자동 판별 + 폴백** — 사용자 클릭 안에서 `navigator.clipboard.read()`를 우선 호출해 `text/plain`은 `parseYouTube()`로 검증하고 이미지 MIME은 Cropper로 전달한다. API 미지원·권한 거부·빈 클립보드는 전용 입력 영역에 포커스를 주고 네이티브 `paste` 이벤트로 Ctrl+V를 받는다. "맵 지명"에서 URL을 붙여넣으면 이미지 전용 오류를 표시한다.
 - **모든 태그의 이미지 업로드** — 붙여넣기 또는 "붙여넣지 않고 업로드" → Cropper.js로 크롭 → jpg blob 변환 → Storage `media`의 `items/{timestamp}.jpg`에 업로드 → `img_url` 저장. 파일 선택은 `accept="image/*"`를 유지하고 GIF는 선택/붙여넣기 직후 명시적으로 거부한다.
 - `submitItem()`이 `isMapLabel` 전용 분기가 아니라 레거시처럼 `modalType`(vid/img) 기준으로 일반화됨
-- **개별 항목 삭제** — `deleteItem()`, 카드 호버 시 ✕ 아이콘(`card-del`) → confirm → `items` 행 삭제. 레거시 `deleteItem()`과 동일하게 confirm 한 번만 거침
+- **개별 항목 삭제** — `deleteItem()`, Master "항목 관리" 탭의 ✕ 아이콘 → confirm → `items` 행 삭제. 레거시 `deleteItem()`과 동일하게 confirm 한 번만 거침
 - **클립 구간(`clip_start`/`clip_end`) 마킹** — 레거시의 `loadClipPlayer()`/`markClipStart()`/`markClipEnd()`/`clearClip()`/`updateClipLabel()`을 버튼 방식 그대로 이식. 레거시에는 없던 **슬라이더 UI**(`<input type=range>` 2개, 시작/끝)를 추가로 도입해 드래그로도 구간 지정이 가능하다. 버튼/슬라이더 모두 같은 `clipStart`/`clipEnd` 전역 변수를 공유해 항상 동기화됨(`docs/DECISIONS.md` 참고). `submitItem()`이 `modalType==='vid'`일 때 이 값들을 그대로 저장한다(더 이상 항상 `null`이 아님)
 - 모달의 클립 플레이어는 오버레이 재생용 `ytPlayer`와 이름이 겹치지 않도록 `clipYtPlayer`라는 별도 변수로 분리 (재생 중인 유튜브 IFrame API 로드 자체는 오버레이 코드와 공유)
-- **저장된 항목 수정** — 레거시 Admin에는 없던 새 기능(포팅이 아님). 카드 호버 시 ✕(`card-del`) 옆 ⚙(`card-edit`) 아이콘 → `openEditModal()`이 기존 항목 추가 모달을 `modalMode==='edit'`로 열어 제목·설명·진영·(영상이면) 클립 구간만 수정한다. 태그·타입·이미지·영상 URL은 읽기전용/변경불가로 표시하고 삭제 후 재등록을 안내. `submitItem()`이 수정 모드에서는 `insert` 대신 `update()`를 호출한다. 세부 결정은 `docs/DECISIONS.md` 참고
+- **저장된 항목 수정** — 레거시 Admin에는 없던 새 기능(포팅이 아님). Master "항목 관리" 탭의 ⚙ 아이콘 → `openEditModal()`이 기존 항목 추가 모달을 `modalMode==='edit'`로 열어 제목·설명·진영·(영상이면) 클립 구간만 수정한다. 태그·타입·이미지·영상 URL은 읽기전용/변경불가로 표시하고 삭제 후 재등록을 안내. `submitItem()`이 수정 모드에서는 `insert` 대신 `update()`를 호출한다. 세부 결정은 `docs/DECISIONS.md` 참고
 
-## 편집모드 On/Off에 따른 렌더링 차이
-`renderMapGrid()`/`renderCards()` 안에서 `editMode` 전역 변수를 직접 참조해 액션 HTML을 조건부로 문자열에 끼워 넣는다. 레거시 Admin처럼 "로그인 = 관리자 = 항상 액션 노출"이 아니라, "로그인 + admins 등록 + editMode=true"일 때만 노출되므로 조건이 하나 더 있다.
+## 폐기된 방식 — 카드/맵 타일 호버 편집모드 (그룹 D-2 4단계에서 완전 제거)
+과거에는 `editMode` 전역 변수(관리자가 헤더 "편집모드" 버튼으로 토글)에 따라 `renderMapGrid()`/`renderCards()`가 맵 타일 호버 액션·"맵 추가" 타일·카드의 ⚙/✕ 아이콘·"+추가" 타일을 조건부로 문자열에 끼워 넣는 방식이었다. 지금은 `editMode` 변수 자체가 코드에서 삭제됐고, 위 CRUD는 전부 Master 대시보드 탭을 통해서만 가능하다 — 일반 사용자가 보는 화면과 관리자가 보는 일반 화면(맵 그리드·카드 그리드)은 이제 완전히 동일하다.
 
 ---
 
 # 두 관리자 흐름의 최종 목표
 
-`AI_CONTEXT.md`에 따르면 편집모드가 레거시 Admin의 기능을 전부 흡수하면 `sudden-archive-admin` 사이트는 정리(폐기)된다. 현재는 과도기라 두 곳에 관리자 로직이 나뉘어 있다는 점을 유의해야 한다 — 편집모드 관련 버그를 볼 때 레거시 Admin 코드가 아니라 `index.html`을 봐야 한다.
+Master 대시보드가 레거시 Admin의 기능을 전부 흡수하면 `sudden-archive-admin` 사이트는 정리(폐기)된다. 맵/항목 CRUD(추가·수정·삭제·이미지 크롭·영상 클립 구간)는 이미 이관 완료됐고, 남은 기능 격차는 없는 것으로 파악된다(레거시 Admin의 주요 기능은 위 "맵 관리"/"항목 관리" 절 참고) — 다만 정리(폐기) 실행 자체는 별도 작업으로 진행한다(`docs/TODO.md` "예정" 참고).

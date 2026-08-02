@@ -43,14 +43,15 @@
 - **그룹 D-2 1단계: Master 버튼 + 페이지 셸(사이드바) + 통계 탭** — 관리자 전용 Master 버튼(기본/활성 2상태), `#viewMaster` 셸(기존 `.view`/`.view.active` 패턴 재사용, 좌측 사이드바+콘텐츠), 사이드바 4탭 중 통계만 활성화(나머지 3개 `<button disabled>`). 통계 탭: 요약 카드 3개(전체 클릭수/전체 즐겨찾기/등록된 항목 수) + 항목별 클릭수·즐겨찾기 테이블(클릭수 내림차순). `favorites` 테이블에 `item_clicks`와 동일한 "admins can select" RLS 정책을 추가해(사용자 확인 후 실행) 관리자가 전체 즐겨찾기를 집계할 수 있게 함. 세부 결정은 `docs/DECISIONS.md`, RLS 변경은 `docs/DATABASE.md` 참고
 - **그룹 D-2 2단계: Master "영상 추가" 탭** — 사이드바 "영상 추가" 탭 활성화(맵 드롭다운 + 태그 드롭다운 + "등록 시작" 버튼), 클릭 시 `currentMap`/`currentMapName`을 선택된 맵으로 설정한 뒤 기존 `openAddModal(tag)` 흐름을 그대로 재사용(새 모달 없음, `openAddModal()`/`submitItem()` 내부 미수정). 통계·영상 추가 두 탭 콘텐츠는 항상 DOM에 함께 유지하고 표시만 전환(`switchMasterTab()`). 세부 결정은 `docs/DECISIONS.md` 참고
 - **그룹 D-2 3단계: Master "항목 관리" 탭** — 사이드바 "항목 관리" 탭 활성화. 맵/태그/진영 필터 + 제목 검색(전부 클라이언트 사이드, 새 쿼리 없이 기존 `items[]` 재사용) + 테이블(미리보기/제목/맵/태그/진영/수정/삭제)로 전체 항목 조회, 각 행 수정(⚙)/삭제(✕) 버튼은 기존 `openEditModal()`/`deleteItem()`을 그대로 재사용. `deleteItem()`/`submitItem()`이 무조건 호출하는 `renderCards()`는 Master 화면에서도 에러를 내지 않음을 코드 확인 + Codex 설계 리뷰로 재검증해 가드를 추가하지 않았고, 대신 `loadAll()`의 Master 활성 시 갱신 로직을 활성 탭(통계/항목 관리)에 따라 분기해 항목 관리 테이블이 최신 상태로 갱신되도록 했다. 세부 결정은 `docs/DECISIONS.md` 참고
+- **그룹 D-2 4단계: Master "맵 관리" 탭 추가 + 기존 편집모드 완전 제거(5개 탭 체제 확정)** — 사이드바 5번째 탭("맵 관리") 활성화, 테이블(썸네일/맵 이름/항목 수/이미지 변경/이름 변경/삭제)로 기존 `addMap()`/`renameMap()`/`deleteMap()`/`pickMapImage()`를 그대로 재사용. 동시에 User 사이트의 관리자 뱃지·"편집모드" 버튼·맵 타일 호버 액션·카드 호버 수정·삭제 아이콘·태그 섹션 "+추가" 타일과 전역 `editMode` 변수·`toggleEditMode()`를 전부 삭제해 일반 사용자 화면과 관리자가 보는 화면이 동일해졌다(수정·삭제는 이제 Master를 통해서만 가능). 실 DB 왕복 검증(수정→삭제)은 새로 만든 테스트 항목으로 진행해 통과 확인. 세부 결정은 `docs/DECISIONS.md` 참고
 
 # 진행중
 
-- **그룹 D-2: 관리자 Master 대시보드** — 1단계(Master 버튼·페이지 셸·통계 탭), 2단계(영상 추가), 3단계(항목 관리) 완료. 이후 4단계(기존 편집모드 CRUD 이관)·5단계(댓글)로 이어질 예정
+- **그룹 D-2: 관리자 Master 대시보드** — 1~4단계(Master 버튼·페이지 셸·통계 탭 / 영상 추가 / 항목 관리 / 맵 관리 + 편집모드 제거) 완료. 5단계(댓글 탭, 그룹 J 완료 후)만 남음
 
 # 예정 (AI_CONTEXT.md 기준)
 
-- 구 Admin 사이트(`sudden-archive-admin.vercel.app`) 정리 — 편집모드가 CRUD 전체를 대체한 뒤 진행
+- 구 Admin 사이트(`sudden-archive-admin.vercel.app`) 정리 — Master 대시보드가 맵/항목 CRUD를 대체했다(4단계 완료). 댓글(5단계) 등 레거시 Admin에만 있는 나머지 기능 격차는 `docs/architecture/admin-flow.md` 참고 후 정리 여부 판단
 
 # 아이디어 (AI_CONTEXT.md "향후 개발 예정", 구체화 전)
 

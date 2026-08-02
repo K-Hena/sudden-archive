@@ -7,7 +7,7 @@
 # 전체 그림
 
 ```
-[레거시 Admin 사이트]         [User 사이트 (일반 사용자 + 편집모드)]
+[레거시 Admin 사이트]         [User 사이트 (일반 사용자 + 관리자 Master 대시보드)]
         \                              /
          \                            /
           →      Supabase (공유)     ←
@@ -24,7 +24,7 @@
 # 조회(SELECT)
 
 - `maps`, `items`는 로그인 여부와 무관하게 조회 가능 — User 사이트는 비로그인 상태에서도 `loadAll()`이 정상 동작한다.
-- 조회 시점: 페이지 로드 시(`loadAll()`), 그리고 편집모드에서 데이터를 변경할 때마다(`await loadAll()`)마다 **전체 목록을 다시 조회**한다.
+- 조회 시점: 페이지 로드 시(`loadAll()`), 그리고 Master 대시보드에서 데이터를 변경할 때마다(`await loadAll()`)마다 **전체 목록을 다시 조회**한다.
 - 부분 조회(방금 바뀐 행만 다시 가져오기)나 실시간 구독(Supabase Realtime)은 코드 어디에도 없다 — 확인됨 (`sb.channel`, `.on('postgres_changes', ...)` 같은 코드가 두 파일 어디에도 없음).
 
 ---
@@ -49,7 +49,7 @@
 
 ```
 파일 선택/붙여넣기
-  → Cropper.js로 자르기 → jpg blob 생성 (레거시 Admin, User 사이트 편집모드 `loadImageIntoCropper()`/`submitItem()` 모두 사용)
+  → Cropper.js로 자르기 → jpg blob 생성 (레거시 Admin, User 사이트 Master 대시보드 `loadImageIntoCropper()`/`submitItem()` 모두 사용)
   → sb.storage.from('media').upload(path, file/blob)
   → sb.storage.from('media').getPublicUrl(path)
   → 반환된 공개 URL을 maps.img 또는 items.img_url 컬럼에 저장
