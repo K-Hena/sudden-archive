@@ -417,3 +417,15 @@ oEmbed 조회 실패는 영상 저장을 막지 않고 `null`로 처리한다. �
 **미사용 CSS 함께 정리**: "완전 제거"를 문자 그대로 적용해 편집모드 전용이었던 `.admin-badge`, `.editmode-btn`(+`:hover`/`.on`), `.map-tile .tile-actions`, `.tile-actions span`, `.card .card-edit`, `.card .card-del`, `.add-tile`(맵 타일·태그 섹션 양쪽에서 쓰이던 것 모두 제거되어 완전히 미사용) 선택자를 전부 삭제했다. 표시용 맵 이름은 `escapeHtml(m.name)`, 인라인 `onclick` 인자는 기존 `renderMapGrid()`의 작은따옴표 이스케이프(`safe`) 패턴을 그대로 재사용해 "맵 관리" 탭 테이블에도 동일하게 적용했다.
 
 **로컬 정적 서버 + Playwright로 시각 QA**: 실제 배포/커밋 전에 `python -m http.server`로 로컬 서빙 후 Playwright로 (1) 비로그인 일반 화면에 편집모드 흔적이 전혀 없는지, (2) `isAdminUser`를 콘솔에서 강제로 켜고 Master "맵 관리" 탭이 데스크톱/모바일(390px) 폭 모두에서 정상 렌더링되는지, (3) 카드 그리드의 즐겨찾기 별이 삭제 아이콘 없이도 정상 위치(우측 상단)에 있는지 확인했다. DB에 쓰기가 발생하는 액션(새 맵 추가/이름변경/삭제/이미지변경 버튼 클릭)은 실제로 누르지 않고 렌더링만 검증했다.
+
+---
+
+## Master 버튼을 `.status`에서 `.brand`로 이동
+
+**결정**: `#masterBtn`을 헤더의 `.status`(오른쪽, 로그인 영역 근처) 밖으로 빼서 `.brand`(로고+타이틀) 안, `<h1>서든 <span>아카이브</span></h1>` 바로 뒤로 옮겼다(지시서 `master_button_reposition.md`). 원래 설계 의도(타이틀 옆 배치)에 맞춘 것이며, `.brand{display:flex;align-items:center;gap:12px}`가 이미 있어 별도 레이아웃 CSS 추가 없이 나란히 배치된다. 클릭 핸들러(`openMaster()`)와 `isAdminUser`에 따른 표시/숨김(`renderAuthArea()`), `open/close` 시 `.active` 토글(`openMaster()`/`showMapGrid()`/`openMap()`)은 모두 `document.getElementById('masterBtn')` id 기반 조회라 DOM 위치 변경과 무관하게 그대로 동작한다(설계 리뷰로 재확인, JS 수정 없음).
+
+**색상 충돌 수정(설계 리뷰에서 발견)**: `.brand span{color:var(--red)}`가 `.brand` 안의 모든 `<span>`에 적용되는 규칙이라, 버튼을 그대로 옮기면 내부의 `.master-btn-icon`/`.master-btn-label` 텍스트도 이 빨간색을 상속받아 기본/활성 2가지 상태의 의도된 배색(`--edit-accent`/`--edit-accent-ink`)이 깨졌다. `.brand .master-btn span{color:inherit;}`를 추가해(클래스 2개 조합이라 `.brand span`보다 명시도가 높아 별도 순서 조정 없이 우선 적용됨) 버튼 내부 span이 부모 `.master-btn`/`.master-btn.active`의 색을 다시 상속받도록 고쳤다. 새 CSS 변수는 추가하지 않았다.
+
+**`.status` 잔여 요소 간격은 그대로 유지**: Master 버튼이 빠져도 `.status{gap:18px}`는 flex 간격이라 자동으로 재배치되며 빈 공간이나 이중 간격이 남지 않는다(설계 리뷰로 확인). CLIPS/TIPS 카운터·테마 토글·`#authArea` 사이 간격을 조정할 필요는 없었다.
+
+**모바일(390px) 검증 중 발견한 기존 버그는 이번 작업 범위 밖으로 분류**: 헤더에 `flex-wrap`이 없고 `.brand`/`.status`·타이틀·닉네임 텍스트에 `white-space:nowrap` 보호가 없어, 390px처럼 좁은 화면에서는 한글 타이틀·관리자 닉네임이 글자 단위로 세로 줄바꿈된다. 이동 전 커밋(`HEAD`)으로 동일 조건을 재현해 이 버튼 이동과 무관한 기존 문제임을 확인했다. 지시서는 버튼 위치 이동만 요청했고 헤더 반응형 전면 개편은 범위 밖이라 이번 작업에서는 고치지 않고 `docs/KNOWN_ISSUES.md`에 기록했다.

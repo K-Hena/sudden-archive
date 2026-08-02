@@ -325,6 +325,7 @@ header{
   font-family:'Rajdhani',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.06em;
 }
 .master-btn.active{background:var(--edit-accent);color:var(--edit-accent-ink);font-weight:700;}
+.brand .master-btn span{color:inherit;}
 .theme-switch{
   width:44px;height:24px;flex:none;
   border-radius:999px;
@@ -414,6 +415,7 @@ header{
   <div class="brand">
     <div class="reticle"></div>
     <h1>서든 <span>아카이브</span></h1>
+    <button id="masterBtn" class="master-btn" onclick="openMaster()" style="display:none;"><span class="master-btn-icon">👑</span><span class="master-btn-label">Master</span></button>
   </div>
   <div class="status">
     <span class="mono"><b id="clipCount">-</b>&nbsp;CLIPS</span>
@@ -421,7 +423,6 @@ header{
     <button id="themeToggleBtn" class="theme-switch" onclick="toggleTheme()" aria-label="테마 전환" role="switch" aria-checked="false">
       <span class="theme-switch-knob"></span>
     </button>
-    <button id="masterBtn" class="master-btn" onclick="openMaster()" style="display:none;"><span class="master-btn-icon">👑</span><span class="master-btn-label">Master</span></button>
     <span id="authArea" style="display:flex;align-items:center;gap:10px;"></span>
   </div>
 </header>
