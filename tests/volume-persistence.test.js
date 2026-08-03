@@ -2,9 +2,9 @@ const assert = require('assert');
 const fs = require('fs');
 const vm = require('vm');
 
-const html = fs.readFileSync('index.html', 'utf8');
-const start = html.indexOf('function getEffectiveClipRange');
-const source = html.slice(start, html.indexOf('\nfunction updateVolumeUI', start));
+const app = fs.readFileSync('app.js', 'utf8');
+const start = app.indexOf('function getEffectiveClipRange');
+const source = app.slice(start, app.indexOf('\nfunction updateVolumeUI', start));
 
 function makeContext(initial){
   const store = { ...initial };

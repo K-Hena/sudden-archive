@@ -4,6 +4,13 @@
 
 ---
 
+## 2026-08-03 — Claude Code용 LLM 위키 생성
+
+- code-review-graph를 커밋 `0f2c766` 기준 176노드/1,557엣지로 갱신하고 `.code-review-graph/wiki/` 자동 위키 생성
+- 단일 전역 `app.js`가 자동 커뮤니티에서 누락되는 한계를 기록하고, `docs/LLM_WIKI.md`에 기능별 코드 진입점·핵심 상태·관련 문서·검증 명령을 연결
+- `CLAUDE.md`, `AGENTS.md`, AI 온보딩·문서 지도에서 추적 가능한 위키 허브를 우선 안내
+- 정적 파일 분리 뒤에도 `index.html`을 읽던 채널명·클립 미리보기·볼륨 테스트를 `app.js` 기준으로 수정하고 네 개 Node 테스트 전체 통과 확인
+
 ## 2026-08-03 — HTML/CSS/JavaScript 정적 파일 분리
 
 - 3,061줄 `index.html`에서 전역 CSS 481줄을 `styles.css`, 메인 JavaScript 2,234줄을 `app.js`로 내용·순서 변경 없이 이동

@@ -9,13 +9,14 @@
 새로운 AI는 반드시 아래 순서대로 문서를 읽는다.
 
 1. AI_CONTEXT.md
-2. CODING_RULES.md
-3. CLAUDE_CODE_RULES.md
-4. PROMPTS.md
-5. MAINTENANCE.md
-6. PROJECT_STRUCTURE.md
-7. DATABASE.md
-8. TODO.md
+2. LLM_WIKI.md
+3. CODING_RULES.md
+4. CLAUDE_CODE_RULES.md
+5. PROMPTS.md
+6. MAINTENANCE.md
+7. PROJECT_STRUCTURE.md
+8. DATABASE.md
+9. TODO.md
 
 CHANGELOG.md / DECISIONS.md / TROUBLESHOOTING.md / architecture/*.md 는 필요할 때 참고 문서로 열람한다 (매번 전체를 읽을 필요는 없음).
 
@@ -29,6 +30,10 @@ AI_CONTEXT
 
 프로젝트의 기준 문서(Single Source of Truth). 프로젝트 소개, 서비스 구성, 시스템 구조 요약, 진행 상황 요약, AI 협업 방식, 그리고 아래 세부 문서로 가는 "문서 지도"를 담고 있다.
 세부 내용(구조/DB/이력/할일/결정 등)은 각 주제별 문서로 분리되어 있다 (2026-07-18 리팩터링). 전체 문서 목록과 역할은 docs/MAINTENANCE.md의 "문서 책임" 표 참고.
+
+LLM_WIKI
+
+작업별 코드 진입점, 핵심 전역 상태, 관련 문서와 최소 검증 명령을 연결하는 LLM용 위키 허브. 자동 생성 code-review-graph 위키의 범위와 한계도 함께 기록한다.
 
 PROJECT_STRUCTURE
 

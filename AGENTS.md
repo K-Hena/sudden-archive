@@ -2,6 +2,7 @@
 
 이 저장소에서 코드를 작업하기 전에 `docs/README_AI.md`를 먼저 읽고,
 `docs/AI_CONTEXT.md`의 "문서 지도"를 따라 필요한 문서를 확인한다.
+코드 위치와 관련 문서를 빠르게 찾을 때는 `docs/LLM_WIKI.md`를 위키 허브로 사용한다. 자동 생성된 `.code-review-graph/wiki/`는 보조 자료로만 사용한다.
 
 ## 프로젝트 성격
 - `index.html`(마크업), `styles.css`(전체 스타일), `app.js`(전체 동작)로 이루어진 바닐라 JavaScript 정적 사이트. 빌드 도구, 프레임워크, 번들러 없음.

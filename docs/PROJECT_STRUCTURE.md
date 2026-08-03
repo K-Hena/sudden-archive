@@ -19,7 +19,10 @@ sudden-archive/                     (이 저장소, User 사이트 — github.co
 ├── .github/
 │   └── copilot-instructions.md     GitHub Copilot용 규칙 요약
 ├── tests/
-│   └── favorites.test.js           즐겨찾기 정렬/버튼 로직 최소 단위 테스트 (node로 직접 실행)
+│   ├── channel-name.test.js        유튜브 채널명 수집·저장 최소 테스트
+│   ├── clip-preview.test.js        클립 미리보기 구간 감시 최소 테스트
+│   ├── favorites.test.js           즐겨찾기 정렬/버튼 로직 최소 테스트
+│   └── volume-persistence.test.js  클립 범위·볼륨 저장 최소 테스트 (각 테스트는 node로 직접 실행)
 ├── .claude/                        Claude Code 설정 — settings.json 등은 git에 커밋되어(공유) 팀 전체에 적용됨, settings.local.json만 개인용(git 미추적)
 │   ├── settings.json                PostToolUse/PreToolUse 훅 등록, permissions
 │   ├── settings.local.json          개인 permissions/language 설정 (git 미추적)
@@ -29,6 +32,7 @@ sudden-archive/                     (이 저장소, User 사이트 — github.co
 │   ├── commands/commit.md           `/commit` 슬래시 커맨드
 │   └── output-styles/terse.md       응답 스타일 설정
 ├── docs/                           AI 운영 문서 (이 문서들)
+│   ├── LLM_WIKI.md                 LLM용 작업별 코드·문서 라우팅 허브
 │   └── architecture/               세부 흐름 문서
 └── sudden-archive-admin/           레거시 Admin 사이트 — 별도 git 저장소, .gitignore로 이 repo 추적에서 제외됨
     └── index.html                  Admin 사이트 전체 (HTML+CSS+JS 단일 파일)

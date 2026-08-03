@@ -3,6 +3,8 @@
 이 프로젝트에서 작업을 시작하기 전에 **반드시** `docs/README_AI.md`를 먼저 읽고,
 거기 안내된 순서대로 `docs/` 하위 문서를 확인한다.
 
+코드 위치와 관련 문서를 빠르게 찾을 때는 `docs/LLM_WIKI.md`를 위키 허브로 사용한다. 자동 생성된 `.code-review-graph/wiki/`는 보조 자료이며 프로젝트 전체 구조의 기준 문서가 아니다.
+
 ## 절대 원칙 (요약 — 상세는 docs/ 참고)
 - 이 프로젝트는 `index.html` + `styles.css` + `app.js`로 구성된 빌드 없는 정적 사이트다. React/Vue/TypeScript로 전환하지 않는다.
 - `app.js`는 기존 전역 스크립트 구조와 함수 순서를 그대로 유지한다. `type="module"` 전환, 전역 상태 재설계, 인라인 `onclick` 제거는 별도 설계 없이 진행하지 않는다. `<head>`의 테마 선적용 스크립트는 화면 깜빡임 방지를 위해 `index.html`에 유지한다.

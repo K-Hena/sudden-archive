@@ -31,6 +31,7 @@ AI_CONTEXT.md를 프로젝트의 기준 문서(Single Source of Truth)로 두고
 |------|------|
 | AI_CONTEXT.md | 프로젝트의 기준 문서 (프로젝트 소개, 서비스 구성, 시스템 구조 요약, 진행 상황 요약, AI 협업 방식, 문서 지도) |
 | README_AI.md | AI 시작 문서 |
+| LLM_WIKI.md | 작업별 코드 진입점·관련 문서·검증 명령을 연결하는 LLM 위키 허브 |
 | CODING_RULES.md | 개발 규칙 |
 | CLAUDE_CODE_RULES.md | Claude Code 행동 규칙 |
 | PROMPTS.md | 표준 작업 절차 |

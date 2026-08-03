@@ -2,9 +2,9 @@ const assert = require('assert');
 const fs = require('fs');
 const vm = require('vm');
 
-const html = fs.readFileSync('index.html', 'utf8');
-const start = html.indexOf('function parseYouTube');
-const source = html.slice(start, html.indexOf('\nfunction ytThumb', start));
+const app = fs.readFileSync('app.js', 'utf8');
+const start = app.indexOf('function parseYouTube');
+const source = app.slice(start, app.indexOf('\nfunction ytThumb', start));
 const calls = [];
 const context = {
   console,
@@ -27,8 +27,8 @@ vm.runInContext(source, context);
   context.fetch = async () => ({ ok: false, json: async () => ({}) });
   assert.strictEqual(await context.fetchYouTubeChannelName('https://www.youtube.com/watch?v=abc123XYZ00'), null);
 
-  assert.match(html, /const channelName = await fetchYouTubeChannelName\(url\);[\s\S]*channel_name: channelName/);
-  assert.match(html, /const payload = \{ title, note: note \|\| null, team: savedTeam \};/);
-  assert.match(html, /type: 'img'[\s\S]*clip_start: null, clip_end: null[\s\S]*\}\);/);
+  assert.match(app, /const channelName = await fetchYouTubeChannelName\(url\);[\s\S]*channel_name: channelName/);
+  assert.match(app, /const payload = \{ title, note: note \|\| null, team: savedTeam \};/);
+  assert.match(app, /type: 'img'[\s\S]*clip_start: null, clip_end: null[\s\S]*\}\);/);
   console.log('CHANNEL_NAME_CHECKS_OK');
 })();

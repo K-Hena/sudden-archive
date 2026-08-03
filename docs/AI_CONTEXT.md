@@ -285,6 +285,7 @@ AI는 프로젝트 전체 구조를 우선 이해한 후 작업하며, 불확실
 | 알고 싶은 것 | 문서 |
 |---|---|
 | AI에게 작업을 어떻게 요청하는지, AI 역할(Claude Chat/Code) 상세 | `docs/README_AI.md` |
+| 작업별 코드 진입점, 전역 상태, 관련 문서와 검증 명령 | `docs/LLM_WIKI.md` |
 | 코드 스타일, 에러 처리, 파일 수정 원칙, AI 행동 규칙 | `docs/CODING_RULES.md` |
 | Claude Code의 행동 규칙, 담당 업무 | `docs/CLAUDE_CODE_RULES.md` |
 | 기능 추가/버그 수정/SQL 작성/리팩터링 등 표준 작업 절차 | `docs/PROMPTS.md` |
