@@ -3,15 +3,26 @@ const fs = require('fs');
 const vm = require('vm');
 
 const app = fs.readFileSync('app.js', 'utf8');
-const start = app.indexOf('function stopClipPreviewTimer');
+const start = app.indexOf('function updateClipTransport');
 const source = app.slice(start, app.indexOf('\nfunction loadClipPlayer', start));
 let current = 0;
 let state = 2;
 let timerCallback;
 const calls = [];
+const transport = {
+  clipCurrentTime: { textContent: '' },
+  clipDurationTime: { textContent: '' },
+  clipPlayIcon: { textContent: '' },
+  clipPlayToggle: {
+    ariaLabel: '',
+    classList: { toggle: () => {} },
+    setAttribute: (_, value) => { transport.clipPlayToggle.ariaLabel = value; }
+  }
+};
 const context = {
   clipStart: 5,
   clipEnd: 9,
+  clipDuration: 20,
   clipEndMarkGraceUntil: 0,
   clipPreviewTimer: null,
   clipScrubbing: false,
@@ -22,6 +33,8 @@ const context = {
     playVideo: () => calls.push(['play']),
     pauseVideo: () => calls.push(['pause'])
   },
+  document: { getElementById: id => transport[id] },
+  fmtClip: value => `0:${String(Math.floor(value)).padStart(2, '0')}`,
   YT: { PlayerState: { PLAYING: 1, PAUSED: 2, BUFFERING: 3, ENDED: 0 } },
   Date,
   setInterval: callback => { timerCallback = callback; return 1; },
@@ -34,10 +47,19 @@ context.syncClipPreviewTimer();
 current = 10;
 timerCallback();
 assert.deepStrictEqual(calls, [['seek', 5], ['pause']]);
+assert.strictEqual(transport.clipCurrentTime.textContent, '0:10');
 calls.length = 0;
 context.clipScrubbing = true;
 current = 10;
 timerCallback();
+assert.deepStrictEqual(calls, []);
+context.clipStart = null;
+context.clipEnd = null;
+context.clipScrubbing = false;
+current = 7;
+context.syncClipPreviewTimer();
+timerCallback();
+assert.strictEqual(transport.clipCurrentTime.textContent, '0:07');
 assert.deepStrictEqual(calls, []);
 assert.match(app, /onStateChange:[\s\S]*?if\(!clipScrubbing && !clipPreviewTimer && modalType === 'vid'[\s\S]*?YT\.PlayerState\.PLAYING,[\s\S]*?syncClipPreviewTimer\(\);/);
 
@@ -53,6 +75,7 @@ const scrubContext = {
   clipScrubbing: false,
   clipScrubLastSeek: 0,
   stopClipPreviewTimer: () => scrubCalls.push(['stop']),
+  updateClipTransport: () => {},
   Date
 };
 vm.createContext(scrubContext);
@@ -67,4 +90,6 @@ assert.doesNotMatch(startInputSource, /syncClipPreviewTimer/);
 assert.doesNotMatch(endInputSource, /syncClipPreviewTimer/);
 assert.match(app, /function onClipEndChange\(\)\{[\s\S]*?onClipScrubStart\(\);[\s\S]*?seekTo\(clipEnd, true\);/);
 assert.match(app, /onStateChange:[\s\S]*?if\(e\.data === YT\.PlayerState\.PLAYING\) clipScrubbing = false;[\s\S]*?if\(!clipScrubbing && !clipPreviewTimer/);
+assert.match(app, /function skipClipPreview\(seconds\)[\s\S]*?Math\.min\(clipDuration, Math\.max\(0,[\s\S]*?seekTo\(target, true\)/);
+assert.match(app, /function toggleClipPreview\(\)[\s\S]*?onClipScrubStart\(\);[\s\S]*?clipYtPlayer\.playVideo\(\)/);
 console.log('CLIP_PREVIEW_CHECKS_OK');

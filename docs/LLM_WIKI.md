@@ -17,7 +17,7 @@
 | 초기 데이터와 공개 범위 | `loadAll()`, `publicItems()`, `refreshPublicDataIfStale()` | `ARCHITECTURE.md`(데이터베이스 흐름), `DATABASE.md` |
 | 홈 대시보드 | `renderHome()`, `renderMyItems()`, `openHomeAdd()`, `recentItemsKey()` | `ARCHITECTURE.md`(index.html 내부 구성), `TODO.md` |
 | 전체 맵과 검색 | `renderMapGrid()`, `renderGlobalTitleSearch()`, `openMap()` | `ARCHITECTURE.md`(탐색/검색 흐름) |
-| 상세 카드와 즐겨찾기 | `renderCards()`, `favoriteButton()`, `toggleFavorite()` | `ARCHITECTURE.md`(탐색/검색 흐름), `tests/favorites.test.js` |
+| 상세 카드와 즐겨찾기 | `renderCards()`, `renderHomeItemCard()`, `renderGlobalTitleSearch()`, `favoriteButton()`, `toggleFavorite()` | `ARCHITECTURE.md`(탐색/검색 흐름), `tests/favorites.test.js`, `tests/map-label-card.test.js` |
 | 인증과 관리자 판별 | `initAuth()`, `renderAuthArea()`, `discordLogin()` | `ARCHITECTURE.md`(인증 흐름), `DATABASE.md` |
 | Master 대시보드 | `openMaster()`, `switchMasterTab()`, `loadMasterStats()`와 `renderMaster*` 함수 | `ARCHITECTURE.md`(관리자 흐름) |
 | 승인 흐름 | `renderMasterApprovals()`, `reviewItem()`, `renderMyItems()`, `hideOwnItem()` | `ARCHITECTURE.md`(관리자 흐름), `DATABASE.md` |
@@ -25,7 +25,7 @@
 | 이미지 확대·이동 | `initImageZoomPan()`과 `onImage*` 함수 | `DECISIONS.md` |
 | 댓글 | `renderCommentsSection()`, `loadComments()`, `submitComment()`, `deleteComment()` | `DATABASE.md`, `ARCHITECTURE.md`(관리자 흐름) |
 | 컨텐츠 추가·수정 | `openAddModal()`, `openEditModal()`, `submitItem()` | `DATABASE.md`, `DECISIONS.md` |
-| 클립 구간 편집 | `loadClipPlayer()`, `syncClipSliders()`, `updateClipRangeFill()`과 `onClip*` 함수 | `TROUBLESHOOTING.md`, `tests/clip-preview.test.js` |
+| 클립 구간 편집 | `loadClipPlayer()`, `syncClipSliders()`, `updateClipTransport()`, `skipClipPreview()`, `toggleClipPreview()`와 `onClip*` 함수 | `TROUBLESHOOTING.md`, `DECISIONS.md`, `tests/clip-preview.test.js` |
 | 임시저장 | `loadContentDrafts()`, `buildDraftFromCurrentModal()`, `resumeContentDraft()` | `DECISIONS.md` |
 | 테마·폰트·레이아웃 | `styles.css`, `renderThemeToggle()`, `toggleTheme()` | `ARCHITECTURE.md`(index.html 내부 구성), `DECISIONS.md` |
 

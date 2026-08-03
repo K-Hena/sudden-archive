@@ -253,6 +253,17 @@
         </div>
         <div class="clip-tools" id="clipTools" style="display:none;">
           <div class="clip-player" id="clipPlayerWrap"><div id="clipPlayer"></div></div>
+          <div class="clip-transport">
+            <span class="clip-clock current" id="clipCurrentTime">0:00</span>
+            <div class="clip-transport-center" role="group" aria-label="클립 재생 조작">
+              <button type="button" class="clip-transport-skip" onclick="skipClipPreview(-10)" aria-label="10초 전으로 이동">−10</button>
+              <button type="button" class="clip-transport-play" id="clipPlayToggle" onclick="toggleClipPreview()" aria-label="구간 재생">
+                <span id="clipPlayIcon" aria-hidden="true">▶</span>
+              </button>
+              <button type="button" class="clip-transport-skip" onclick="skipClipPreview(10)" aria-label="10초 후로 이동">+10</button>
+            </div>
+            <span class="clip-clock duration" id="clipDurationTime">0:00</span>
+          </div>
           <div class="clip-sliders" id="clipSliders">
             <div class="clip-labels">
               <span>시작 <b id="clipStartLabel">0:00</b></span>
@@ -268,9 +279,9 @@
             </div>
           </div>
           <div class="clip-btns">
-            <button onclick="markClipStart()">⏮ 지금부터 (시작)</button>
-            <button onclick="markClipEnd()">여기까지 (끝) ⏭</button>
-            <button onclick="clearClip()">구간 초기화</button>
+            <button onclick="markClipStart()">시작 지점으로 지정</button>
+            <button onclick="markClipEnd()">끝 지점으로 지정</button>
+            <button class="clip-reset" onclick="clearClip()">초기화</button>
             <span class="clip-range" id="clipRange">전체 재생</span>
           </div>
           <div class="hint">구간을 지정하지 않으면 전체 영상이 재생돼요. 시작·끝을 정하면 그 부분만 잘라서 보여줘요.</div>

@@ -101,8 +101,9 @@ function renderHomeItemCard(it){
   const p = it.type === 'vid' ? parseYouTube(it.video_url) : null;
   const thumbUrl = it.type === 'vid' ? ytThumb(it.video_url) : it.img_url;
   const mapName = maps.find(m => m.id === it.map_id)?.name || '알 수 없는 맵';
+  const isMapLabel = it.tag === '맵 지명';
   return `
-    <div class="card" onclick="openOverlay('${it.id}')">
+    <div class="card${isMapLabel ? ' map-label-card' : ''}" onclick="openOverlay('${it.id}')">
       ${favoriteButton(it)}
       <div class="thumb">
         ${thumbUrl ? `<img loading="lazy" src="${escapeHtml(thumbUrl)}" alt="">` : ''}
@@ -111,11 +112,11 @@ function renderHomeItemCard(it){
         ${channelBadge(it)}
         ${thumbUrl ? (it.type === 'vid' ? '<div class="playicon"></div>' : '') : '<span class="mono" style="font-size:10px;color:#3A4048;">미리보기 없음</span>'}
       </div>
-      <div class="meta">
+      ${isMapLabel ? '' : `<div class="meta">
         <div class="title">${escapeHtml(it.title || '제목 없음')}</div>
         <div class="note">${escapeHtml(it.note || mapName)}</div>
         ${contributorBadge(it)}
-      </div>
+      </div>`}
     </div>`;
 }
 function renderHome(){
@@ -209,8 +210,9 @@ function renderGlobalTitleSearch(){
     const p = it.type === 'vid' ? parseYouTube(it.video_url) : null;
     const thumbUrl = it.type === 'vid' ? ytThumb(it.video_url) : it.img_url;
     const mapName = maps.find(m => m.id === it.map_id)?.name || '알 수 없는 맵';
+    const isMapLabel = it.tag === '맵 지명';
     return `
-    <div class="card" onclick="openOverlay('${it.id}')">
+    <div class="card${isMapLabel ? ' map-label-card' : ''}" onclick="openOverlay('${it.id}')">
       ${favoriteButton(it)}
       <div class="thumb">
         ${thumbUrl ? `<img loading="lazy" src="${thumbUrl}" alt="">` : ''}
@@ -221,12 +223,12 @@ function renderGlobalTitleSearch(){
           ? (it.type==='vid' ? '<div class="playicon"></div>' : '')
           : `<span class="mono" style="font-size:10px;color:#3A4048;">${it.type==='vid' ? '아직 등록된 영상 없음' : '아직 등록된 이미지 없음'}</span>`}
       </div>
-      <div class="meta">
+      ${isMapLabel ? '' : `<div class="meta">
         <div class="title">${it.title}</div>
         ${it.note ? `<div class="note">${it.note}</div>` : ''}
         <div class="note">${mapName} · ${teamLabel(it.team) || String(it.team || '').toUpperCase()}</div>
         ${contributorBadge(it)}
-      </div>
+      </div>`}
     </div>`;
   }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">일치하는 제목 또는 채널이 없어요.</div>`;
 }
@@ -768,7 +770,7 @@ function renderCards(){
           const thumbUrl = it.type === 'vid' ? ytThumb(it.video_url) : it.img_url;
           const shortBadge = (p && p.isShort) ? '<div class="badge short" style="left:auto;right:8px;">쇼츠</div>' : '';
           return `
-          <div class="card" onclick="openOverlay('${it.id}')">
+          <div class="card${isMapLabel ? ' map-label-card' : ''}" onclick="openOverlay('${it.id}')">
             ${favoriteButton(it)}
             <div class="thumb">
               ${thumbUrl ? `<img loading="lazy" src="${thumbUrl}" alt="">` : ''}
@@ -781,7 +783,7 @@ function renderCards(){
                 : `<span class="mono" style="font-size:10px;color:#3A4048;">${it.type==='vid' ? '아직 등록된 영상 없음' : '아직 등록된 이미지 없음'}</span>`
               }
             </div>
-            ${isMapLabel ? `<div class="meta">${contributorBadge(it)}</div>` : `
+            ${isMapLabel ? '' : `
             <div class="meta">
               <div class="title">${it.title}</div>
               ${it.note ? `<div class="note">${it.note}</div>` : ''}
@@ -1449,6 +1451,26 @@ function applyClipDuration(duration){
   updateClipSliderLabels();
   updateClipRangeFill();
   updateClipThumbClipPaths();
+  updateClipTransport(0, false);
+}
+function updateClipTransport(currentOverride, playingOverride){
+  const currentEl = document.getElementById('clipCurrentTime');
+  const durationEl = document.getElementById('clipDurationTime');
+  const toggle = document.getElementById('clipPlayToggle');
+  const icon = document.getElementById('clipPlayIcon');
+  if(!currentEl || !durationEl || !toggle || !icon) return;
+  const current = Number.isFinite(currentOverride)
+    ? currentOverride
+    : (clipYtPlayer && clipYtPlayer.getCurrentTime ? clipYtPlayer.getCurrentTime() : 0);
+  const state = clipYtPlayer && clipYtPlayer.getPlayerState ? clipYtPlayer.getPlayerState() : null;
+  const isPlaying = typeof playingOverride === 'boolean'
+    ? playingOverride
+    : (typeof YT !== 'undefined' && (state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING));
+  currentEl.textContent = fmtClip(Math.max(0, current));
+  durationEl.textContent = fmtClip(clipDuration);
+  icon.textContent = isPlaying ? 'Ⅱ' : '▶';
+  toggle.classList.toggle('is-playing', isPlaying);
+  toggle.setAttribute('aria-label', isPlaying ? '일시정지' : '구간 재생');
 }
 function stopClipPreviewTimer(){
   if(clipPreviewTimer){ clearInterval(clipPreviewTimer); clipPreviewTimer = null; }
@@ -1456,11 +1478,13 @@ function stopClipPreviewTimer(){
 function syncClipPreviewTimer(){
   clipScrubbing = false;
   stopClipPreviewTimer();
-  if(clipStart === null || clipEnd === null || !clipYtPlayer) return;
+  if(!clipYtPlayer) return;
+  updateClipTransport();
   clipPreviewTimer = setInterval(() => {
-    if(clipScrubbing) return; // clearInterval 직전에 큐에 들어온 마지막 콜백도 무시
     if(!clipYtPlayer || !clipYtPlayer.getCurrentTime) return;
     const current = clipYtPlayer.getCurrentTime();
+    updateClipTransport(current);
+    if(clipScrubbing || clipStart === null || clipEnd === null) return; // clearInterval 직전에 큐에 들어온 마지막 콜백도 무시
     const inEndMarkGrace = Date.now() < clipEndMarkGraceUntil;
     if(current < clipStart || (!inEndMarkGrace && current >= clipEnd)){
       const state = clipYtPlayer.getPlayerState && clipYtPlayer.getPlayerState();
@@ -1497,6 +1521,7 @@ function loadClipPlayer(onDurationReady){
       events: {
         onStateChange: (e) => {
           if(e.data === YT.PlayerState.PLAYING) clipScrubbing = false;
+          updateClipTransport(undefined, e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING);
           if(!clipScrubbing && !clipPreviewTimer && modalType === 'vid' && document.getElementById('addModal').classList.contains('active') && [YT.PlayerState.PLAYING, YT.PlayerState.PAUSED, YT.PlayerState.BUFFERING, YT.PlayerState.ENDED].includes(e.data)) syncClipPreviewTimer();
         },
         onReady: (e) => {
@@ -1551,12 +1576,38 @@ function clearClip(){
   clipStart = null; clipEnd = null; clipEndMarkGraceUntil = 0;
   syncClipSliders();
   updateClipLabel();
-  stopClipPreviewTimer();
+  syncClipPreviewTimer();
 }
 function onClipScrubStart(){
   clipScrubbing = true;
   stopClipPreviewTimer();
   if(clipYtPlayer && clipYtPlayer.pauseVideo) clipYtPlayer.pauseVideo();
+  updateClipTransport(undefined, false);
+}
+function skipClipPreview(seconds){
+  if(!clipYtPlayer || !clipYtPlayer.getCurrentTime || !clipYtPlayer.seekTo) return;
+  onClipScrubStart();
+  const target = Math.min(clipDuration, Math.max(0, clipYtPlayer.getCurrentTime() + seconds));
+  clipYtPlayer.seekTo(target, true);
+  updateClipTransport(target, false);
+}
+function toggleClipPreview(){
+  if(!clipYtPlayer || !clipYtPlayer.getPlayerState) return;
+  const state = clipYtPlayer.getPlayerState();
+  if(typeof YT !== 'undefined' && (state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING)){
+    onClipScrubStart();
+    return;
+  }
+  const start = clipStart !== null ? clipStart : 0;
+  const end = clipEnd !== null ? clipEnd : clipDuration;
+  const current = clipYtPlayer.getCurrentTime ? clipYtPlayer.getCurrentTime() : 0;
+  if(current < start || current >= end) clipYtPlayer.seekTo(start, true);
+  clipScrubbing = false;
+  syncClipPreviewTimer();
+  if(clipYtPlayer.playVideo){
+    clipYtPlayer.playVideo();
+    updateClipTransport(undefined, true);
+  }
 }
 // 손잡이 두 개가 겹칠 때(값이 서로 가까울 때) 항상 올바른 쪽이 클릭되도록, z-index가 아니라
 // 두 값의 중간점을 기준으로 각 input의 클릭 가능 영역(clip-path) 자체를 절반씩 나눈다.
