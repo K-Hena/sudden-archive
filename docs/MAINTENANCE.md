@@ -44,7 +44,7 @@ AI_CONTEXT.md를 프로젝트의 기준 문서(Single Source of Truth)로 두고
 | KNOWN_ISSUES.md | 작업 중 발견했지만 범위 밖이라 수정하지 않은, 확인된 이슈 목록 |
 | architecture/auth-flow.md | 로그인(Discord OAuth / 이메일·비밀번호) 흐름, 관리자 판별 세부 |
 | architecture/search-flow.md | 검색이 아닌 실제 탐색(맵→팀→태그) 흐름 |
-| architecture/admin-flow.md | 편집모드 이식 완료/미완료, 레거시 Admin과의 기능 격차 |
+| architecture/admin-flow.md | Master 대시보드 기능, 사용자 승인 흐름, 레거시 Admin과의 기능 격차 |
 | architecture/database-flow.md | 데이터 조회/쓰기/Storage 흐름, Realtime 미사용 등 |
 
 ---
@@ -112,7 +112,7 @@ AI_CONTEXT.md를 프로젝트의 기준 문서(Single Source of Truth)로 두고
 
 ---
 
-## 편집모드 / 관리자 기능 이식 작업
+## Master / 관리자 기능 작업
 
 확인
 

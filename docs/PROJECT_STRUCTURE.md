@@ -36,7 +36,7 @@ sudden-archive/                     (이 저장소, User 사이트 — github.co
 
 빌드 도구, package.json, 프레임워크가 전혀 없다. Vercel이 두 저장소를 각각 정적 사이트로 배포한다.
 
-CDN으로 불러오는 외부 라이브러리: `@supabase/supabase-js@2`, `cropperjs@1.6.1`(이미지 크롭, 레거시 Admin과 동일 버전), YouTube IFrame API(`https://www.youtube.com/iframe_api`, 클립 구간 재생/마킹용).
+CDN으로 불러오는 외부 자원: `@supabase/supabase-js@2`, `cropperjs@1.6.1`(이미지 크롭, 레거시 Admin과 동일 버전), YouTube IFrame API(`https://www.youtube.com/iframe_api`, 클립 구간 재생/마킹용), Pretendard와 조선굴림체 웹폰트. Paperlogy는 저장소의 기존 폰트 역할을 유지한다.
 
 ---
 
@@ -46,29 +46,32 @@ CDN으로 불러오는 외부 라이브러리: `@supabase/supabase-js@2`, `cropp
 
 ## CSS (`<style>`)
 - `:root`에 색상 변수 정의: `--bg/--panel/--line/--text/--muted` (베이스), `--red/--blue` (팀 컬러), `--amber` (즐겨찾기 별 등에 사용), `--edit-accent/--edit-accent-ink` (Master 버튼·탭·강조 요소 전용 강조색), `--green` (성공 메시지)
-- 컴포넌트별 스타일: 헤더/브랜드, 맵 그리드(`map-tile`), 검색창(`detail-search`)과 첫 화면·상세 상단 검색 행(`map-head`, 모바일 세로 배치), 카드 그리드(`card`, `card-fav`), 재생 오버레이(`overlay`), Master 대시보드(`master-shell`, `master-sidebar`, `master-tab`, `master-content`, `master-pane`, `master-table`, `master-btn`), 항목 추가 모달(`modal`, `type-toggle`, `cropper-wrap`, `clip-tools`, `clip-btns`, `clip-range`), 구간 슬라이더(`clip-sliders`, `clip-range-slider`/`clip-range-track`/`clip-range-fill`/`clip-range-input` — 겹친 단일 트랙 + thumb만 `pointer-events:auto`, `docs/DECISIONS.md` 참고)
+- 컴포넌트별 스타일: 헤더/브랜드, 홈 대시보드(`home-*`), 맵 그리드(`map-tile`), 검색창(`detail-search`)과 전체 맵·상세 상단 검색 행(`map-head`, 모바일 세로 배치), 카드 그리드(`card`, `card-fav`, 작성자 표시), 재생 오버레이(`overlay`, 댓글·이미지 확대/이동), Master 대시보드(`master-shell`, `master-sidebar`, `master-tab`, `master-content`, `master-pane`, `master-table`, `master-btn`), 컨텐츠 추가 모달(`modal`, `type-toggle`, `cropper-wrap`, `clip-tools`, `clip-btns`, `clip-range`), 구간 슬라이더(`clip-sliders`, `clip-range-slider`/`clip-range-track`/`clip-range-fill`/`clip-range-input`)
+- 기본 본문·UI는 Pretendard, 댓글은 조선굴림체를 사용한다. Paperlogy 제목과 Rajdhani/JetBrains Mono의 영문·숫자 역할은 유지하되 한글 fallback은 Pretendard다.
 - 과거 편집모드 전용이었던 `tile-actions`/`add-tile`/`editmode-btn`/`admin-badge`/`card-edit`/`card-del`/`card-fav.with-delete`는 그룹 D-2 4단계에서 기능과 함께 CSS도 완전히 삭제됨
 
 ## HTML (`<body>`)
 - `header`: 로고, CLIPS/TIPS 카운트, `#authArea`(로그인 상태에 따라 JS가 채움)
 - `.subbar`: 전체 맵 / 현재 맵 이름 breadcrumb
+- `#viewHome`: 로그인 여부와 관계없는 첫 화면 — 승인된 컨텐츠로 가는 전체 맵 CTA, 즐겨찾기·최근 본 컨텐츠, 컨텐츠 추가·임시저장, 내가 추가한 컨텐츠 영역
 - `#viewGrid`: 맵 선택 화면 — 맵 선택 문구와 전체 제목 검색창(`#globalTitleSearch`) 아래 `#mapGrid`에 맵 타일 또는 검색 결과 카드 표시
 - `#viewDetail`: 맵 상세 화면 — 상단 `map-head detail-toolbar` 안에 뒤로가기 버튼(왼쪽)과 제목 검색창(`#titleSearch`, 오른쪽), 그 아래 맵 제목·RED/BLUE 팀 토글과 `#cardGrid`
 - `#overlay`: 영상/이미지 재생 오버레이 — 실제 미디어(iframe/img)는 `#overlayMediaContent`에만 그리고, 그 위에 뜨는 재생/일시정지 버튼(`#overlayPlayPause`)과 클립 항목 전용 "전체 영상 보기" 버튼(`#overlayFullBtn`)은 형제 요소로 분리해 `innerHTML` 교체로 지워지지 않게 함
-- `#addModal`: 항목 추가/수정 모달(Master "영상 추가"·"항목 관리" 탭에서 진입) — `#pasteStep` → `#videoWrap/#imageWrap` → `#titleWrap` 3단계 화면 전환. 유튜브 URL/이미지를 자동 판별하고, 이미지는 Cropper.js, 영상은 `#clipTools`(버튼 + 슬라이더)로 연결. "맵 지명" 태그는 이미지 고정
+- `#addModal`: 컨텐츠 추가/수정 모달(홈과 Master에서 재사용) — `#pasteStep` → `#videoWrap/#imageWrap` → `#titleWrap` 3단계 화면 전환. 유튜브 URL/이미지를 자동 판별하고, 이미지는 Cropper.js, 영상은 `#clipTools`(버튼 + 슬라이더)로 연결. "맵 지명" 태그는 이미지 고정
 - `#mapImgInput`: 맵 이미지 업로드용 숨김 `<input type=file>`
-- `#viewMaster`: 관리자 전용 Master 대시보드 — `.master-sidebar`(통계/영상 추가/항목 관리/맵 관리/댓글(비활성) 5탭) + `.master-content`(탭별 `.master-pane`, `switchMasterTab()`으로 표시만 전환하고 DOM은 항상 유지)
+- `#viewMaster`: 관리자 전용 Master 대시보드 — `.master-sidebar`(통계/컨텐츠 추가/항목 관리/맵 관리/댓글/승인 대기 6탭) + `.master-content`(탭별 `.master-pane`, `switchMasterTab()`으로 표시만 전환하고 DOM은 항상 유지)
 
 ## JS (`<script>`)
 - Supabase 클라이언트 초기화 (`sb`)
 - 전역 상태: `maps`, `items`, `currentMap`, `currentMapName`, `currentTeam`, `currentSession`, `favorites`, `favoritePending`, `isAdminUser`, `modalTag`, `modalType`, `modalStep`, `cropper`, `pendingMapId`, `clipStart`, `clipEnd`, `clipDuration`, `clipYtPlayer`(재생 오버레이용 `ytPlayer`와는 별도 — `docs/DECISIONS.md` 참고), `clipPreviewTimer`(편집 미리보기 구간 감시 전용, 일반 오버레이 `clipTimer`와 분리), `clipScrubLastSeek`(드래그 스크러빙 스로틀용)
-- 데이터 로드: `loadAll()` — `maps`/`items` 테이블을 조회해 전역 배열을 채우고 `renderMapGrid()` 호출, Master 화면이 활성이면 활성 탭(`items`/`maps`/`stats`)에 맞는 렌더 함수도 함께 호출
-- 맵 그리드: `renderMapGrid()`는 전역 검색어가 없으면 맵 타일을(액션 아이콘 없음, 관리자·비관리자 동일), 있으면 `renderGlobalTitleSearch()`를 통해 전체 `items.title` 검색 결과 카드를 표시. 결과 카드는 `maps`에서 맵 이름을 찾아 진영과 함께 표시하고 `openOverlay()` 재사용. 맵 CRUD 함수 `addMap()/renameMap()/deleteMap()/pickMapImage()`는 Master "맵 관리" 탭(`renderMasterMapsTable()`)에서만 호출됨
-- 상세 카드: `renderCards()`가 현재 맵·팀과 제목으로 필터링한 뒤 위폭·팁 즐겨찾기를 최신순 우선 정렬(액션 아이콘 없음, 관리자·비관리자 동일). `favoriteButton()/toggleFavorite()`가 상세·전체 검색 카드의 별 버튼과 DB 성공 후 상태 갱신을 담당하고 `favoritePending`으로 중복 요청을 차단. 항목 CRUD용 `openAddModal()/showModalStep()/readAddClipboard()/startVideoFlow()/startImageFlow()/advanceAddModal()/submitItem()/deleteItem()`, 이미지 크롭 `loadImageIntoCropper()`는 Master "영상 추가"·"항목 관리" 탭에서만 진입함
+- 데이터 로드: `loadAll()` — `maps`/`items` 테이블을 조회해 전역 배열을 채우고 홈·전체 맵을 갱신. 공개 화면은 `publicItems()`로 `published`만 사용하며, Master 화면이 활성이면 현재 탭에 맞는 렌더 함수도 호출
+- 맵 그리드: `renderMapGrid()`는 검색어가 없으면 맵 타일을, 있으면 `renderGlobalTitleSearch()`를 통해 공개 항목의 제목·채널명 검색 결과를 표시. 맵 CRUD 함수 `addMap()/renameMap()/deleteMap()/pickMapImage()`는 Master "맵 관리" 탭에서만 호출됨
+- 상세 카드: `renderCards()`가 현재 맵·팀과 제목·채널명으로 공개 항목을 필터링한 뒤 위폭·팁 즐겨찾기를 최신순 우선 정렬(액션 아이콘 없음, 관리자·비관리자 동일). `favoriteButton()/toggleFavorite()`가 상세·전체 검색 카드의 별 버튼과 DB 성공 후 상태 갱신을 담당하고 `favoritePending`으로 중복 요청을 차단. 컨텐츠 추가는 홈과 Master의 기존 탭이 같은 모달을 재사용하고, 수정·관리자 삭제는 Master 항목 관리 또는 본인 컨텐츠 흐름에서 권한에 맞게 진입한다.
 - 클립 구간 지정: `loadClipPlayer()/markClipStart()/markClipEnd()/clearClip()/updateClipLabel()`(버튼), `onClipStartInput()/onClipStartChange()/onClipEndInput()/onClipEndChange()/syncClipSliders()/updateClipSliderLabels()/updateClipRangeFill()`(단일 트랙 슬라이더 — `min`/`max`는 항상 `[0, clipDuration]`로 고정, 교차 방지는 각 입력 핸들러가 자기 자신의 value만 clamp하는 방식), `onClipScrubStart()/scrubClipPreview()`(드래그 중 일시정지 + 스로틀된 정지 프레임 미리보기), `applyClipDuration(duration)`(`getDuration()`이 안정된 값으로 확정됐을 때만 슬라이더 `min`/`max`/`value`에 반영 — 모달 초기화 시 `0`으로도 호출해 이전 영상 상태를 리셋), `syncClipPreviewTimer()/stopClipPreviewTimer()`(양쪽 경계가 있을 때만 `[clipStart, clipEnd)` 감시, 초기화·영상 교체·이미지 전환·모달 종료 시 정리) — 버튼과 슬라이더 모두 `clipStart`/`clipEnd`를 공유
 - 재생: `openOverlay()/closeOverlay()` — 유튜브 IFrame API로 클립 구간 반복 재생 지원, 클립 항목은 `controls:0`으로 컨트롤바를 숨기고 `toggleOverlayPlay()`(커스텀 재생/일시정지)와 `showFullVideo()`(같은 위치에서 이어서 `controls:1` 플레이어로 재생성, 구간 제한 해제)를 제공. 상태는 `overlayVideoId`/`overlayHasClip`에 저장되며 오버레이를 닫으면 초기화됨(전체 모드 전환은 세션 한정, `docs/DECISIONS.md` 참고)
-- 인증: `initAuth()/renderAuthArea()/discordLogin()/loadFavorites()` — Discord OAuth 로그인, 로그인 사용자의 즐겨찾기 조회·로그아웃 초기화, `admins` 테이블 조회로 관리자 판별해 `isAdminUser` 갱신 → `#masterBtn` 노출 여부 결정
-- Master 대시보드: `openMaster()/switchMasterTab()` — `#viewMaster` 진입·탭 전환. `renderMasterMapsTable()/renderMasterItemsTable()/renderMasterItemsTab()/renderMasterAddTab()/loadMasterStats()/startMasterAdd()`가 각 탭 렌더링을 담당
+- 인증·홈: `initAuth()/renderAuthArea()/discordLogin()/loadFavorites()/showHome()/renderHomeDashboard()` — Discord OAuth, 즐겨찾기·최근 본 컨텐츠·임시저장·본인 등록 목록을 로그인 상태에 맞게 렌더링하고 `admins` 조회 결과로 `#masterBtn` 노출 여부 결정
+- 사용자 등록: 일반 사용자는 `pending`, 관리자는 `published`로 저장. 작성자 표시 정보는 DB 트리거가 Discord 인증 메타데이터로 강제하며, 일반 사용자는 승인 전 항목만 수정·숨김 가능
+- Master 대시보드: `openMaster()/switchMasterTab()` — 통계·컨텐츠 추가·항목 관리·맵 관리·댓글·승인 대기 탭 전환. `renderMasterApprovals()/reviewItem()`이 승인·반려를 담당
 
 ---
 
@@ -77,7 +80,8 @@ CDN으로 불러오는 외부 라이브러리: `@supabase/supabase-js@2`, `cropp
 ## 비로그인 / 일반 로그인 사용자
 ```
 initAuth() + loadAll() 동시 시작
-  → loadAll(): maps/items 테이블 SELECT → renderMapGrid()
+  → 홈 표시 → 전체 맵 보기 CTA
+  → loadAll(): maps/items 테이블 SELECT → 공개 화면은 published만 사용
   → 맵 타일 클릭 → openMap() → renderCards() (팀 필터 + 태그별 그룹핑)
   → 카드 클릭 → openOverlay() (유튜브 임베드 또는 이미지 표시)
 ```

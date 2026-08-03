@@ -23,14 +23,6 @@ URL: `https://mvyepqqstaipxqfesalv.supabase.co` (User/Admin 두 사이트가 동
 | img | 맵 썸네일 이미지 URL, null 가능 (`m.img ? ... : '이미지 없음'`) | Storage 공개 URL |
 | sort_order | 목록 정렬 기준 (`order('sort_order', {ascending:true})`), `addMap()`에서 `max(sort_order)+1`로 자동 증가 | |
 | created_at | timestamptz, 기본값 `now()` | 코드에서 직접 참조하지 않음 |
-| created_by | uuid, `auth.users(id)` FK, null 가능 | 신규 항목 소유자. 레거시 항목은 null |
-| contributor_name / contributor_avatar | text, null 가능 | 등록 시점 Discord 표시 정보 스냅샷. DB 트리거가 강제 |
-| status | text, 기본값 `published` | `pending` / `published` / `rejected` / `trashed` CHECK |
-| submitted_at | timestamptz, 기본값 `now()` | 제출 시각 |
-| reviewed_at / reviewed_by | timestamptz / uuid | 관리자 검토 시각·사용자 |
-| rejection_reason / deleted_at | text / timestamptz | 반려 사유·숨김 시각 |
-
-RLS는 익명 사용자에게 `published`만, 로그인 사용자에게 공개 항목과 본인 항목, 관리자에게 전체 항목을 허용한다. 일반 사용자는 본인 `pending` 등록과 승인 전 항목 수정·`trashed` 전환만 가능하고, 승인·하드 삭제는 관리자만 가능하다.
 
 ## items
 
@@ -43,13 +35,21 @@ RLS는 익명 사용자에게 `published`만, 로그인 사용자에게 공개 �
 | team | `'red'` \| `'blue'` \| `'none'` | RED/BLUE는 팀 필터 기준. `'none'`은 "진영 없음(공통)" 항목 — TOTAL/FAVORITE 뷰에서만 보이고 RED/BLUE 필터에서는 제외됨(NOT NULL, CHECK `items_team_check`로 세 값만 허용) |
 | type | `'vid'` \| `'img'` | 영상/이미지 구분 |
 | tag | 문자열. 실제 코드에서 쓰는 값: `'맵 지명'`, `'위폭'`, `'팁'` (`tagOrder` 배열 기준) | 이 외의 값도 저장 가능하지만 정렬 순서 밖으로 밀림 |
-| title | 항목 제목. `tag==='맵 지명'`이면 항상 `'맵 전체 지명'`로 고정 저장 | 컬럼 타입은 `text`로 DB 레벨 길이 제한 없음. 항목 추가 모달의 `<input id="mTitle" maxlength="14">`는 **클라이언트 입력 단계에서만** 걸리는 제한이라 DB에는 강제되지 않음(SQL이나 다른 클라이언트로는 더 긴 값도 저장 가능) — 표시 단계에서 `.card .title`의 `text-overflow:ellipsis`(1줄)로 함께 방어. 실측 근거는 `docs/DECISIONS.md` 참고 |
-| note | 설명, null 가능 | 컬럼 타입은 `text`로 DB 레벨 길이 제한 없음. `<textarea id="mNote" maxlength="35">`도 title과 동일하게 클라이언트 입력 단계 전용 제한이며, 표시 단계에서 `.card .note`의 `-webkit-line-clamp:2`(2줄)로 함께 방어. 기존에 이 기준보다 긴 값이 저장돼 있어도 수정 모달 로드 시 잘리지 않고 그대로 보인다(자동 절단 없음) |
+| title | 항목 제목. `tag==='맵 지명'`이면 항상 `'맵 전체 지명'`로 고정 저장 | 컬럼 타입은 `text`로 DB 레벨 길이 제한 없음. 항목 추가 모달의 `<input id="mTitle" maxlength="17">`는 **클라이언트 입력 단계에서만** 걸리는 제한이라 DB에는 강제되지 않음(SQL이나 다른 클라이언트로는 더 긴 값도 저장 가능) — 표시 단계에서 `.card .title`의 `text-overflow:ellipsis`(1줄)로 함께 방어. 실측 근거는 `docs/DECISIONS.md` 참고 |
+| note | 설명, null 가능 | 컬럼 타입은 `text`로 DB 레벨 길이 제한 없음. `<textarea id="mNote" maxlength="41">`도 title과 동일하게 클라이언트 입력 단계 전용 제한이며, 표시 단계에서 `.card .note`의 `-webkit-line-clamp:2`(2줄)로 함께 방어. 기존에 이 기준보다 긴 값이 저장돼 있어도 수정 모달 로드 시 잘리지 않고 그대로 보인다(자동 절단 없음) |
 | video_url | 유튜브 URL (`type==='vid'`일 때) | 전체 영상 또는 `/shorts/` 모두 지원 |
 | channel_name | 유튜브 채널명, null 가능 | 신규 영상 등록 시 YouTube oEmbed의 `author_name`을 저장. 기존 항목과 조회 실패 항목은 `null` |
 | img_url | 이미지 URL (`type==='img'`일 때) | Storage 공개 URL |
 | clip_start / clip_end | 유튜브 클립 재생 구간(초), null이면 전체 재생 | User 사이트 항목 추가 모달에서 버튼(`markClipStart`/`markClipEnd`) 또는 슬라이더로 지정한 값을 저장. 지정하지 않으면 둘 다 `null` (전체 재생) |
 | created_at | timestamptz, 기본값 `now()` | 코드에서 직접 참조하지 않음 |
+| created_by | uuid, `auth.users(id)` FK, null 가능 | 신규 항목 소유자. 레거시 항목은 null |
+| contributor_name / contributor_avatar | text, null 가능 | 등록 시점 Discord 표시 정보 스냅샷. DB 트리거가 Discord 인증 메타데이터로 강제 |
+| status | text, 기본값 `published` | `pending` / `published` / `rejected` / `trashed` CHECK |
+| submitted_at | timestamptz, 기본값 `now()` | 제출 시각 |
+| reviewed_at / reviewed_by | timestamptz / uuid | 관리자 검토 시각·사용자 |
+| rejection_reason / deleted_at | text / timestamptz | 반려 사유·숨김 시각 |
+
+RLS는 익명 사용자에게 `published`만, 로그인 사용자에게 공개 항목과 본인 항목, 관리자에게 전체 항목을 허용한다. 일반 사용자는 본인 `pending` 등록과 승인 전 항목 수정·`trashed` 전환만 가능하고, 승인·하드 삭제는 관리자만 가능하다.
 
 ### `items.channel_name` 추가 SQL
 
@@ -105,7 +105,7 @@ Discord 로그인 사용자의 즐겨찾기. Supabase migration `create_user_fav
 
 ## item_clicks
 
-항목(카드) 클릭·재생 횟수를 쌓는 이벤트 로그. 맵 입장이 아니라 카드를 열 때마다 한 행씩 쌓인다. Supabase migration `create_item_clicks_table`로 생성했다. 그룹 D 1단계 범위 — 대시보드 UI는 아직 없다.
+항목(카드) 클릭·재생 횟수를 쌓는 이벤트 로그. 맵 입장이 아니라 카드를 열 때마다 한 행씩 쌓인다. Supabase migration `create_item_clicks_table`로 생성했으며 Master 통계 탭에서 집계한다.
 
 | 컬럼 | 자료형/제약 |
 |---|---|
@@ -124,8 +124,9 @@ Discord 로그인 사용자의 즐겨찾기. Supabase migration `create_user_fav
 
 코드 동작과 Supabase MCP 확인 기준:
 
-- `maps`, `items`: **SELECT는 로그인 여부와 무관하게 누구나 가능** (User 사이트는 로그인 없이도 목록을 조회함)
-- `maps`, `items`: **INSERT/UPDATE/DELETE는 `admins` 테이블에 등록된 `user_id`만 허용** — User 사이트의 Master 대시보드(맵 관리/항목 관리/영상 추가 탭)가 이 권한에 의존해서 관리자만 CRUD 버튼이 동작하도록 설계됨
+- `maps`: SELECT는 누구나 가능하고 INSERT/UPDATE/DELETE는 `admins` 테이블에 등록된 사용자만 허용
+- `items`: 익명 사용자는 `published`만, 로그인 사용자는 `published`와 본인 항목 전체, 관리자는 모든 상태를 SELECT 가능
+- `items`: 로그인 사용자는 본인 명의 `pending`만 등록 가능하고 본인의 승인 전 항목(`pending`/`rejected`) 수정·재제출·`trashed` 전환만 가능. 관리자는 모든 상태를 등록·검토·수정·삭제할 수 있으며 관리자 신규 등록은 `published`로 저장
 - `admins`: RLS 활성화, `pg_policies`로 직접 조회해 확인함 — `admins_select_own`, `본인 확인 가능` 두 개의 SELECT 정책이 있으며 둘 다 조건은 동일하게 `auth.uid() = user_id`(본인 행만 조회 가능, `roles: public`). INSERT/UPDATE/DELETE 정책은 없음 — `admins` 테이블 자체는 클라이언트에서 쓰기 불가하고, 관리자 등록은 Supabase 대시보드/MCP로만 이뤄진다.
 - `favorites`: RLS 활성화. `authenticated`에 SELECT/INSERT/DELETE를 부여한다. INSERT/DELETE는 `(select auth.uid()) = user_id`로 본인 행만 허용. SELECT는 두 정책이 OR로 합쳐진다 — 기존 "Users can view their own favorites"(본인 행만)에 더해, 그룹 D-2 1단계(Master 대시보드 통계 탭)에서 `admins can select favorites` 정책을 추가해 관리자는 전체 행을 조회할 수 있다(`exists(select 1 from admins where admins.user_id = (select auth.uid()))`, `item_clicks`의 "admins can select clicks"와 동일 패턴). 2026-07-27 실행, RLS 변경이라 사전에 사용자 확인을 받았다. `anon` 권한과 UPDATE 정책은 없다.
 - `item_clicks`: RLS 활성화. INSERT는 `anon`/`authenticated` 모두 허용하되 `user_id is null or user_id = (select auth.uid())`로 본인 것이거나 `null`만 허용(타인 user_id로의 스푸핑은 차단). SELECT는 `authenticated` 중 `admins`에 등록된 사용자만 가능(`exists (select 1 from admins where admins.user_id = (select auth.uid()))`). UPDATE/DELETE 정책은 없음. 실제 anon 세션으로 REST API를 직접 호출해 검증함 — `user_id: null` INSERT 성공(201), 타인 `user_id` 스푸핑 INSERT 실패(401/`42501`), anon SELECT는 빈 배열 반환(정책이 없어 RLS가 조용히 필터링). **알려진 한계**: 로그인 사용자가 고의로 `user_id: null`을 보내 본인 클릭을 익명 처리하는 것은 이 정책으로 막지 못한다(세션 검증까지는 이번 범위 밖, `docs/DECISIONS.md` 참고). 또한 `.insert().select()`처럼 `Prefer: return=representation`을 쓰면 anon은 SELECT 정책이 없어 INSERT 자체가 롤백된다 — 앱 코드(`trackClick`)는 `.select()`를 체이닝하지 않아 영향 없음.

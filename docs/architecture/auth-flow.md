@@ -1,6 +1,6 @@
 # auth-flow.md
 
-> `index.html`(User)과 `sudden-archive-admin/index.html`(레거시 Admin)의 실제 인증 코드를 분석해서 작성했다. 두 사이트는 **서로 다른 로그인 방식**을 쓰고 있으며 아직 통합되지 않았다.
+> `index.html`(User + Master)과 `sudden-archive-admin/index.html`(레거시 Admin)의 실제 인증 코드를 분석해서 작성했다. 두 배포는 서로 다른 로그인 방식을 쓰며, 운영 기능은 User 사이트의 Discord 로그인 + Master로 통합됐다.
 
 ---
 
@@ -29,7 +29,7 @@ sequenceDiagram
         S-->>U: RLS로 현재 사용자 행만 반환
         U->>S: sb.from('admins').select('user_id').eq('user_id', session.user.id).maybeSingle()
         S-->>U: 관리자 여부(isAdmin)
-        U->>U: 닉네임 표시 + (관리자면) 헤더 "Master" 버튼 노출
+        U->>U: 닉네임 표시 + 홈 개인 영역 렌더링 + (관리자면) 헤더 "Master" 버튼 노출
     end
 ```
 
@@ -40,6 +40,7 @@ sequenceDiagram
 - 로그아웃: `sb.auth.signOut()`
 - 닉네임: `session.user.user_metadata.full_name || session.user.user_metadata.name || '사용자'`
 - 즐겨찾기: 로그인 시 `favorites`를 최신순 조회하고 로그아웃 시 세션·즐겨찾기·처리 중 상태를 즉시 비운 뒤 현재 화면을 다시 렌더링한다.
+- 홈 개인 영역: 로그인 상태에 따라 즐겨찾기·최근 본 컨텐츠·컨텐츠 추가·임시저장·내가 추가한 컨텐츠를 렌더링한다. 비로그인 상태에서는 로그인 필요 안내를 표시한다.
 
 ## 관리자 판별 → Master 대시보드
 - `renderAuthArea`가 `admins` 테이블에서 `user_id` 존재 여부로 `isAdmin`을 판별해 전역 `isAdminUser`에 반영한다.

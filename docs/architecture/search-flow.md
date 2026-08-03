@@ -2,9 +2,11 @@
 
 # 탐색과 제목 검색 흐름
 
-## 첫 화면 전체 제목 검색
+## 전체 맵 화면의 전체 검색
 
 ```
+홈 → 전체 맵 보기
+  → #viewGrid
 #globalTitleSearch 입력
   → renderGlobalTitleSearch()
   → 전체 items.title OR items.channel_name 부분 일치 필터
@@ -22,8 +24,8 @@
 
 ```
 맵 선택 (#viewGrid, mapGrid)
-  → openMap()에서 RED 팀 선택
-  → RED/BLUE 선택 (setTeam)
+  → openMap()에서 TOTAL 선택
+  → TOTAL/RED/BLUE/FAVORITE 선택 (setTeam)
   → 제목 또는 채널 입력 (#titleSearch, input 이벤트)
   → renderCards()
       1. 현재 map_id + team 필터
