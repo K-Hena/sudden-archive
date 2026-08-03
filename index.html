@@ -180,6 +180,13 @@ header{
 .master-pane.active{display:block;}
 .master-add-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:4px;}
 .master-select{background:var(--bg);border:1px solid var(--line);color:var(--text);padding:9px 10px;font-family:'Inter',sans-serif;font-size:13px;}
+.content-draft-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--line);margin-top:8px;cursor:pointer;}
+.content-draft-item:hover{border-color:var(--edit-accent);}
+.content-draft-info{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;}
+.content-draft-title{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.content-draft-meta{font-size:11px;color:var(--muted);}
+.content-draft-del{cursor:pointer;color:var(--muted);font-size:14px;flex-shrink:0;}
+.content-draft-del:hover{color:var(--red);}
 .master-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}
 .master-stat{background:var(--panel);border:1px solid var(--line);padding:16px 18px;}
 .master-stat b{display:block;font-family:'Paperlogy',sans-serif;font-weight:800;font-size:26px;color:var(--text);}
@@ -425,14 +432,14 @@ header{
 .clip-sliders{margin-bottom:14px;}
 .clip-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:8px;letter-spacing:0.03em;}
 .clip-labels b{color:var(--edit-accent);font-family:'JetBrains Mono',monospace;font-weight:500;}
-.clip-range-slider{position:relative;height:28px;}
-.clip-range-track{position:absolute;top:50%;left:0;right:0;height:4px;transform:translateY(-50%);background:var(--bg);border:1px solid var(--line);}
-.clip-range-fill{position:absolute;top:50%;height:4px;transform:translateY(-50%);background:var(--edit-accent);pointer-events:none;}
-.clip-range-input{position:absolute;top:0;left:0;width:100%;height:28px;margin:0;padding:0;-webkit-appearance:none;appearance:none;background:none;pointer-events:none;}
-.clip-range-input::-webkit-slider-runnable-track{background:transparent;height:28px;}
-.clip-range-input::-moz-range-track{background:transparent;height:28px;border:none;}
-.clip-range-input::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;pointer-events:auto;width:16px;height:16px;margin-top:6px;border-radius:50%;background:var(--edit-accent);border:2px solid var(--bg);cursor:pointer;}
-.clip-range-input::-moz-range-thumb{pointer-events:auto;width:16px;height:16px;border-radius:50%;background:var(--edit-accent);border:2px solid var(--bg);cursor:pointer;}
+.clip-range-slider{position:relative;height:32px;}
+.clip-range-track{position:absolute;top:50%;left:0;right:0;height:8px;transform:translateY(-50%);background:var(--bg);border:1px solid var(--line);}
+.clip-range-fill{position:absolute;top:50%;height:8px;transform:translateY(-50%);background:var(--edit-accent);pointer-events:none;}
+.clip-range-input{position:absolute;top:0;left:0;width:100%;height:32px;margin:0;padding:0;-webkit-appearance:none;appearance:none;background:none;pointer-events:none;}
+.clip-range-input::-webkit-slider-runnable-track{background:transparent;height:32px;}
+.clip-range-input::-moz-range-track{background:transparent;height:32px;border:none;}
+.clip-range-input::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;pointer-events:auto;width:24px;height:24px;margin-top:4px;border-radius:50%;background:var(--edit-accent);border:2px solid var(--bg);cursor:pointer;}
+.clip-range-input::-moz-range-thumb{pointer-events:auto;width:24px;height:24px;border-radius:50%;background:var(--edit-accent);border:2px solid var(--bg);cursor:pointer;}
 .clip-btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}
 .clip-btns button{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg);color:var(--text);border:1px solid var(--line);padding:8px 12px;cursor:pointer;}
 .clip-btns button:hover{border-color:var(--edit-accent);color:var(--edit-accent);}
@@ -501,7 +508,7 @@ header{
   <div class="master-shell">
     <nav class="master-sidebar">
       <button class="master-tab active" data-tab="stats" onclick="switchMasterTab('stats')">📊 통계</button>
-      <button class="master-tab" data-tab="add" onclick="switchMasterTab('add')">🎬 영상 추가</button>
+      <button class="master-tab" data-tab="add" onclick="switchMasterTab('add')">🎬 컨텐츠 추가</button>
       <button class="master-tab" data-tab="items" onclick="switchMasterTab('items')">🗂 항목 관리</button>
       <button class="master-tab" data-tab="maps" onclick="switchMasterTab('maps')">🗺 맵 관리</button>
       <button class="master-tab" disabled>💬 댓글</button>
@@ -521,7 +528,7 @@ header{
       </div>
       <div class="master-pane" id="masterPaneAdd">
         <div class="map-head">
-          <div class="section-label">영상 추가</div>
+          <div class="section-label">컨텐츠 추가</div>
           <button class="back-btn" onclick="showMapGrid()">← 일반 화면으로</button>
         </div>
         <div class="master-add-row">
@@ -530,6 +537,10 @@ header{
         </div>
         <button class="btn-primary" onclick="startMasterAdd()">등록 시작</button>
         <div class="msg-modal" id="masterAddMsg"></div>
+        <div id="contentDraftsSection" style="display:none;">
+          <div class="section-label" style="margin-top:20px;">임시저장한 항목</div>
+          <div id="contentDraftsList"></div>
+        </div>
       </div>
       <div class="master-pane" id="masterPaneItems">
         <div class="map-head">
@@ -596,7 +607,7 @@ header{
   <div class="modal-box">
     <div class="modal-head">
       <h3 id="modalTitle">항목 추가</h3>
-      <span class="x" onclick="closeModal()">✕</span>
+      <span class="x" onclick="requestCloseModal()">✕</span>
     </div>
     <div class="modal-body">
       <div class="paste-step" id="pasteStep">
@@ -690,7 +701,8 @@ header{
       <div class="msg-modal" id="modalMsg"></div>
       <div class="modal-actions">
         <button class="btn-ghost" id="modalBackBtn" onclick="goBackModal()" style="display:none;">뒤로</button>
-        <button class="btn-ghost" onclick="closeModal()">취소</button>
+        <button class="btn-ghost" id="modalDraftBtn" onclick="saveDraftAndClose()" style="display:none;">임시저장</button>
+        <button class="btn-ghost" onclick="requestCloseModal()">취소</button>
         <button class="btn-primary" id="modalSaveBtn" onclick="advanceAddModal()" style="display:none;">다음</button>
       </div>
     </div>
@@ -930,6 +942,7 @@ function renderMasterAddTab(){
   document.getElementById('masterAddTag').innerHTML = '<option value="">태그를 선택해주세요</option>' +
     tagOrder.map(t => `<option value="${t}">${t}</option>`).join('');
   document.getElementById('masterAddMsg').textContent = '';
+  renderContentDraftsList();
 }
 
 function renderMasterItemsTab(){
@@ -1865,6 +1878,8 @@ let clipStart = null, clipEnd = null, clipYtPlayer = null;
 let clipPreviewTimer = null;
 let clipDuration = 0;
 let clipScrubLastSeek = 0;
+let contentDrafts = []; // localStorage 'sa-content-drafts'의 메모리 캐시(배열, 각 원소는 고유 id를 가짐)
+let resumingDraftId = null; // 현재 모달이 이어서 작성 중인 임시저장 항목의 id, 새로 시작한 경우 null
 let clipEndMarkGraceUntil = 0;
 
 function fmtClip(s){
@@ -1898,9 +1913,9 @@ function updateClipRangeFill(){
   const left = Math.min(startFrac, endFrac);
   const right = Math.max(startFrac, endFrac);
   // 네이티브 range 손잡이는 트랙 전체 폭이 아니라 (트랙폭 - 손잡이폭)만큼만 이동하고,
-  // 손잡이 중심은 항상 손잡이 반지름(8px, thumb width 16px의 절반)만큼 안쪽에서 시작한다.
-  fill.style.left = `calc(8px + (100% - 16px) * ${left})`;
-  fill.style.width = `calc((100% - 16px) * ${Math.max(right - left, 0)})`;
+  // 손잡이 중심은 항상 손잡이 반지름(12px, thumb width 24px의 절반)만큼 안쪽에서 시작한다.
+  fill.style.left = `calc(12px + (100% - 24px) * ${left})`;
+  fill.style.width = `calc((100% - 24px) * ${Math.max(right - left, 0)})`;
 }
 // 시작/끝 슬라이더의 min/max는 항상 [0, clipDuration]으로 고정한다.
 // (예전에는 서로 넘나들지 못하게 상대 슬라이더 값으로 startRange.max/endRange.min을
@@ -1920,6 +1935,7 @@ function syncClipSliders(){
   endRange.value = e;
   updateClipSliderLabels();
   updateClipRangeFill();
+  updateClipThumbClipPaths();
 }
 
 // 슬라이더의 min/max/value를 넘겨준 duration 기준으로 확정한다 (구간 재설정 시 공통으로 재사용)
@@ -1931,6 +1947,7 @@ function applyClipDuration(duration){
   endRange.min = 0; endRange.max = clipDuration; endRange.value = clipDuration;
   updateClipSliderLabels();
   updateClipRangeFill();
+  updateClipThumbClipPaths();
 }
 function stopClipPreviewTimer(){
   if(clipPreviewTimer){ clearInterval(clipPreviewTimer); clipPreviewTimer = null; }
@@ -2035,6 +2052,26 @@ function clearClip(){
 function onClipScrubStart(){
   if(clipYtPlayer && clipYtPlayer.pauseVideo) clipYtPlayer.pauseVideo();
 }
+// 손잡이 두 개가 겹칠 때(값이 서로 가까울 때) 항상 올바른 쪽이 클릭되도록, z-index가 아니라
+// 두 값의 중간점을 기준으로 각 input의 클릭 가능 영역(clip-path) 자체를 절반씩 나눈다.
+// pointermove로 미리 우선순위를 정하는 방식은 마우스 hover가 없는 터치의 "첫 탭"에서는
+// 애초에 브라우저가 이미 대상을 정한 뒤라 소용이 없어서(실제 히트테스트로 확인된 한계),
+// 아예 겹치는 히트 영역 자체를 없애는 이 방식으로 교체했다 — 이러면 pointerdown이 언제
+// 처음 발생하든(마우스든 터치든) 항상 값이 더 가까운 손잡이가 그 이벤트를 받는다.
+function updateClipThumbClipPaths(){
+  const startRange = document.getElementById('clipStartRange');
+  const endRange = document.getElementById('clipEndRange');
+  if(!startRange || !endRange) return;
+  if(clipDuration <= 0){
+    startRange.style.clipPath = '';
+    endRange.style.clipPath = '';
+    return;
+  }
+  const s = Number(startRange.value), e = Number(endRange.value);
+  const midPct = Math.min(100, Math.max(0, ((s + e) / 2 / clipDuration) * 100));
+  startRange.style.clipPath = `inset(0 ${100 - midPct}% 0 0)`;
+  endRange.style.clipPath = `inset(0 0 0 ${midPct}%)`;
+}
 function scrubClipPreview(t){
   if(!clipYtPlayer || !clipYtPlayer.seekTo) return;
   const now = Date.now();
@@ -2054,6 +2091,7 @@ function onClipStartInput(){
   clipEndMarkGraceUntil = 0;
   updateClipSliderLabels();
   updateClipRangeFill();
+  updateClipThumbClipPaths();
   updateClipLabel();
   scrubClipPreview(clipStart);
   syncClipPreviewTimer();
@@ -2071,6 +2109,7 @@ function onClipEndInput(){
   clipEndMarkGraceUntil = 0;
   updateClipSliderLabels();
   updateClipRangeFill();
+  updateClipThumbClipPaths();
   updateClipLabel();
   scrubClipPreview(clipEnd);
   syncClipPreviewTimer();
@@ -2115,6 +2154,7 @@ function showModalStep(step){
   const saveBtn = document.getElementById('modalSaveBtn');
   saveBtn.style.display = step === 'paste' ? 'none' : 'inline-block';
   saveBtn.textContent = step === 'details' || isMapLabel ? '저장' : '다음';
+  document.getElementById('modalDraftBtn').style.display = (modalMode === 'add' && step !== 'paste') ? 'inline-block' : 'none';
 }
 function renderSavePreview(){
   document.getElementById('previewVideoBox').style.display = modalType === 'vid' ? 'flex' : 'none';
@@ -2211,6 +2251,7 @@ function openAddModal(tag){
   modalTag = tag;
   modalMode = 'add';
   editingItemId = null;
+  resumingDraftId = null;
   document.getElementById('mTitle').value = '';
   document.getElementById('mNote').value = '';
   updateTextCounters();
@@ -2318,6 +2359,7 @@ function closeModal(){
   if(clipYtPlayer && clipYtPlayer.destroy){ clipYtPlayer.destroy(); clipYtPlayer = null; }
   modalMode = 'add';
   editingItemId = null;
+  resumingDraftId = null;
   document.getElementById('mVideoUrl').type = 'hidden';
   document.getElementById('mVideoUrl').readOnly = false;
   document.getElementById('mVideoUrlWrap').style.display = 'none';
@@ -2412,7 +2454,154 @@ async function submitItem(){
   }
 
   setModalMsg('추가 완료!', 'ok');
+  if(resumingDraftId) removeDraftById(resumingDraftId); // 등록이 실제로 성공한 시점에 곧바로 지운다(닫기 지연과 무관하게)
   setTimeout(async () => { closeModal(); saveBtn.disabled = false; await loadAll(); renderCards(); }, 500);
+}
+
+// --- 컨텐츠 추가 임시저장(localStorage) ---
+
+function loadContentDrafts(){
+  try {
+    const raw = localStorage.getItem('sa-content-drafts');
+    contentDrafts = raw ? JSON.parse(raw) : [];
+  } catch(e){
+    contentDrafts = []; // 깨진 값이면 빈 배열로 복구
+  }
+  return contentDrafts;
+}
+function saveContentDraftsToStorage(){
+  try {
+    localStorage.setItem('sa-content-drafts', JSON.stringify(contentDrafts));
+    return true;
+  } catch(e){
+    return false; // 저장 공간 초과 등 — 호출부에서 실패를 알리고 모달을 닫지 않아야 함
+  }
+}
+
+// paste 단계는 "아직 아무 것도 시작 안 한 상태"라 항상 false. 맵/태그는 Master 탭에서 이미
+// 선택되어 넘어온 값이라 이것만으로는 "작성 내용 있음"으로 보지 않는다(빈 모달마다 확인창이
+// 뜨는 것을 막기 위함) — 실제 URL/제목/설명/이미지가 있을 때만 임시저장 대상으로 본다.
+function hasModalUnsavedInput(){
+  if(modalMode !== 'add' || modalStep === 'paste') return false;
+  if(modalType === 'vid') return !!document.getElementById('mVideoUrl').value.trim();
+  if(modalType === 'img') return !!cropper || !!document.getElementById('mTitle').value.trim() || !!document.getElementById('mNote').value.trim();
+  return false;
+}
+
+function buildDraftFromCurrentModal(){
+  const map = maps.find(m => m.id === currentMap);
+  return {
+    id: resumingDraftId || (Date.now() + '-' + Math.random().toString(36).slice(2, 8)),
+    savedAt: new Date().toISOString(),
+    mapId: currentMap,
+    mapName: map ? map.name : currentMapName, // 맵이 삭제된 경우를 대비한 스냅샷(표시 시엔 현재 이름을 우선 조회)
+    tag: modalTag,
+    type: modalType,
+    title: document.getElementById('mTitle').value.trim(),
+    note: document.getElementById('mNote').value.trim(),
+    team: modalTeam,
+    videoUrl: modalType === 'vid' ? document.getElementById('mVideoUrl').value.trim() : '',
+    clipStart: modalType === 'vid' ? clipStart : null,
+    clipEnd: modalType === 'vid' ? clipEnd : null
+    // 이미지 원본 파일(blob)은 저장하지 않는다 — 이어서 작성 시 이미지는 다시 업로드해야 한다(의도된 제한)
+  };
+}
+
+function saveDraftAndClose(){
+  const draft = buildDraftFromCurrentModal();
+  loadContentDrafts();
+  const idx = contentDrafts.findIndex(d => d.id === draft.id);
+  if(idx >= 0) contentDrafts[idx] = draft; else contentDrafts.push(draft);
+  if(!saveContentDraftsToStorage()){
+    setModalMsg('임시저장에 실패했어요(저장 공간 부족일 수 있어요). 다시 시도해주세요.', 'err');
+    return; // 실패 시 모달을 닫지 않아 입력 내용이 사라지지 않게 한다
+  }
+  closeModal();
+  renderContentDraftsList();
+}
+
+function requestCloseModal(){
+  if(hasModalUnsavedInput() && confirm('임시저장 하시겠습니까?')){
+    saveDraftAndClose();
+    return;
+  }
+  closeModal();
+}
+
+function resumeContentDraft(id){
+  loadContentDrafts();
+  const draft = contentDrafts.find(d => d.id === id);
+  if(!draft) return;
+  const map = maps.find(m => m.id === draft.mapId);
+  currentMap = draft.mapId;
+  currentMapName = map ? map.name : (draft.mapName || '');
+  openAddModal(draft.tag); // 기본 상태로 초기화(제목/설명 등 clear) 후 아래에서 값 복원
+  resumingDraftId = draft.id;
+  document.getElementById('mTitle').value = draft.title || '';
+  document.getElementById('mNote').value = draft.note || '';
+  updateTextCounters();
+  modalTeam = draft.team || null;
+  document.getElementById('mTeam').value = modalTeam || '';
+  if(draft.type === 'vid' && draft.videoUrl && parseYouTube(draft.videoUrl)){
+    modalType = 'vid';
+    document.getElementById('mVideoUrl').value = draft.videoUrl;
+    showModalStep('media');
+    loadClipPlayer((duration) => {
+      if(resumingDraftId !== draft.id) return; // 그 사이 모달이 닫히거나 다른 draft를 열었으면 무시(openEditModal과 동일 패턴)
+      clipStart = draft.clipStart;
+      clipEnd = draft.clipEnd;
+      syncClipSliders();
+      updateClipLabel();
+      syncClipPreviewTimer();
+    });
+  } else if(draft.type === 'img'){
+    // 원본 이미지는 저장하지 않으므로 재업로드가 필요하다 — paste 단계에 머물지만, 다음에
+    // 사용자가 붙여넣기/파일선택 중 무엇을 하든 각자 modalType을 다시 정하므로 이 값은
+    // 참고용일 뿐이다. 그래도 draft가 기억한 원래 타입과 어긋나지 않도록 명시적으로 맞춰둔다.
+    modalType = 'img';
+  }
+  // 이미지 타입(또는 저장된 URL이 없거나 무효한 경우)은 paste 단계에 그대로 머무른다 —
+  // 제목/설명/진영만 미리 채워둔 채로 사용자가 이미지를 다시 붙여넣거나 업로드하면 details 단계에서 이어진다.
+}
+
+function removeDraftById(id){
+  loadContentDrafts();
+  contentDrafts = contentDrafts.filter(d => d.id !== id);
+  saveContentDraftsToStorage();
+  renderContentDraftsList();
+}
+function deleteContentDraft(id){
+  if(!confirm('임시저장한 항목을 삭제할까요?')) return;
+  removeDraftById(id);
+}
+
+function renderContentDraftsList(){
+  loadContentDrafts();
+  const section = document.getElementById('contentDraftsSection');
+  const list = document.getElementById('contentDraftsList');
+  if(!section || !list) return; // Master "컨텐츠 추가" 탭이 아직 렌더링되지 않은 시점 방어
+  if(contentDrafts.length === 0){
+    section.style.display = 'none';
+    list.innerHTML = '';
+    return;
+  }
+  section.style.display = 'block';
+  const sorted = [...contentDrafts].sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
+  list.innerHTML = sorted.map(d => {
+    const map = maps.find(m => m.id === d.mapId);
+    const mapName = map ? map.name : (d.mapName || '맵 정보 없음');
+    const label = d.title || (d.videoUrl ? d.videoUrl.slice(0, 40) : '제목 없음');
+    const time = new Date(d.savedAt).toLocaleString('ko-KR');
+    return `
+      <div class="content-draft-item" data-id="${d.id}">
+        <div class="content-draft-info" onclick="resumeContentDraft('${d.id}')">
+          <span class="content-draft-title">${escapeHtml(label)}</span>
+          <span class="content-draft-meta">${escapeHtml(mapName)} · ${escapeHtml(d.tag || '')} · ${time}</span>
+        </div>
+        <span class="content-draft-del" title="삭제" onclick="event.stopPropagation(); deleteContentDraft('${d.id}')">🗑</span>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderThemeToggle(){
