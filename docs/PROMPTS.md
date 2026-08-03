@@ -9,7 +9,7 @@
 
 이 문서는 Claude Code가 항상 동일한 방식으로 작업하도록 하기 위한 표준 프롬프트 모음이다.
 
-모든 작업은 AI_CONTEXT.md와 CODING_RULES.md를 먼저 읽은 뒤 진행한다.
+모든 작업은 AI_CONTEXT.md와 DEVELOPMENT_GUIDE.md를 먼저 읽은 뒤 진행한다.
 
 ---
 
@@ -38,12 +38,12 @@
 3. 구현 계획 작성 (Claude 또는 GPT)
 4. 기존 구조 유지
 5. 기능 구현 (Claude Code 또는 Codex)
-6. Codex 리뷰 (stop-review-gate) — 설정되어 있으면 턴이 끝나기 전 Codex가 git diff를 자동 검토한다(`/codex:setup --enable-review-gate`로 1회 설정, 별도 명령 불필요). 단, VS Code 확장/사이드바 세션에서는 자동 발동이 관찰되지 않는 경우가 있으므로, 자동 리뷰가 뜨지 않으면 `docs/CLAUDE_CODE_RULES.md`의 "커밋 전 필수 리뷰 규칙"에 따라 `codex:rescue`로 수동 요청한다.
+6. Codex 리뷰 (stop-review-gate) — 설정되어 있으면 턴이 끝나기 전 Codex가 git diff를 자동 검토한다(`/codex:setup --enable-review-gate`로 1회 설정, 별도 명령 불필요). 단, VS Code 확장/사이드바 세션에서는 자동 발동이 관찰되지 않는 경우가 있으므로, 자동 리뷰가 뜨지 않으면 `docs/DEVELOPMENT_GUIDE.md`의 "커밋 전 필수 리뷰 규칙"에 따라 `codex:rescue`로 수동 요청한다.
    - 문제 없음 → 7번으로 진행
    - 문제 발견 → 멈추고 사용자에게 보고, 지시 없이 임의 수정하지 않는다
 7. 오류 확인
 8. 코드 리뷰 (구현 결과물 리뷰, .claude/agents/code-reviewer.md 기준)
-9. 문서 갱신 확인 (MAINTENANCE.md 기준, 수정한 문서는 코드 변경과 같은 커밋에 포함)
+9. 문서 갱신 확인 (DEVELOPMENT_GUIDE.md 기준, 수정한 문서는 코드 변경과 같은 커밋에 포함)
 10. Git Commit
 11. Git Push
 
@@ -85,7 +85,7 @@
 
 ↓
 
-문서 갱신 확인 (MAINTENANCE.md 기준, 수정한 문서는 코드 변경과 같은 커밋에 포함)
+문서 갱신 확인 (DEVELOPMENT_GUIDE.md 기준, 수정한 문서는 코드 변경과 같은 커밋에 포함)
 
 ↓
 
@@ -117,7 +117,7 @@ Push
 
 # 4. SQL 작성 및 실행
 
-위험도에 따라 처리 방식이 다르다. (`CLAUDE_CODE_RULES.md`의 "SQL 실행 규칙" 참고)
+위험도에 따라 처리 방식이 다르다. (`DEVELOPMENT_GUIDE.md`의 "SQL 실행 규칙" 참고)
 
 - SELECT/INSERT/UPDATE → Supabase MCP로 직접 실행
 - DELETE/DROP/TRUNCATE/ALTER TABLE/CREATE TABLE/RLS 정책 생성/변경/삭제 → 사용자 확인 후 실행
@@ -174,7 +174,7 @@ SQL 작성
 
 # 6. Git 작업
 
-문서 갱신이 필요하면(7번, MAINTENANCE.md 기준) 먼저 반영해 코드 변경과 같은 커밋에 포함한 뒤
+문서 갱신이 필요하면(7번, DEVELOPMENT_GUIDE.md 기준) 먼저 반영해 코드 변경과 같은 커밋에 포함한 뒤
 
 git status
 
@@ -203,7 +203,7 @@ Claude Code에게 전달하는 작업 지시서(코드 작업)는 끝에 항상 
 
 코드 작업을 마친 직후, git add/commit(6번) 전에
 
-MAINTENANCE.md의 "변경 유형별 확인" 기준에 따라
+DEVELOPMENT_GUIDE.md의 "변경 유형별 확인" 기준에 따라
 
 AI_CONTEXT.md(진행 상황 / 설계 결정) 갱신이 필요한지 확인한다.
 
@@ -256,7 +256,7 @@ AI_CONTEXT.md(진행 상황 / 설계 결정) 갱신이 필요한지 확인한다
    - 구현 방향과 완료 조건을 구체적으로 적는다.
 5. `📖 주의` — 작업 범위, 제외 범위, 회귀 방지 사항
 6. `🔧 테스트 확인 사항` — 실제 사용 흐름별 검증 목록
-7. `🔧 보고서` — 구현 후 보고할 내용과 MAINTENANCE.md 기준 문서 갱신 대상
+7. `🔧 보고서` — 구현 후 보고할 내용과 DEVELOPMENT_GUIDE.md 기준 문서 갱신 대상
 8. `🔧 Git` — status/diff 확인, 필요한 파일만 add, commit, push, 배포 확인
    - 작업 완료 보고 시 지시서의 "테스트 확인 사항"을 서술형 요약이 아니라, 목록을 그대로 가져와 항목별 ✅/❌/➖로 표기하도록 명시한다. 누락 항목은 이유를 명시하게 한다.
    - 코드 변경이 있는 모든 커밋은 예외 없이 push 전에 리뷰(자체 리뷰 또는 Codex)를 거치도록 명시한다. 사소해 보이거나 재사용 코드라도 예외 없음. 실수로 먼저 push했다면 사후 리뷰 후 그 사실을 보고서에 명시하게 한다.

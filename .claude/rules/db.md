@@ -2,7 +2,7 @@
 
 Supabase(DB) 관련 파일이나 SQL을 다룰 때 지키는 규칙.
 
-## 규칙 (2026-07-20 변경 — 위험도 기준 세분화, `docs/CLAUDE_CODE_RULES.md`의 "SQL 실행 규칙" 참고)
+## 규칙 (2026-07-20 변경 — 위험도 기준 세분화, `docs/DEVELOPMENT_GUIDE.md`의 "SQL 실행 규칙" 참고)
 - SELECT/INSERT/UPDATE는 Supabase MCP 플러그인으로 바로 실행할 수 있다.
 - DELETE/DROP/TRUNCATE/ALTER TABLE/CREATE TABLE/RLS 정책 생성/변경/삭제는 SQL을 작성한 뒤 무엇을 실행하는지·되돌릴 수 없다는 점을 명시하고 사용자 확인을 받은 후에만 실행한다.
 - supabase CLI(`db push`/`db reset`/`migration`)나 `psql` 같은 Bash 기반 직접 실행은 여전히 금지한다 (`.claude/hooks/block-db-commands.sh`로 강제 차단됨) — 실행은 항상 Supabase MCP를 통해서만 한다.

@@ -156,8 +156,7 @@ Infrastructure
 
 ## 참고 — 반복 작업 시 원칙
 DB 작업을 Claude Chat과 먼저 설계한 뒤, 위험도에 따라 Supabase MCP로 바로 실행하거나 고위험 SQL은 사용자 확인 후 실행하는 원칙, 코드 작업 지시서 작성 방식,
-git push까지 포함해야 Vercel 배포에 반영된다는 점은 `docs/README_AI.md`, `docs/PROMPTS.md`(6. Git 작업),
-`docs/CLAUDE_CODE_RULES.md`, `docs/MAINTENANCE.md`에 운영 규칙으로 정리되어 있다.
+git push까지 포함해야 Vercel 배포에 반영된다는 점은 `docs/DEVELOPMENT_GUIDE.md`, `docs/PROMPTS.md`(6. Git 작업)에 운영 규칙으로 정리되어 있다.
 
 ## 핵심 기능 개발 상태
 
@@ -197,7 +196,7 @@ git push까지 포함해야 Vercel 배포에 반영된다는 점은 `docs/README
 
 이 프로젝트는 상황에 따라 Mode A(Claude Chat 설계 → Claude Code 구현 → Codex 자동 리뷰) 또는
 Mode B(GPT 설계 → Codex 구현+리뷰, Claude Code 사용량 소진 시 대체)로 작업한다.
-Mode 전환은 사용자가 명시적으로 지시한다. 각 역할의 자세한 담당 업무는 `docs/README_AI.md`의
+Mode 전환은 사용자가 명시적으로 지시한다. 각 역할의 자세한 담당 업무는 `docs/DEVELOPMENT_GUIDE.md`의
 "AI 역할 & 워크플로우 모드" 참고.
 
 ## Claude (Chat) — Technical Lead
@@ -205,7 +204,7 @@ Mode 전환은 사용자가 명시적으로 지시한다. 각 역할의 자세�
 설계, 분석, 코드 리뷰, 작업 지시서 작성, 디자인 시안 제시를 담당한다 (Mode A).
 구현 전에 항상 Claude와 설계를 먼저 진행한다.
 
-담당 업무의 전체 목록은 `docs/README_AI.md`의 "AI 역할 & 워크플로우 모드" 참고.
+담당 업무의 전체 목록은 `docs/DEVELOPMENT_GUIDE.md`의 "AI 역할 & 워크플로우 모드" 참고.
 
 ---
 
@@ -214,16 +213,16 @@ Mode 전환은 사용자가 명시적으로 지시한다. 각 역할의 자세�
 실제 코드 구현, 여러 파일 수정, 리팩터링, Git 작업(커밋·푸시 포함)을 담당한다 (Mode A).
 설계 변경은 Claude(Chat)와 협의 후 진행한다.
 
-담당 업무와 행동 규칙은 `docs/CLAUDE_CODE_RULES.md` 참고.
+담당 업무와 행동 규칙은 `docs/DEVELOPMENT_GUIDE.md`의 "Claude Code 행동 원칙" 이하 섹션 참고.
 
 ---
 
 ## Codex — 리뷰어 (Mode A) / 구현+리뷰어 (Mode B)
 
-Mode A에서는 Claude Code가 코드를 수정한 직후 `stop-review-gate`(플러그인 내장 기능, `/codex:setup --enable-review-gate`로 1회 설정 시 자동 동작하도록 설계됨)로 git diff를 자동 검토만 한다 — 설계 단계가 아니라 구현 직후, 턴이 끝나기 전에 동작한다. 단, VS Code 확장/사이드바 세션에서는 자동 발동이 관찰되지 않는 경우가 있어, 발동하지 않으면 `codex:rescue`로 수동 요청한다(터미널 세션에서의 자동 동작 여부는 아직 확정 검증되지 않음 — `docs/README_AI.md` 참고).
+Mode A에서는 Claude Code가 코드를 수정한 직후 `stop-review-gate`(플러그인 내장 기능, `/codex:setup --enable-review-gate`로 1회 설정 시 자동 동작하도록 설계됨)로 git diff를 자동 검토만 한다 — 설계 단계가 아니라 구현 직후, 턴이 끝나기 전에 동작한다. 단, VS Code 확장/사이드바 세션에서는 자동 발동이 관찰되지 않는 경우가 있어, 발동하지 않으면 `codex:rescue`로 수동 요청한다(터미널 세션에서의 자동 동작 여부는 아직 확정 검증되지 않음 — `docs/DEVELOPMENT_GUIDE.md` 참고).
 Mode B(Claude Code 사용량 소진 시)에서는 GPT의 설계를 바탕으로 구현까지 직접 담당하고, 구현 후 동일한 방식(자동 또는 수동)으로 리뷰가 붙는다.
 
-자세한 내용은 `docs/README_AI.md` 참고.
+자세한 내용은 `docs/DEVELOPMENT_GUIDE.md` 참고.
 
 ---
 
@@ -243,7 +242,7 @@ Mode B(Claude Code 사용량 소진 시)에서는 GPT의 설계를 바탕으로 
 
 큰 기능(로그인 통합 등)은 한 번에 다 구현하지 않고 단계별로 나눠서 진행하고, 각 단계마다 결과를 확인한 뒤 다음 단계로 넘어간다.
 
-구체적인 코드 스타일, 커밋 규칙, 에러 처리 방식은 `docs/CODING_RULES.md` 참고.
+구체적인 코드 스타일, 커밋 규칙, 에러 처리 방식은 `docs/DEVELOPMENT_GUIDE.md`의 "코드 스타일 규칙" 참고.
 
 ---
 
@@ -273,23 +272,21 @@ AI는 프로젝트 전체 구조를 우선 이해한 후 작업하며, 불확실
 
 기존 기능과 DB 구조를 임의로 변경하지 않고, 새로운 라이브러리는 반드시 검토 후 추가한다.
 
-구체적인 AI 행동 규칙 목록은 `docs/CODING_RULES.md`의 "AI 규칙" 참고.
+구체적인 AI 행동 규칙 목록은 `docs/DEVELOPMENT_GUIDE.md`의 "Claude Code 행동 원칙" 참고.
 
 ---
 
 # 문서 지도 (Document Map)
 
 이 문서(AI_CONTEXT.md)는 프로젝트의 기준 문서(Single Source of Truth)다.
-아래는 더 자세한 내용을 찾을 수 있는 문서 목록이다.
+새로운 AI는 작업 전에 이 문서를 먼저 읽고, 아래 문서 지도에서 필요한 세부 문서를 이어서 확인한다.
+CHANGELOG.md / DECISIONS.md / TROUBLESHOOTING.md / architecture/*.md는 필요할 때만 참고하면 되고, 매번 전체를 읽을 필요는 없다.
 
 | 알고 싶은 것 | 문서 |
 |---|---|
-| AI에게 작업을 어떻게 요청하는지, AI 역할(Claude Chat/Code) 상세 | `docs/README_AI.md` |
+| AI 역할·워크플로우 모드(Mode A/B), 작업 순서, 코드 스타일, Claude Code 행동 규칙, SQL 실행 규칙, 문서 유지보수 규칙 | `docs/DEVELOPMENT_GUIDE.md` |
 | 작업별 코드 진입점, 전역 상태, 관련 문서와 검증 명령 | `docs/LLM_WIKI.md` |
-| 코드 스타일, 에러 처리, 파일 수정 원칙, AI 행동 규칙 | `docs/CODING_RULES.md` |
-| Claude Code의 행동 규칙, 담당 업무 | `docs/CLAUDE_CODE_RULES.md` |
 | 기능 추가/버그 수정/SQL 작성/리팩터링 등 표준 작업 절차 | `docs/PROMPTS.md` |
-| 어떤 작업을 하면 어떤 문서를 함께 확인해야 하는지 | `docs/MAINTENANCE.md` |
 | 실제 폴더/파일 구조, `index.html`/`styles.css`/`app.js` 역할 | `docs/PROJECT_STRUCTURE.md` |
 | Supabase 테이블/컬럼/RLS/Storage 버킷 구조 | `docs/DATABASE.md` |
 | 커밋 단위 변경 이력 | `docs/CHANGELOG.md` |

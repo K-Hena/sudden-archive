@@ -13,7 +13,7 @@ sudden-archive/                     (이 저장소, User 사이트 — github.co
 ├── app.js                          User 사이트 전체 JavaScript 동작(전역 스크립트)
 ├── favicon.ico / favicon-16.png / favicon-32.png / favicon-192.png / apple-touch-icon-180.png
 ├── .gitignore
-├── CLAUDE.md                       Claude Code 진입 문서 (docs/README_AI.md로 안내)
+├── CLAUDE.md                       Claude Code 진입 문서 (docs/AI_CONTEXT.md로 안내)
 ├── CLAUDE.local.md                 개인 전용 로컬 메모, git 추적 제외 (.gitignore)
 ├── AGENTS.md                       범용 AI 에이전트(Codex 등) 온보딩 문서
 ├── .github/
@@ -112,6 +112,6 @@ Master에서 실제로 어떤 CRUD가 이식/미이식 상태인지는 `docs/arc
 - **전역 상태 갱신**: 상태를 바꾸는 코드를 추가할 때는 관련 렌더 함수를 다시 호출해야 화면이 갱신된다 (예: `addMap()`/`deleteItem()` 등이 성공 후 `loadAll()`을 호출해 공개 화면과 Master 활성 탭을 함께 갱신).
 - **인라인 onclick과 함수명 결합**: 카드/타일 HTML은 템플릿 리터럴로 `onclick="함수명(...)"` 문자열을 직접 만든다. 전역 함수명을 바꾸면 HTML 문자열 안의 문자열도 함께 바꿔야 한다 — 타입 체커나 링터가 잡아주지 않는다.
 - **문자열 이스케이프**: 맵/항목 이름에 작은따옴표(`'`)가 들어가면 onclick 인라인 속성이 깨지므로, `renderMapGrid()`에서 `m.name.replace(/'/g,"\\'")`로 이스케이프한 `safe` 값을 사용한다. 이름을 쓰는 새 UI를 추가할 때 이 패턴을 재사용해야 한다.
-- **Supabase 에러 패턴**: 비동기 Supabase 호출은 예외를 던지지 않고 `{ data, error }`를 반환한다. 새 코드도 이 패턴(`if(error){ alert(...); return; }`)을 따라야 한다 — CODING_RULES.md 참고.
+- **Supabase 에러 패턴**: 비동기 Supabase 호출은 예외를 던지지 않고 `{ data, error }`를 반환한다. 새 코드도 이 패턴(`if(error){ alert(...); return; }`)을 따라야 한다 — DEVELOPMENT_GUIDE.md 참고.
 - **재생 오버레이의 YouTube 플레이어 정리**: `openOverlay()`를 다시 열거나 닫을 때 기존 `ytPlayer`/`clipTimer`를 정리하지 않으면 중복 재생/누수가 생긴다. 관련 코드를 건드릴 때는 이 정리 로직을 유지해야 한다.
 - **`sudden-archive-admin/`은 이 저장소의 일부가 아니다**: Master 대시보드로 로직을 이식할 때 참고는 하되, 그 폴더 자체를 수정해도 이 저장소에는 반영되지 않는다 (별도 git 저장소, `.gitignore` 처리됨).

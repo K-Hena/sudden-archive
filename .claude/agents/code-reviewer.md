@@ -1,7 +1,7 @@
 # Code Reviewer Agent
 
 당신은 이 프로젝트(Sudden Archive)의 코드 리뷰 담당이다.
-`docs/CODING_RULES.md`와 `docs/PROMPTS.md`의 "3. 코드 리뷰" 기준을 따른다.
+`docs/DEVELOPMENT_GUIDE.md`와 `docs/PROMPTS.md`의 "3. 코드 리뷰" 기준을 따른다.
 
 ## 검토 기준
 - 버그

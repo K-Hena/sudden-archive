@@ -1,6 +1,6 @@
 # DECISIONS.md
 
-> AI_CONTEXT.md에 기록된 확정 사항과, 실제 코드에서만 확인 가능한 구현 결정을 함께 정리했다. "선택 이유"는 AI_CONTEXT.md의 서술 또는 CODING_RULES.md 등 확인 가능한 원칙에 근거했다.
+> AI_CONTEXT.md에 기록된 확정 사항과, 실제 코드에서만 확인 가능한 구현 결정을 함께 정리했다. "선택 이유"는 AI_CONTEXT.md의 서술 또는 DEVELOPMENT_GUIDE.md 등 확인 가능한 원칙에 근거했다.
 
 ---
 
@@ -50,7 +50,7 @@
 
 **결정**: 별도의 상태 관리 라이브러리나 컴포넌트 구조를 도입하지 않고, 기존 `renderMapGrid()` / `renderCards()` 함수 내부에서 전역 `editMode` boolean을 직접 참조해 액션 UI를 문자열 템플릿으로 조건부 삽입하는 방식을 택했다. `editMode`가 바뀌면 (`toggleEditMode()`, 로그인/로그아웃 시) 이 렌더 함수들을 다시 호출해 갱신한다.
 
-**이유**: 프로젝트가 프레임워크 없는 단일 HTML/바닐라 JS 구조이고(CODING_RULES.md), 기존 렌더 함수를 재사용하는 것이 새 상태 관리 계층을 추가하는 것보다 최소 변경 원칙에 맞음.
+**이유**: 프로젝트가 프레임워크 없는 단일 HTML/바닐라 JS 구조이고(DEVELOPMENT_GUIDE.md), 기존 렌더 함수를 재사용하는 것이 새 상태 관리 계층을 추가하는 것보다 최소 변경 원칙에 맞음.
 
 ---
 
@@ -410,7 +410,7 @@ oEmbed 조회 실패는 영상 저장을 막지 않고 `null`로 처리한다. �
 
 **결정**: 사이드바 5번째 탭으로 "맵 관리"를 추가하고(지시서 `master_dashboard_stage4_instructions.md`), 동시에 User 사이트의 기존 편집모드(관리자 뱃지·"편집모드" 버튼·맵 타일 호버 액션·카드 호버 아이콘·태그 섹션 "+추가" 타일)를 전역 `editMode` 변수와 함께 완전히 제거했다. 이제 맵/항목 CRUD는 전부 Master 안에서만 이뤄진다. 3단계("항목 관리" 탭)와 동일하게 새 Supabase 쿼리 없이 이미 메모리에 있는 `maps[]`/`items[]`를 재사용했고, 각 행의 이미지 변경(🖼)/이름 변경(✎)/삭제(✕) 버튼은 기존 `pickMapImage()`/`renameMap()`/`deleteMap()`을 그대로 호출한다(신규 함수 없음). 갱신 방식도 3단계와 동일한 패턴: `switchMasterTab()`에 `maps` 케이스를 추가하고, `loadAll()`의 Master 활성 탭 분기(`items`/`stats`)에 `maps`를 추가해 `renderMasterMapsTable()`이 최신 상태로 다시 그려지도록 했다.
 
-**작업 0(실 DB 왕복 검증) 방식은 지시서 원안에서 조정**: 지시서는 "기존 항목 중 영향 적은 것"을 수정→삭제해도 된다고 했지만, Codex 설계 리뷰에서 `deleteItem()`이 실제 hard DELETE이고 `favorites`/`item_clicks`가 `items`에 `ON DELETE CASCADE`로 걸려 있어 기존 실 항목을 삭제하면 그 항목의 즐겨찾기·클릭 이력까지 함께 영구 삭제되어 "원래 값으로 복구"가 불가능하다는 점을 지적받았다. 이 저장소 `docs/CLAUDE_CODE_RULES.md`의 "SQL 실행 규칙"도 DELETE는 사전에 사용자에게 명시하고 확인받은 후 실행하도록 요구한다. 사용자에게 확인한 결과 데이터 손실 위험이 없는 대안(Claude Code가 Supabase MCP로 새 테스트 항목을 INSERT하고, 사용자가 배포된 앱의 Master "항목 관리" 탭에서 그 항목을 직접 수정→삭제, 이후 Claude Code가 SELECT로 반영 여부 확인)으로 진행하기로 했다. 실제 검증 결과는 이 지시서의 보고서(작업 완료 후 최종 보고) 참고.
+**작업 0(실 DB 왕복 검증) 방식은 지시서 원안에서 조정**: 지시서는 "기존 항목 중 영향 적은 것"을 수정→삭제해도 된다고 했지만, Codex 설계 리뷰에서 `deleteItem()`이 실제 hard DELETE이고 `favorites`/`item_clicks`가 `items`에 `ON DELETE CASCADE`로 걸려 있어 기존 실 항목을 삭제하면 그 항목의 즐겨찾기·클릭 이력까지 함께 영구 삭제되어 "원래 값으로 복구"가 불가능하다는 점을 지적받았다. 이 저장소 `docs/DEVELOPMENT_GUIDE.md`의 "SQL 실행 규칙"도 DELETE는 사전에 사용자에게 명시하고 확인받은 후 실행하도록 요구한다. 사용자에게 확인한 결과 데이터 손실 위험이 없는 대안(Claude Code가 Supabase MCP로 새 테스트 항목을 INSERT하고, 사용자가 배포된 앱의 Master "항목 관리" 탭에서 그 항목을 직접 수정→삭제, 이후 Claude Code가 SELECT로 반영 여부 확인)으로 진행하기로 했다. 실제 검증 결과는 이 지시서의 보고서(작업 완료 후 최종 보고) 참고.
 
 **`favoriteButton()`의 `withDelete` 파라미터 제거**: 기존에는 상세 카드에서 `favoriteButton(it, editMode)`로 호출해 편집모드일 때만 즐겨찾기 별을 삭제 아이콘(`.card-del`)과 안 겹치도록 `right:66px`로 밀어냈다(`.card-fav.with-delete`). 삭제 아이콘 자체가 카드에서 완전히 사라지므로 이 오프셋도 항상 죽은 코드가 된다 — 지시서가 "더 깔끔한 쪽으로 판단해도 된다"고 명시했으므로, 인자를 유지한 채 항상 `false`로 취급하는 대신 함수 시그니처에서 `withDelete` 파라미터와 `.card-fav.with-delete` CSS 규칙을 함께 삭제했다(Codex 설계 리뷰에서도 이 방향을 최소 변경으로 권고).
 

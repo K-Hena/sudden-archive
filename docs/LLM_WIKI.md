@@ -8,7 +8,7 @@
 2. 이 문서의 작업별 라우팅으로 관련 함수와 세부 문서를 찾는다.
 3. 코드 관계와 변경 영향은 code-review-graph를 먼저 조회한다.
 4. 그래프가 다루지 못하는 HTML/CSS/문서 내용만 `rg`와 파일 읽기로 확인한다.
-5. 구현 전 `TODO.md`와 `DECISIONS.md`, 구현 후 `MAINTENANCE.md`를 확인한다.
+5. 구현 전 `TODO.md`와 `DECISIONS.md`, 구현 후 `DEVELOPMENT_GUIDE.md`의 "문서 자동 동기화 규칙"을 확인한다.
 
 ## 런타임 구조
 
@@ -70,7 +70,7 @@ app.js
 - 공개/승인 상태를 바꾸면 클라이언트 필터와 DB RLS 양쪽을 확인한다.
 - 이미지 업로드 경로를 바꾸면 Storage 정책의 사용자 폴더 규칙을 확인한다.
 - CSS는 전역이며 같은 명시도에서는 뒤에 선언된 규칙이 이긴다.
-- DB 고위험 작업은 `CLAUDE_CODE_RULES.md`의 사용자 확인 규칙을 따른다.
+- DB 고위험 작업은 `DEVELOPMENT_GUIDE.md`의 "SQL 실행 규칙"을 따른다.
 
 ## 최소 검증
 
