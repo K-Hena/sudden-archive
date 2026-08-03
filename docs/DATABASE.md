@@ -23,6 +23,14 @@ URL: `https://mvyepqqstaipxqfesalv.supabase.co` (User/Admin 두 사이트가 동
 | img | 맵 썸네일 이미지 URL, null 가능 (`m.img ? ... : '이미지 없음'`) | Storage 공개 URL |
 | sort_order | 목록 정렬 기준 (`order('sort_order', {ascending:true})`), `addMap()`에서 `max(sort_order)+1`로 자동 증가 | |
 | created_at | timestamptz, 기본값 `now()` | 코드에서 직접 참조하지 않음 |
+| created_by | uuid, `auth.users(id)` FK, null 가능 | 신규 항목 소유자. 레거시 항목은 null |
+| contributor_name / contributor_avatar | text, null 가능 | 등록 시점 Discord 표시 정보 스냅샷. DB 트리거가 강제 |
+| status | text, 기본값 `published` | `pending` / `published` / `rejected` / `trashed` CHECK |
+| submitted_at | timestamptz, 기본값 `now()` | 제출 시각 |
+| reviewed_at / reviewed_by | timestamptz / uuid | 관리자 검토 시각·사용자 |
+| rejection_reason / deleted_at | text / timestamptz | 반려 사유·숨김 시각 |
+
+RLS는 익명 사용자에게 `published`만, 로그인 사용자에게 공개 항목과 본인 항목, 관리자에게 전체 항목을 허용한다. 일반 사용자는 본인 `pending` 등록과 승인 전 항목 수정·`trashed` 전환만 가능하고, 승인·하드 삭제는 관리자만 가능하다.
 
 ## items
 
@@ -152,7 +160,8 @@ Discord 로그인 사용자의 즐겨찾기. Supabase migration `create_user_fav
 | 경로 패턴 | 용도 | 코드 위치 |
 |---|---|---|
 | `maps/{mapId}-{timestamp}.{ext}` | 맵 썸네일 이미지 | User 사이트 `pickMapImage`/`mapImgInput` change 핸들러 |
-| `items/{timestamp}.jpg` | 항목 이미지 (Cropper.js로 크롭 후 jpg로 저장) | 레거시 Admin 사이트 `submitItem`, User 사이트 `submitItem`(맵 지명/위폭/팁 태그 모두 동일하게 적용 — `docs/DECISIONS.md` 참고) |
+| `items/{userId}/{timestamp}.jpg` | 사용자 사이트 항목 이미지 (본인 폴더만 업로드 허용) | User 사이트 `submitItem` |
+| `items/{timestamp}.jpg` | 기존/레거시 Admin 항목 이미지 | 레거시 Admin 사이트 및 기존 데이터 |
 
 업로드 후 `getPublicUrl()`로 공개 URL을 받아 그대로 `maps.img` / `items.img_url`에 저장한다. 즉 버킷은 공개 읽기가 가능해야 현재 서비스가 동작한다.
 

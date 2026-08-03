@@ -85,6 +85,8 @@ header{
   background:var(--bg);
 }
 .brand{display:flex;align-items:center;gap:12px;}
+.brand-home{display:flex;align-items:center;gap:12px;background:none;border:0;color:inherit;padding:0;cursor:pointer;text-align:left;}
+.brand-home:focus-visible{outline:2px solid var(--red);outline-offset:5px;}
 .reticle{width:26px;height:26px;position:relative;border:2px solid var(--hover-invert);border-radius:50%;}
 .reticle::before,.reticle::after{content:'';position:absolute;background:var(--hover-invert);}
 .reticle::before{width:2px;height:10px;left:11px;top:-6px;}
@@ -103,6 +105,36 @@ header{
 
 .view{padding:28px 32px;display:none;}
 .view.active{display:block;}
+.home-hero{
+  min-height:250px;padding:34px;box-sizing:border-box;border:1px solid var(--line);
+  background:linear-gradient(110deg,var(--panel) 0 64%,rgba(217,53,53,.12) 100%);
+  display:flex;align-items:flex-end;justify-content:space-between;gap:28px;margin-bottom:22px;position:relative;overflow:hidden;
+}
+.home-hero::after{content:'';position:absolute;width:180px;height:180px;border:1px solid rgba(217,53,53,.28);border-radius:50%;right:54px;top:-74px;box-shadow:0 0 0 34px rgba(217,53,53,.04),0 0 0 68px rgba(217,53,53,.025);}
+.home-kicker{font:700 11px 'Rajdhani',sans-serif;letter-spacing:.18em;color:var(--red);margin-bottom:10px;}
+.home-hero h2{font:800 clamp(30px,5vw,58px)/1.05 'Paperlogy',sans-serif;max-width:720px;margin:0 0 12px;letter-spacing:-.03em;word-break:keep-all;}
+.home-hero p{margin:0;color:var(--muted);font-size:14px;line-height:1.7;max-width:640px;}
+.home-map-cta{position:relative;z-index:1;flex:none;min-width:220px;padding:18px 24px;border:1px solid var(--red);background:var(--red);color:#fff;cursor:pointer;font:700 17px 'Rajdhani',sans-serif;letter-spacing:.06em;text-align:left;}
+.home-map-cta span{display:block;margin-top:5px;font:500 10px 'JetBrains Mono',monospace;opacity:.78;letter-spacing:.02em;}
+.home-access-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:30px;}
+.home-access{border:1px solid var(--line);background:var(--panel);padding:20px;min-height:128px;box-sizing:border-box;display:flex;justify-content:space-between;gap:18px;align-items:center;}
+.home-access h3{font:700 19px 'Paperlogy',sans-serif;margin:0 0 8px;}
+.home-access p{font-size:12px;color:var(--muted);line-height:1.6;margin:0;}
+.home-lock{font:700 11px 'Rajdhani',sans-serif;color:var(--muted);letter-spacing:.08em;white-space:nowrap;}
+.home-section{margin:0 0 34px;}
+.home-section-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:14px;}
+.home-section-head .section-label{flex:1;margin:0;}
+.home-card-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;}
+.home-empty{border:1px dashed var(--line);color:var(--muted);padding:26px;font-size:12px;line-height:1.7;}
+@media(max-width:900px){.home-card-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:700px){
+  .home-hero{min-height:0;padding:24px;align-items:stretch;flex-direction:column;}
+  .home-hero::after{right:-70px;top:-90px;}
+  .home-map-cta{width:100%;min-width:0;}
+  .home-access-grid{grid-template-columns:1fr;}
+}
+@media(max-width:480px){.home-card-grid{grid-template-columns:1fr;}.home-access{align-items:flex-start;flex-direction:column;}}
+@media(max-width:390px){.home-hero h2{font-size:28px;}}
 .section-label{
   font-size:12px;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase;
   margin-bottom:14px;display:flex;align-items:center;gap:8px;
@@ -453,14 +485,22 @@ header{
 .msg-modal{font-family:'JetBrains Mono',monospace;font-size:11px;margin-top:8px;min-height:14px;}
 .msg-modal.err{color:var(--red);}
 .msg-modal.ok{color:var(--green);}
+.contributor-badge{display:inline-flex;align-items:center;gap:6px;margin-top:8px;color:var(--muted);font-size:11px;}
+.contributor-badge img{width:20px;height:20px;border-radius:50%;object-fit:cover;}
+.submission-list{display:grid;gap:10px;}
+.submission-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid var(--line);background:var(--panel);}
+.submission-row .actions{display:flex;gap:8px;flex-wrap:wrap;}
+.status-pill{font:700 10px var(--mono);padding:4px 7px;border:1px solid var(--line);color:var(--muted);}
 </style>
 </head>
 <body>
 
 <header>
   <div class="brand">
-    <div class="reticle"></div>
-    <h1>서든 <span>아카이브</span></h1>
+    <button type="button" class="brand-home" onclick="showHome()" aria-label="홈으로 이동">
+      <div class="reticle"></div>
+      <h1>서든 <span>아카이브</span></h1>
+    </button>
     <button id="masterBtn" class="master-btn" onclick="openMaster()" style="display:none;"><span class="master-btn-icon">👑</span><span class="master-btn-label">Master</span></button>
   </div>
   <div class="status">
@@ -474,12 +514,52 @@ header{
 </header>
 
 <div class="subbar">
+  <b onclick="showHome()">홈</b>
+  <span class="sep">/</span>
   <b onclick="showMapGrid()">전체 맵</b>
   <span class="sep" id="crumbSep" style="display:none">/</span>
   <b id="crumbMap" style="display:none"></b>
 </div>
 
-<div class="view active" id="viewGrid">
+<div class="view active" id="viewHome">
+  <section class="home-hero">
+    <div>
+      <div class="home-kicker">TACTICAL ARCHIVE</div>
+      <h2>필요한 순간,<br>바로 꺼내보는 전술 보관함</h2>
+      <p>승인된 맵 지명·위폭·팁은 로그인 없이 모두 볼 수 있어요. 전체 맵에서 원하는 자료를 찾아보세요.</p>
+    </div>
+    <button type="button" class="home-map-cta" onclick="showMapGrid()">전체 맵 보기 →<span>승인된 컨텐츠 둘러보기</span></button>
+  </section>
+
+  <div class="home-access-grid">
+    <section class="home-access" id="homeFavoriteAccess"></section>
+    <section class="home-access" id="homeAddAccess"></section>
+  </div>
+
+  <div id="homePersonal" style="display:none;">
+    <section class="home-section">
+      <div class="home-section-head"><div class="section-label">내가 추가한 컨텐츠</div></div>
+      <div id="homeMyItems"></div>
+    </section>
+    <section class="home-section" id="contentDraftsSection" style="display:none;">
+      <div class="home-section-head"><div class="section-label">임시저장한 컨텐츠</div></div>
+      <div id="contentDraftsList"></div>
+    </section>
+    <section class="home-section">
+      <div class="home-section-head"><div class="section-label">내 즐겨찾기</div></div>
+      <div class="home-card-grid" id="homeFavorites"></div>
+    </section>
+    <section class="home-section">
+      <div class="home-section-head">
+        <div class="section-label">최근 본 컨텐츠</div>
+        <button type="button" class="btn-ghost" onclick="clearRecentItems()">기록 지우기</button>
+      </div>
+      <div class="home-card-grid" id="homeRecent"></div>
+    </section>
+  </div>
+</div>
+
+<div class="view" id="viewGrid">
   <div class="map-head">
     <div class="section-label">맵 선택</div>
     <input type="search" id="globalTitleSearch" class="detail-search" placeholder="전체 제목 또는 채널 검색" aria-label="전체 제목 또는 채널 검색" oninput="renderGlobalTitleSearch()">
@@ -512,6 +592,7 @@ header{
       <button class="master-tab" data-tab="items" onclick="switchMasterTab('items')">🗂 항목 관리</button>
       <button class="master-tab" data-tab="maps" onclick="switchMasterTab('maps')">🗺 맵 관리</button>
       <button class="master-tab" data-tab="comments" onclick="switchMasterTab('comments')">💬 댓글</button>
+      <button class="master-tab" data-tab="approvals" onclick="switchMasterTab('approvals')">✅ 승인 대기</button>
     </nav>
     <div class="master-content">
       <div class="master-pane active" id="masterPaneStats">
@@ -537,10 +618,6 @@ header{
         </div>
         <button class="btn-primary" onclick="startMasterAdd()">등록 시작</button>
         <div class="msg-modal" id="masterAddMsg"></div>
-        <div id="contentDraftsSection" style="display:none;">
-          <div class="section-label" style="margin-top:20px;">임시저장한 항목</div>
-          <div id="contentDraftsList"></div>
-        </div>
       </div>
       <div class="master-pane" id="masterPaneItems">
         <div class="map-head">
@@ -581,6 +658,13 @@ header{
         </div>
         <div class="mono" id="masterCommentsCount" style="font-size:12px;color:var(--muted);margin-bottom:8px;"></div>
         <div class="master-table-wrap" id="masterCommentsTableWrap"></div>
+      </div>
+      <div class="master-pane" id="masterPaneApprovals">
+        <div class="map-head">
+          <div class="section-label">승인 대기 컨텐츠</div>
+          <button class="back-btn" onclick="showHome()">← 홈으로</button>
+        </div>
+        <div class="master-table-wrap" id="masterApprovalsTableWrap"></div>
       </div>
     </div>
   </div>
@@ -758,8 +842,17 @@ let currentSession = null;
 let favorites = [];
 let isAdminUser = false;
 let masterComments = [];
+let lastDataLoadedAt = 0;
 const favoritePending = new Set();
 const tagOrder = ['맵 지명', '위폭', '팁'];
+const PUBLIC_REFRESH_MS = 5 * 60 * 1000;
+
+function publicItems(){ return items.filter(item => !item.status || item.status === 'published'); }
+function contributorBadge(item){
+  if(!item.contributor_name) return '';
+  const avatar = item.contributor_avatar ? `<img src="${escapeHtml(item.contributor_avatar)}" alt="" referrerpolicy="no-referrer">` : '';
+  return `<span class="contributor-badge">${avatar}<span>${escapeHtml(item.contributor_name)}</span></span>`;
+}
 
 async function loadAll(){
   if(!sb) return; // 위에서 초기화 실패한 경우 여기서 중단
@@ -777,15 +870,18 @@ async function loadAll(){
     }
     maps = mapRows;
     items = itemRows;
-    document.getElementById('clipCount').textContent = items.filter(i=>i.type==='vid').length;
-    document.getElementById('tipCount').textContent = items.filter(i=>i.tag==='팁').length;
+    document.getElementById('clipCount').textContent = publicItems().filter(i=>i.type==='vid').length;
+    document.getElementById('tipCount').textContent = publicItems().filter(i=>i.tag==='팁').length;
+    lastDataLoadedAt = Date.now();
     renderMapGrid();
+    if(document.getElementById('viewHome').classList.contains('active')) renderHome();
     if(document.getElementById('viewMaster').classList.contains('active')){
       const activeTab = document.querySelector('.master-tab.active')?.dataset.tab;
       if(activeTab === 'items') renderMasterItemsTable();
       else if(activeTab === 'maps') renderMasterMapsTable();
       else if(activeTab === 'stats') loadMasterStats();
       else if(activeTab === 'comments') loadMasterComments();
+      else if(activeTab === 'approvals') renderMasterApprovals();
     }
   } catch(e){
     const grid = document.getElementById('mapGrid');
@@ -794,12 +890,115 @@ async function loadAll(){
   }
 }
 
+function recentItemsKey(){ return currentSession ? `sa-recent-items:${currentSession.user.id}` : null; }
+function loadRecentItems(){
+  const key = recentItemsKey();
+  if(!key) return [];
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch(error){ return []; }
+}
+function recordRecentItem(itemId){
+  const key = recentItemsKey();
+  if(!key) return;
+  const recent = loadRecentItems().filter(entry => entry && entry.itemId !== itemId);
+  recent.unshift({ itemId, viewedAt: new Date().toISOString() });
+  try { localStorage.setItem(key, JSON.stringify(recent.slice(0, 20))); } catch(error){}
+}
+function clearRecentItems(){
+  const key = recentItemsKey();
+  if(key) localStorage.removeItem(key);
+  renderHome();
+}
+function renderHomeItemCard(it){
+  const p = it.type === 'vid' ? parseYouTube(it.video_url) : null;
+  const thumbUrl = it.type === 'vid' ? ytThumb(it.video_url) : it.img_url;
+  const mapName = maps.find(m => m.id === it.map_id)?.name || '알 수 없는 맵';
+  return `
+    <div class="card" onclick="openOverlay('${it.id}')">
+      ${favoriteButton(it)}
+      <div class="thumb">
+        ${thumbUrl ? `<img loading="lazy" src="${escapeHtml(thumbUrl)}" alt="">` : ''}
+        <div class="badge ${it.type}">${it.type === 'vid' ? '영상' : '이미지'}</div>
+        ${(p && p.isShort) ? '<div class="badge short" style="left:auto;right:8px;">쇼츠</div>' : ''}
+        ${channelBadge(it)}
+        ${thumbUrl ? (it.type === 'vid' ? '<div class="playicon"></div>' : '') : '<span class="mono" style="font-size:10px;color:#3A4048;">미리보기 없음</span>'}
+      </div>
+      <div class="meta">
+        <div class="title">${escapeHtml(it.title || '제목 없음')}</div>
+        <div class="note">${escapeHtml(it.note || mapName)}</div>
+        ${contributorBadge(it)}
+      </div>
+    </div>`;
+}
+function renderHome(){
+  const favoriteAccess = document.getElementById('homeFavoriteAccess');
+  const addAccess = document.getElementById('homeAddAccess');
+  const personal = document.getElementById('homePersonal');
+  if(!currentSession){
+    favoriteAccess.innerHTML = `<div><h3>☆ 내 즐겨찾기</h3><p>자주 보는 위폭과 팁을 모으려면 Discord 로그인이 필요해요.</p></div><button type="button" class="btn-ghost" onclick="discordLogin()">Discord 로그인</button>`;
+    addAccess.innerHTML = `<div><h3>＋ 컨텐츠 추가</h3><p>영상과 이미지를 등록하려면 Discord 로그인이 필요해요.</p></div><button type="button" class="btn-ghost" onclick="discordLogin()">Discord 로그인</button>`;
+    personal.style.display = 'none';
+    return;
+  }
+
+  const nickname = currentSession.user.user_metadata.full_name || currentSession.user.user_metadata.name || '사용자';
+  favoriteAccess.innerHTML = `<div><h3>☆ ${escapeHtml(nickname)}님의 즐겨찾기</h3><p>저장한 컨텐츠 ${favorites.length}개를 홈에서 바로 이어보세요.</p></div><span class="home-lock">${favorites.length} SAVED</span>`;
+  addAccess.innerHTML = isAdminUser
+    ? `<div><h3>＋ 컨텐츠 추가</h3><p>관리자 컨텐츠는 등록 즉시 공개됩니다.</p></div><button type="button" class="btn-primary" onclick="openHomeAdd()">등록 시작</button>`
+    : `<div><h3>＋ 컨텐츠 추가</h3><p>등록한 컨텐츠는 관리자 승인 후 전체 맵에 공개됩니다.</p></div><button type="button" class="btn-primary" onclick="openHomeAdd()">등록 시작</button>`;
+  personal.style.display = 'block';
+
+  renderMyItems();
+  renderContentDraftsList();
+  const favoriteItems = favorites.map(row => publicItems().find(it => it.id === row.item_id)).filter(Boolean).slice(0, 4);
+  document.getElementById('homeFavorites').innerHTML = favoriteItems.map(renderHomeItemCard).join('') || '<div class="home-empty">아직 저장한 컨텐츠가 없어요.<br>전체 맵에서 별을 눌러 자주 보는 자료를 모아보세요.</div>';
+  const recentItems = loadRecentItems().map(entry => publicItems().find(it => it.id === entry.itemId)).filter(Boolean).slice(0, 4);
+  document.getElementById('homeRecent').innerHTML = recentItems.map(renderHomeItemCard).join('') || '<div class="home-empty">최근 본 컨텐츠가 없어요.<br>전체 맵에서 자료를 열면 여기에 기록됩니다.</div>';
+}
+function openHomeAdd(){
+  if(!currentSession){ discordLogin(); return; }
+  const mapName = prompt('맵 이름을 입력해주세요.\n' + maps.map(m => m.name).join(', '));
+  const map = maps.find(m => m.name === String(mapName || '').trim());
+  if(!map){ if(mapName) alert('목록에 있는 맵 이름을 정확히 입력해주세요.'); return; }
+  const tag = prompt('태그를 입력해주세요.\n' + tagOrder.join(', '));
+  if(!tagOrder.includes(tag)){ if(tag) alert('목록에 있는 태그를 정확히 입력해주세요.'); return; }
+  currentMap = map.id;
+  currentMapName = map.name;
+  openAddModal(tag);
+}
+function openMasterAdd(){ openHomeAdd(); }
+
+function renderMyItems(){
+  const wrap = document.getElementById('homeMyItems');
+  const mine = items.filter(item => item.created_by === currentSession.user.id && item.status !== 'trashed');
+  const labels = { pending:'승인 대기', published:'공개됨', rejected:'반려됨' };
+  wrap.className = 'submission-list';
+  wrap.innerHTML = mine.map(item => `<div class="submission-row">
+    <div><b>${escapeHtml(item.title || '제목 없음')}</b><br><span class="status-pill">${labels[item.status] || item.status}</span>${item.rejection_reason ? ` <small>${escapeHtml(item.rejection_reason)}</small>` : ''}</div>
+    <div class="actions">
+      ${item.status !== 'published' ? `<button class="btn-ghost" onclick="openEditModal(event,'${item.id}')">수정</button><button class="btn-ghost" onclick="hideOwnItem('${item.id}')">숨기기</button>` : '<small>승인 후에는 관리자만 삭제할 수 있습니다.</small>'}
+    </div>
+  </div>`).join('') || '<div class="home-empty">아직 추가한 컨텐츠가 없습니다.</div>';
+}
+
+async function hideOwnItem(id){
+  if(!confirm('승인 전 컨텐츠를 숨길까요? 숨긴 항목은 목록에서 사라집니다.')) return;
+  const { error } = await sb.from('items').update({ status:'trashed', deleted_at:new Date().toISOString() }).eq('id', id);
+  if(error){ alert('숨기기 실패: ' + error.message); return; }
+  await loadAll();
+}
+function refreshPublicDataIfStale(force){
+  if(force || Date.now() - lastDataLoadedAt >= PUBLIC_REFRESH_MS) return loadAll();
+}
+
 function renderMapGrid(){
   if(document.getElementById('globalTitleSearch').value.trim()){ renderGlobalTitleSearch(); return; }
   const grid = document.getElementById('mapGrid');
   grid.className = 'map-grid';
   const tilesHtml = maps.map(m => {
-    const count = items.filter(i => i.map_id === m.id).length;
+    const count = publicItems().filter(i => i.map_id === m.id).length;
     const safe = m.name.replace(/'/g,"\\'");
     return `
     <div class="map-tile cut-sm" onclick="openMap('${m.id}','${safe}')">
@@ -818,7 +1017,7 @@ function renderMapGrid(){
 function renderGlobalTitleSearch(){
   const query = document.getElementById('globalTitleSearch').value.trim().toLowerCase();
   if(!query){ renderMapGrid(); return; }
-  const filtered = sortFavorites(items.filter(it => String(it.title ?? '').toLowerCase().includes(query) || String(it.channel_name ?? '').toLowerCase().includes(query)));
+  const filtered = sortFavorites(publicItems().filter(it => String(it.title ?? '').toLowerCase().includes(query) || String(it.channel_name ?? '').toLowerCase().includes(query)));
   const grid = document.getElementById('mapGrid');
   grid.className = 'card-grid-inner';
   grid.innerHTML = filtered.map(it => {
@@ -841,6 +1040,7 @@ function renderGlobalTitleSearch(){
         <div class="title">${it.title}</div>
         ${it.note ? `<div class="note">${it.note}</div>` : ''}
         <div class="note">${mapName} · ${teamLabel(it.team) || String(it.team || '').toUpperCase()}</div>
+        ${contributorBadge(it)}
       </div>
     </div>`;
   }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">일치하는 제목 또는 채널이 없어요.</div>`;
@@ -901,6 +1101,7 @@ document.getElementById('mapImgInput').addEventListener('change', async function
 function showMapGrid(){
   clearTitleSearch();
   clearGlobalTitleSearch();
+  document.getElementById('viewHome').classList.remove('active');
   document.getElementById('viewGrid').classList.add('active');
   document.getElementById('viewDetail').classList.remove('active');
   document.getElementById('viewMaster').classList.remove('active');
@@ -908,12 +1109,28 @@ function showMapGrid(){
   document.getElementById('crumbMap').style.display = 'none';
   document.getElementById('crumbSep').style.display = 'none';
   renderMapGrid();
+  void refreshPublicDataIfStale(false);
+}
+
+function showHome(){
+  clearTitleSearch();
+  clearGlobalTitleSearch();
+  document.getElementById('viewHome').classList.add('active');
+  document.getElementById('viewGrid').classList.remove('active');
+  document.getElementById('viewDetail').classList.remove('active');
+  document.getElementById('viewMaster').classList.remove('active');
+  document.getElementById('masterBtn').classList.remove('active');
+  document.getElementById('crumbMap').style.display = 'none';
+  document.getElementById('crumbSep').style.display = 'none';
+  renderHome();
+  void refreshPublicDataIfStale(false);
 }
 
 function openMap(id, name){
   clearGlobalTitleSearch();
   currentMap = id;
   currentMapName = name;
+  document.getElementById('viewHome').classList.remove('active');
   document.getElementById('viewGrid').classList.remove('active');
   document.getElementById('viewDetail').classList.add('active');
   document.getElementById('viewMaster').classList.remove('active');
@@ -929,6 +1146,7 @@ function openMaster(){
   if(!isAdminUser) return;
   clearTitleSearch();
   clearGlobalTitleSearch();
+  document.getElementById('viewHome').classList.remove('active');
   document.getElementById('viewGrid').classList.remove('active');
   document.getElementById('viewDetail').classList.remove('active');
   document.getElementById('viewMaster').classList.add('active');
@@ -945,11 +1163,33 @@ function switchMasterTab(tab){
   document.getElementById('masterPaneItems').classList.toggle('active', tab === 'items');
   document.getElementById('masterPaneMaps').classList.toggle('active', tab === 'maps');
   document.getElementById('masterPaneComments').classList.toggle('active', tab === 'comments');
+  document.getElementById('masterPaneApprovals').classList.toggle('active', tab === 'approvals');
   if(tab === 'stats') loadMasterStats();
   if(tab === 'add') renderMasterAddTab();
   if(tab === 'items') renderMasterItemsTab();
   if(tab === 'maps') renderMasterMapsTable();
   if(tab === 'comments') loadMasterComments();
+  if(tab === 'approvals') renderMasterApprovals();
+}
+
+function renderMasterApprovals(){
+  const wrap = document.getElementById('masterApprovalsTableWrap');
+  const pending = items.filter(item => item.status === 'pending');
+  wrap.innerHTML = pending.length ? `<table class="master-table"><thead><tr><th>작성자</th><th>제목</th><th>맵</th><th>미리보기</th><th>처리</th></tr></thead><tbody>${pending.map(item => `<tr>
+    <td>${contributorBadge(item) || '-'}</td><td>${escapeHtml(item.title)}</td><td>${escapeHtml(maps.find(m => m.id === item.map_id)?.name || '-')}</td>
+    <td><button class="btn-ghost" onclick="openOverlay('${item.id}',false)">보기</button></td>
+    <td><button class="btn-primary" onclick="reviewItem('${item.id}',true)">승인</button> <button class="btn-ghost" onclick="reviewItem('${item.id}',false)">반려</button></td>
+  </tr>`).join('')}</tbody></table>` : '<div class="loading">승인 대기 컨텐츠가 없습니다.</div>';
+}
+
+async function reviewItem(id, approve){
+  const reason = approve ? null : prompt('반려 사유를 입력해주세요.');
+  if(!approve && reason === null) return;
+  const payload = { status: approve ? 'published' : 'rejected', reviewed_at:new Date().toISOString(), reviewed_by:currentSession.user.id, rejection_reason:reason || null };
+  const { error } = await sb.from('items').update(payload).eq('id', id);
+  if(error){ alert('처리 실패: ' + error.message); return; }
+  await loadAll();
+  renderMasterApprovals();
 }
 
 function renderMasterAddTab(){
@@ -1217,7 +1457,8 @@ function favoriteButton(it){
   return `<button type="button" class="card-fav${active ? ' on' : ''}" aria-label="즐겨찾기 ${active ? '해제' : '추가'}" onclick="toggleFavorite(event,'${it.id}')">${active ? '★' : '☆'}</button>`;
 }
 function rerenderCurrentView(){
-  if(document.getElementById('viewDetail').classList.contains('active')) renderCards();
+  if(document.getElementById('viewHome').classList.contains('active')) renderHome();
+  else if(document.getElementById('viewDetail').classList.contains('active')) renderCards();
   else renderMapGrid();
 }
 async function discordLogin(){
@@ -1336,7 +1577,7 @@ window.onYouTubeIframeAPIReady = function(){ ytReady = true; };
 
 function renderCards(){
   const query = document.getElementById('titleSearch').value.trim().toLowerCase();
-  const mapItems = items.filter(i => i.map_id === currentMap);
+  const mapItems = publicItems().filter(i => i.map_id === currentMap);
   const teamItems = currentTeam === 'total' ? mapItems
     : currentTeam === 'favorite' ? mapItems.filter(i => favoriteRow(i.id))
     : mapItems.filter(i => i.team === currentTeam);
@@ -1383,10 +1624,11 @@ function renderCards(){
                 : `<span class="mono" style="font-size:10px;color:#3A4048;">${it.type==='vid' ? '아직 등록된 영상 없음' : '아직 등록된 이미지 없음'}</span>`
               }
             </div>
-            ${isMapLabel ? '' : `
+            ${isMapLabel ? `<div class="meta">${contributorBadge(it)}</div>` : `
             <div class="meta">
               <div class="title">${it.title}</div>
               ${it.note ? `<div class="note">${it.note}</div>` : ''}
+              ${contributorBadge(it)}
             </div>`}
           </div>
         `;}).join('')}
@@ -1499,8 +1741,9 @@ function toggleOverlayMute(){
 }
 
 function openOverlay(id, trackView){
-  if(trackView !== false) void trackClick(id);
   const it = items.find(i => i.id === id);
+  if(!it) return;
+  if(trackView !== false){ void trackClick(id); recordRecentItem(id); }
   const media = document.getElementById('overlayMediaContent');
   const playPauseBtn = document.getElementById('overlayPlayPause');
   const fullBtn = document.getElementById('overlayFullBtn');
@@ -1599,7 +1842,7 @@ function openOverlay(id, trackView){
     document.getElementById('overlayMedia').className = 'overlay-media wide';
     media.innerHTML = it.type==='vid' ? '<span>아직 등록된 영상이 없어요</span>' : '<span>아직 등록된 이미지가 없어요</span>';
   }
-  document.getElementById('overlayNote').textContent = it.note ? it.title + ' — ' + it.note : it.title;
+  document.getElementById('overlayNote').innerHTML = `${escapeHtml(it.note ? it.title + ' — ' + it.note : it.title)}<br>${contributorBadge(it)}`;
   renderCommentsSection(it);
   document.getElementById('overlay').classList.add('active');
 }
@@ -2504,6 +2747,12 @@ async function submitItem(){
     setModalMsg('저장 중...');
 
     const payload = { title, note: note || null, team: savedTeam };
+    if(!isAdminUser && original && original.status === 'rejected'){
+      payload.status = 'pending';
+      payload.rejection_reason = null;
+      payload.reviewed_at = null;
+      payload.reviewed_by = null;
+    }
     if(modalType === 'vid'){ payload.clip_start = clipStart; payload.clip_end = clipEnd; }
 
     const { error } = await sb.from('items').update(payload).eq('id', editingItemId);
@@ -2532,7 +2781,8 @@ async function submitItem(){
     const { error } = await sb.from('items').insert({
       map_id: currentMap, team: savedTeam, type: 'vid', tag: modalTag,
       title, note: note || null, video_url: url, clip_start: clipStart, clip_end: clipEnd,
-      channel_name: channelName
+      channel_name: channelName, created_by: currentSession.user.id,
+      status: isAdminUser ? 'published' : 'pending'
     });
     if(error){ setModalMsg('저장 실패: ' + error.message, 'err'); saveBtn.disabled = false; return; }
   } else {
@@ -2540,7 +2790,7 @@ async function submitItem(){
 
     setModalMsg('업로드 중...');
     const blob = await new Promise(res => cropper.getCroppedCanvas().toBlob(res, 'image/jpeg', 0.92));
-    const path = `items/${Date.now()}.jpg`;
+    const path = `items/${currentSession.user.id}/${Date.now()}.jpg`;
     const { error: upErr } = await sb.storage.from('media').upload(path, blob, { contentType: 'image/jpeg' });
     if(upErr){ setModalMsg('업로드 실패: ' + upErr.message, 'err'); saveBtn.disabled = false; return; }
     const { data: pub } = sb.storage.from('media').getPublicUrl(path);
@@ -2548,12 +2798,13 @@ async function submitItem(){
     setModalMsg('저장 중...');
     const { error } = await sb.from('items').insert({
       map_id: currentMap, team: savedTeam, type: 'img', tag: modalTag,
-      title, note: note || null, img_url: pub.publicUrl, video_url: null, clip_start: null, clip_end: null
+      title, note: note || null, img_url: pub.publicUrl, video_url: null, clip_start: null, clip_end: null,
+      created_by: currentSession.user.id, status: isAdminUser ? 'published' : 'pending'
     });
     if(error){ setModalMsg('저장 실패: ' + error.message, 'err'); saveBtn.disabled = false; return; }
   }
 
-  setModalMsg('추가 완료!', 'ok');
+  setModalMsg(isAdminUser ? '추가 완료! 바로 공개됩니다.' : '등록 완료! 관리자 승인 후 공개됩니다.', 'ok');
   if(resumingDraftId) removeDraftById(resumingDraftId); // 등록이 실제로 성공한 시점에 곧바로 지운다(닫기 지연과 무관하게)
   setTimeout(async () => { closeModal(); saveBtn.disabled = false; await loadAll(); renderCards(); }, 500);
 }
@@ -2754,7 +3005,8 @@ async function renderAuthArea(session){
   document.getElementById('masterBtn').style.display = isAdminUser ? 'inline-flex' : 'none';
   if(!isAdminUser && document.getElementById('viewMaster').classList.contains('active')) showMapGrid();
   refreshCommentAuthUI(); // 오버레이가 열려 있는 채로 로그인/로그아웃하면 댓글 입력·삭제 아이콘 상태도 즉시 갱신
-  rerenderCurrentView();
+  if(previousUserId !== userId) await loadAll();
+  else rerenderCurrentView();
 }
 
 const INACTIVITY_LIMIT_MS = 30 * 24 * 60 * 60 * 1000; // 30일간 사이트 재방문이 없으면 로그아웃(client-side, Free 플랜은 서버 세션 만료 기능이 없어 대체)
@@ -2786,6 +3038,14 @@ renderThemeToggle();
 initImageZoomPan();
 initAuth();
 loadAll();
+setInterval(() => {
+  if(document.visibilityState === 'visible' && (document.getElementById('viewHome').classList.contains('active') || document.getElementById('viewGrid').classList.contains('active'))){
+    void refreshPublicDataIfStale(true);
+  }
+}, PUBLIC_REFRESH_MS);
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') void refreshPublicDataIfStale(true);
+});
 </script>
 </body>
 </html>
