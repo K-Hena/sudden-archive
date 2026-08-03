@@ -511,7 +511,7 @@ header{
       <button class="master-tab" data-tab="add" onclick="switchMasterTab('add')">🎬 컨텐츠 추가</button>
       <button class="master-tab" data-tab="items" onclick="switchMasterTab('items')">🗂 항목 관리</button>
       <button class="master-tab" data-tab="maps" onclick="switchMasterTab('maps')">🗺 맵 관리</button>
-      <button class="master-tab" disabled>💬 댓글</button>
+      <button class="master-tab" data-tab="comments" onclick="switchMasterTab('comments')">💬 댓글</button>
     </nav>
     <div class="master-content">
       <div class="master-pane active" id="masterPaneStats">
@@ -569,6 +569,18 @@ header{
         </div>
         <button class="btn-primary" onclick="addMap()">새 맵 추가</button>
         <div class="master-table-wrap" id="masterMapsTableWrap"></div>
+      </div>
+      <div class="master-pane" id="masterPaneComments">
+        <div class="map-head">
+          <div class="section-label">댓글 관리</div>
+          <button class="back-btn" onclick="showMapGrid()">← 일반 화면으로</button>
+        </div>
+        <div class="master-add-row">
+          <select id="masterCommentsMapFilter" class="master-select" onchange="renderMasterCommentsTable()"></select>
+          <input type="search" id="masterCommentsSearch" class="master-select" placeholder="본문·작성자·항목 제목 검색" oninput="renderMasterCommentsTable()">
+        </div>
+        <div class="mono" id="masterCommentsCount" style="font-size:12px;color:var(--muted);margin-bottom:8px;"></div>
+        <div class="master-table-wrap" id="masterCommentsTableWrap"></div>
       </div>
     </div>
   </div>
@@ -745,6 +757,7 @@ let currentTeam = 'total';
 let currentSession = null;
 let favorites = [];
 let isAdminUser = false;
+let masterComments = [];
 const favoritePending = new Set();
 const tagOrder = ['맵 지명', '위폭', '팁'];
 
@@ -772,6 +785,7 @@ async function loadAll(){
       if(activeTab === 'items') renderMasterItemsTable();
       else if(activeTab === 'maps') renderMasterMapsTable();
       else if(activeTab === 'stats') loadMasterStats();
+      else if(activeTab === 'comments') loadMasterComments();
     }
   } catch(e){
     const grid = document.getElementById('mapGrid');
@@ -930,10 +944,12 @@ function switchMasterTab(tab){
   document.getElementById('masterPaneAdd').classList.toggle('active', tab === 'add');
   document.getElementById('masterPaneItems').classList.toggle('active', tab === 'items');
   document.getElementById('masterPaneMaps').classList.toggle('active', tab === 'maps');
+  document.getElementById('masterPaneComments').classList.toggle('active', tab === 'comments');
   if(tab === 'stats') loadMasterStats();
   if(tab === 'add') renderMasterAddTab();
   if(tab === 'items') renderMasterItemsTab();
   if(tab === 'maps') renderMasterMapsTable();
+  if(tab === 'comments') loadMasterComments();
 }
 
 function renderMasterAddTab(){
@@ -1024,6 +1040,86 @@ function renderMasterMapsTable(){
       <thead><tr><th>썸네일</th><th>맵 이름</th><th>항목 수</th><th>이미지 변경</th><th>이름 변경</th><th>삭제</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
+}
+
+async function loadMasterComments(){
+  const wrap = document.getElementById('masterCommentsTableWrap');
+  const mapSel = document.getElementById('masterCommentsMapFilter');
+  const prevMap = mapSel.value;
+  mapSel.innerHTML = '<option value="">맵 전체</option>' +
+    maps.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+  mapSel.value = prevMap;
+  wrap.innerHTML = '<div class="loading">불러오는 중...</div>';
+  // ponytail: 전체 댓글을 한 번에 내려받아 클라이언트에서 필터링. 댓글 수가 커져 PostgREST 기본 행 제한이나 렌더 성능 문제가 실제로 발생하면 서버 페이지네이션으로 전환.
+  const { data, error } = await sb.from('comments')
+    .select('id, item_id, user_id, author_name, body, created_at')
+    .order('created_at', { ascending: false });
+  if(error){
+    wrap.innerHTML = `<div class="loading">댓글을 불러오지 못했어요.<br>${escapeHtml(error.message)}</div>`;
+    document.getElementById('masterCommentsCount').textContent = '';
+    return;
+  }
+  masterComments = data || [];
+  renderMasterCommentsTable();
+}
+
+function renderMasterCommentsTable(){
+  const wrap = document.getElementById('masterCommentsTableWrap');
+  const countEl = document.getElementById('masterCommentsCount');
+  const mapId = document.getElementById('masterCommentsMapFilter').value;
+  const query = document.getElementById('masterCommentsSearch').value.trim().toLowerCase();
+  // 항목이 삭제되어 items[]에 없으면 '삭제된 항목'으로 표시(정상 FK/ON DELETE CASCADE에서는 드문 방어 경로)
+  const rows_ = masterComments.map(c => {
+    const it = items.find(i => i.id === c.item_id);
+    const map = it ? maps.find(m => m.id === it.map_id) : null;
+    return {
+      c, it,
+      title: it ? it.title : '삭제된 항목',
+      mapName: it ? (map ? map.name : '알 수 없는 맵') : '삭제된 항목',
+      mapId: it ? it.map_id : null
+    };
+  });
+  const filtered = rows_.filter(r =>
+    (!mapId || r.mapId === mapId) &&
+    (!query ||
+      r.c.body.toLowerCase().includes(query) ||
+      r.c.author_name.toLowerCase().includes(query) ||
+      r.title.toLowerCase().includes(query))
+  );
+  countEl.textContent = `${filtered.length} / ${masterComments.length}개`;
+  if(masterComments.length === 0){
+    wrap.innerHTML = '<div class="loading">아직 댓글이 없어요.</div>';
+    return;
+  }
+  if(filtered.length === 0){
+    wrap.innerHTML = '<div class="loading">조건에 맞는 댓글이 없어요.</div>';
+    return;
+  }
+  const rows = filtered.map(r => {
+    const c = r.c;
+    const abs = escapeHtml(new Date(c.created_at).toLocaleString());
+    return `<tr>
+      <td>${escapeHtml(c.author_name)}</td>
+      <td>${escapeHtml(c.body)}</td>
+      <td>${escapeHtml(r.title)}</td>
+      <td>${escapeHtml(r.mapName)}</td>
+      <td class="num" title="${abs}">${formatRelativeTime(c.created_at)}</td>
+      <td>${r.it ? `<span class="icon-btn" onclick="openOverlay('${r.it.id}', false)" title="항목 보기">🔍</span>` : ''}</td>
+      <td><span class="icon-btn del" onclick="masterDeleteComment('${c.id}')" title="삭제">✕</span></td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `
+    <table class="master-table">
+      <thead><tr><th>작성자</th><th>내용</th><th>항목</th><th>맵</th><th>작성 시각</th><th>보기</th><th>삭제</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+async function masterDeleteComment(commentId){
+  const ok = await deleteComment(commentId);
+  if(!ok) return;
+  masterComments = masterComments.filter(c => c.id !== commentId);
+  renderMasterCommentsTable();
 }
 
 function startMasterAdd(){
@@ -1402,8 +1498,8 @@ function toggleOverlayMute(){
   updateVolumeUI(lastPolledVolume != null ? lastPolledVolume : 50, nextMuted);
 }
 
-function openOverlay(id){
-  void trackClick(id);
+function openOverlay(id, trackView){
+  if(trackView !== false) void trackClick(id);
   const it = items.find(i => i.id === id);
   const media = document.getElementById('overlayMediaContent');
   const playPauseBtn = document.getElementById('overlayPlayPause');
@@ -1856,14 +1952,18 @@ async function submitComment(){
 }
 
 async function deleteComment(commentId){
-  if(!confirm('이 댓글을 삭제할까요?')) return;
+  if(!confirm('이 댓글을 삭제할까요?')) return false;
   try {
     const { error } = await sb.from('comments').delete().eq('id', commentId);
     if(error) throw error;
     overlayComments = overlayComments.filter(c => c.id !== commentId);
     renderCommentsList();
+    masterComments = masterComments.filter(c => c.id !== commentId);
+    if(document.getElementById('masterPaneComments').classList.contains('active')) renderMasterCommentsTable();
+    return true;
   } catch(error){
     alert('댓글 삭제 실패: ' + error.message);
+    return false;
   }
 }
 
