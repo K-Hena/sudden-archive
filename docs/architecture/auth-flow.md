@@ -1,6 +1,6 @@
 # auth-flow.md
 
-> `index.html`(User + Master)과 `sudden-archive-admin/index.html`(레거시 Admin)의 실제 인증 코드를 분석해서 작성했다. 두 배포는 서로 다른 로그인 방식을 쓰며, 운영 기능은 User 사이트의 Discord 로그인 + Master로 통합됐다.
+> User 사이트의 `app.js`와 `sudden-archive-admin/index.html`(레거시 Admin)의 실제 인증 코드를 분석해서 작성했다. 두 배포는 서로 다른 로그인 방식을 쓰며, 운영 기능은 User 사이트의 Discord 로그인 + Master로 통합됐다.
 
 ---
 

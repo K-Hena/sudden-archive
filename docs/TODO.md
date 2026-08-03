@@ -1,6 +1,6 @@
 # TODO.md
 
-> 실제 `index.html` 코드 상태와 `docs/AI_CONTEXT.md`를 대조해서 작성했다.
+> 실제 `index.html`/`styles.css`/`app.js` 코드 상태와 `docs/AI_CONTEXT.md`를 대조해서 작성했다.
 > **주의**: AI_CONTEXT.md의 "진행 중인 기능 개발" 체크리스트는 2026-07-18 오전 시점 기준이고, 이후 편집모드 관련 커밋이 여러 건 추가로 반영됐다. 이 문서는 그보다 더 최신인 실제 코드 상태를 기준으로 한다. AI_CONTEXT.md 자체는 이 작업에서 수정하지 않았으므로, 다음에 AI_CONTEXT.md를 갱신할 때 이 TODO 내용을 반영하는 것을 권장한다.
 
 ---
@@ -49,6 +49,7 @@
 - **"컨텐츠 추가" 개선: 라벨 변경 + 클립 슬라이더 확대 + 임시저장 기능** — Master "영상 추가" 탭을 "컨텐츠 추가"로 개칭. 클립 구간 슬라이더 트랙·손잡이 확대(4→8px/16→24px) 및 겹침 클릭 우선순위 보완(z-index). 임시저장은 `localStorage`(`sa-content-drafts`) 기반으로 구현 — 저장 없이 닫으려 하면 확인 후 임시저장, "컨텐츠 추가" 탭에서 목록 확인·이어서 작성(클립 구간까지 복원)·삭제 가능, 등록 완료 시 자동 제거. 이미지는 원본 파일 없이 텍스트 정보만 저장(재업로드 필요, 의도된 제한 — 맵 지명은 텍스트 정보 자체가 거의 없어 영향이 큼). DB 스키마 변경 없음. 세부 결정은 `docs/DECISIONS.md` 참고
 - **그룹 D-2 5단계: Master 댓글 모아보기 탭** — 사이드바 5번째 탭("💬 댓글") 활성화(1~4단계 완료로 그룹 D-2 전체 완료). 기존 `comments` 테이블·RLS·`deleteComment()`를 재사용해 전체 댓글을 `created_at` 내림차순으로 조회, `items[]`/`maps[]`에서 항목 제목·맵 이름을 찾아 표시(삭제된 항목은 "삭제된 항목"). 맵 필터·검색(본문/작성자/항목 제목)은 클라이언트 사이드. `deleteComment()`가 성공 여부(`boolean`)를 반환하도록 최소 수정해 Master 전용 목록 갱신에 재사용(중복 함수 없음). "항목 보기"는 기존 `openOverlay()` 재사용, 오버레이를 닫아도 Master 탭·필터 상태 유지. 실 Discord 로그인 세션으로 작성·조회·필터·삭제 DB 왕복 검증 완료. 세부 결정은 `docs/DECISIONS.md` 참고
 - **한글 타이포그래피 역할 정리** — 본문·일반 UI는 Pretendard, 댓글 영역은 조선굴림체를 적용. 기존 Paperlogy 제목과 Rajdhani/JetBrains Mono의 영문·숫자 역할은 유지하고, 해당 영역의 한글 fallback만 Pretendard로 통일해 `GulimChe` 렌더링을 제거. 사용하지 않던 Gothic A1과 Inter import 삭제. 세부 결정은 `docs/DECISIONS.md` 참고
+- **정적 파일 역할 분리** — 3,061줄 `index.html`의 CSS와 메인 JavaScript를 내용·순서 변경 없이 `styles.css`와 `app.js`로 분리. 빌드 도구·ES Module·새 의존성 없이 Vercel 정적 배포 방식을 유지하고, 인라인 `onclick`과 전역 상태도 그대로 보존. `<head>`의 테마 선적용 스크립트는 화면 깜빡임 방지를 위해 HTML에 유지. 세부 결정은 `docs/DECISIONS.md` 참고
 
 # 진행중
 

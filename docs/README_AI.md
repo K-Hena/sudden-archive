@@ -32,7 +32,7 @@ AI_CONTEXT
 
 PROJECT_STRUCTURE
 
-실제 폴더/파일 구조, index.html 내부 CSS/HTML/JS 구성
+실제 폴더/파일 구조, `index.html`/`styles.css`/`app.js` 역할
 
 DATABASE
 

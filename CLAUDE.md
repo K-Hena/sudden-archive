@@ -4,7 +4,8 @@
 거기 안내된 순서대로 `docs/` 하위 문서를 확인한다.
 
 ## 절대 원칙 (요약 — 상세는 docs/ 참고)
-- 이 프로젝트는 index.html 단일 파일 정적 사이트다. React/Vue/TypeScript로 전환하지 않는다.
+- 이 프로젝트는 `index.html` + `styles.css` + `app.js`로 구성된 빌드 없는 정적 사이트다. React/Vue/TypeScript로 전환하지 않는다.
+- `app.js`는 기존 전역 스크립트 구조와 함수 순서를 그대로 유지한다. `type="module"` 전환, 전역 상태 재설계, 인라인 `onclick` 제거는 별도 설계 없이 진행하지 않는다. `<head>`의 테마 선적용 스크립트는 화면 깜빡임 방지를 위해 `index.html`에 유지한다.
 - Supabase DB 변경은 위험도에 따라 다르게 처리한다 — SELECT/INSERT/UPDATE는 Supabase MCP로 바로 실행 가능, DELETE/DROP/ALTER TABLE/RLS 정책 변경은 실행 전 사용자에게 명시하고 확인받은 후에만 실행한다 (자세한 내용은 docs/CLAUDE_CODE_RULES.md의 "SQL 실행 규칙" 참고).
 - 코드 작업 완료 후에는 항상 git add / commit / push까지 진행한다 (push 안 하면 Vercel 배포 안 됨).
 - 큰 기능은 한 번에 구현하지 않고 단계별로 나눠 진행하며, 각 단계 완료 확인 후 다음 단계로 넘어간다.

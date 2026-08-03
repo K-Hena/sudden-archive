@@ -35,7 +35,7 @@ AI_CONTEXT.md를 프로젝트의 기준 문서(Single Source of Truth)로 두고
 | CLAUDE_CODE_RULES.md | Claude Code 행동 규칙 |
 | PROMPTS.md | 표준 작업 절차 |
 | MAINTENANCE.md | 문서 유지보수 규칙 (이 문서) |
-| PROJECT_STRUCTURE.md | 실제 폴더/파일 구조, index.html 내부 CSS/HTML/JS 구성 |
+| PROJECT_STRUCTURE.md | 실제 폴더/파일 구조, `index.html`/`styles.css`/`app.js` 역할 |
 | DATABASE.md | Supabase 테이블/컬럼/RLS/Storage 버킷 구조 |
 | CHANGELOG.md | 커밋 단위 변경 이력 |
 | TODO.md | 완료/진행중/예정/아이디어 최신 목록 |

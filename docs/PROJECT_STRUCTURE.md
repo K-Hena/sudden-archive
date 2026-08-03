@@ -1,6 +1,6 @@
 # PROJECT_STRUCTURE.md
 
-> 실제 코드(index.html, git 구조)를 분석해서 작성한 문서. 이 프로젝트는 별도의 빌드 시스템이나 프레임워크 없이, 단일 HTML 파일로 이루어진 정적 사이트다.
+> 실제 코드와 git 구조를 분석해서 작성한 문서. 이 프로젝트는 별도의 빌드 시스템이나 프레임워크 없이 HTML/CSS/JavaScript 정적 파일 3개로 이루어진 사이트다.
 
 ---
 
@@ -8,7 +8,9 @@
 
 ```
 sudden-archive/                     (이 저장소, User 사이트 — github.com/K-Hena/sudden-archive)
-├── index.html                      User 사이트 전체 (HTML+CSS+JS 단일 파일)
+├── index.html                      User 사이트 마크업 + head 테마 선적용 스크립트
+├── styles.css                      User 사이트 전체 스타일
+├── app.js                          User 사이트 전체 JavaScript 동작(전역 스크립트)
 ├── favicon.ico / favicon-16.png / favicon-32.png / favicon-192.png / apple-touch-icon-180.png
 ├── .gitignore
 ├── CLAUDE.md                       Claude Code 진입 문서 (docs/README_AI.md로 안내)
@@ -40,17 +42,18 @@ CDN으로 불러오는 외부 자원: `@supabase/supabase-js@2`, `cropperjs@1.6.
 
 ---
 
-# 주요 파일 역할 (index.html, User 사이트)
+# 주요 파일 역할 (User 사이트)
 
-단일 파일 안에서 `<style>`, `<body>`, `<script>` 세 영역으로 구성된다.
+`index.html`이 `styles.css`와 `app.js`를 각각 `/styles.css`, `/app.js`로 불러온다. Vercel은 세 파일을 하나의 정적 배포로 함께 제공하며 별도 빌드 설정은 없다.
 
-## CSS (`<style>`)
+## CSS (`styles.css`)
 - `:root`에 색상 변수 정의: `--bg/--panel/--line/--text/--muted` (베이스), `--red/--blue` (팀 컬러), `--amber` (즐겨찾기 별 등에 사용), `--edit-accent/--edit-accent-ink` (Master 버튼·탭·강조 요소 전용 강조색), `--green` (성공 메시지)
 - 컴포넌트별 스타일: 헤더/브랜드, 홈 대시보드(`home-*`), 맵 그리드(`map-tile`), 검색창(`detail-search`)과 전체 맵·상세 상단 검색 행(`map-head`, 모바일 세로 배치), 카드 그리드(`card`, `card-fav`, 작성자 표시), 재생 오버레이(`overlay`, 댓글·이미지 확대/이동), Master 대시보드(`master-shell`, `master-sidebar`, `master-tab`, `master-content`, `master-pane`, `master-table`, `master-btn`), 컨텐츠 추가 모달(`modal`, `type-toggle`, `cropper-wrap`, `clip-tools`, `clip-btns`, `clip-range`), 구간 슬라이더(`clip-sliders`, `clip-range-slider`/`clip-range-track`/`clip-range-fill`/`clip-range-input`)
 - 기본 본문·UI는 Pretendard, 댓글은 조선굴림체를 사용한다. Paperlogy 제목과 Rajdhani/JetBrains Mono의 영문·숫자 역할은 유지하되 한글 fallback은 Pretendard다.
 - 과거 편집모드 전용이었던 `tile-actions`/`add-tile`/`editmode-btn`/`admin-badge`/`card-edit`/`card-del`/`card-fav.with-delete`는 그룹 D-2 4단계에서 기능과 함께 CSS도 완전히 삭제됨
 
-## HTML (`<body>`)
+## HTML (`index.html`)
+- `<head>`: 메타데이터, 파비콘, Supabase/Cropper CDN, `/styles.css`. `sa-theme`을 DOM 렌더 전에 적용하는 짧은 인라인 스크립트는 테마 깜빡임 방지를 위해 의도적으로 유지
 - `header`: 로고, CLIPS/TIPS 카운트, `#authArea`(로그인 상태에 따라 JS가 채움)
 - `.subbar`: 전체 맵 / 현재 맵 이름 breadcrumb
 - `#viewHome`: 로그인 여부와 관계없는 첫 화면 — 승인된 컨텐츠로 가는 전체 맵 CTA, 즐겨찾기·최근 본 컨텐츠, 컨텐츠 추가·임시저장, 내가 추가한 컨텐츠 영역
@@ -60,8 +63,9 @@ CDN으로 불러오는 외부 자원: `@supabase/supabase-js@2`, `cropperjs@1.6.
 - `#addModal`: 컨텐츠 추가/수정 모달(홈과 Master에서 재사용) — `#pasteStep` → `#videoWrap/#imageWrap` → `#titleWrap` 3단계 화면 전환. 유튜브 URL/이미지를 자동 판별하고, 이미지는 Cropper.js, 영상은 `#clipTools`(버튼 + 슬라이더)로 연결. "맵 지명" 태그는 이미지 고정
 - `#mapImgInput`: 맵 이미지 업로드용 숨김 `<input type=file>`
 - `#viewMaster`: 관리자 전용 Master 대시보드 — `.master-sidebar`(통계/컨텐츠 추가/항목 관리/맵 관리/댓글/승인 대기 6탭) + `.master-content`(탭별 `.master-pane`, `switchMasterTab()`으로 표시만 전환하고 DOM은 항상 유지)
+- `</body>` 직전 `/app.js`: DOM이 모두 만들어진 뒤 기존 전역 스크립트를 같은 시점에 실행. 인라인 `onclick` 42개가 전역 함수 선언에 의존하므로 `type="module"`을 사용하지 않음
 
-## JS (`<script>`)
+## JavaScript (`app.js`)
 - Supabase 클라이언트 초기화 (`sb`)
 - 전역 상태: `maps`, `items`, `currentMap`, `currentMapName`, `currentTeam`, `currentSession`, `favorites`, `favoritePending`, `isAdminUser`, `modalTag`, `modalType`, `modalStep`, `cropper`, `pendingMapId`, `clipStart`, `clipEnd`, `clipDuration`, `clipYtPlayer`(재생 오버레이용 `ytPlayer`와는 별도 — `docs/DECISIONS.md` 참고), `clipPreviewTimer`(편집 미리보기 구간 감시 전용, 일반 오버레이 `clipTimer`와 분리), `clipScrubLastSeek`(드래그 스크러빙 스로틀용)
 - 데이터 로드: `loadAll()` — `maps`/`items` 테이블을 조회해 전역 배열을 채우고 홈·전체 맵을 갱신. 공개 화면은 `publicItems()`로 `published`만 사용하며, Master 화면이 활성이면 현재 탭에 맞는 렌더 함수도 호출
@@ -99,7 +103,9 @@ Master에서 실제로 어떤 CRUD가 이식/미이식 상태인지는 `docs/arc
 
 # 수정 시 주의사항
 
-- **단일 파일 + 전역 변수 구조**: `maps`, `items`, `currentMap`, `currentTeam`, `isAdminUser` 등은 모두 스크립트 최상단의 전역 변수다. 여러 렌더 함수(`renderMapGrid`, `renderCards`, Master의 `renderMasterMapsTable`/`renderMasterItemsTable`)가 이 전역 상태를 직접 참조하므로, 상태를 바꾸는 코드를 추가할 때는 관련된 모든 렌더 함수를 다시 호출해줘야 화면이 갱신된다 (예: `addMap()`/`deleteItem()` 등이 성공 후 항상 `loadAll()`을 호출해 `renderMapGrid()`와 Master의 활성 탭 렌더 함수를 함께 갱신시키는 이유).
+- **파일은 분리됐지만 전역 구조는 유지**: `maps`, `items`, `currentMap`, `currentTeam`, `isAdminUser` 등은 모두 `app.js` 최상단의 전역 변수다. 여러 렌더 함수와 `index.html`의 인라인 이벤트 속성이 이를 직접 참조한다. 파일 분리와 모듈화는 별개이므로, 새 기능을 작업하면서 임의로 ES Module·클래스·상태 관리 계층으로 바꾸지 않는다.
+- **로드 순서 유지**: Supabase와 Cropper CDN → 본문 DOM → `/app.js` 순서다. `app.js`에 `defer`나 `type="module"`을 추가하거나 head로 옮기려면 인라인 이벤트와 초기화 시점을 별도로 검증해야 한다.
+- **전역 상태 갱신**: 상태를 바꾸는 코드를 추가할 때는 관련 렌더 함수를 다시 호출해야 화면이 갱신된다 (예: `addMap()`/`deleteItem()` 등이 성공 후 `loadAll()`을 호출해 공개 화면과 Master 활성 탭을 함께 갱신).
 - **인라인 onclick과 함수명 결합**: 카드/타일 HTML은 템플릿 리터럴로 `onclick="함수명(...)"` 문자열을 직접 만든다. 전역 함수명을 바꾸면 HTML 문자열 안의 문자열도 함께 바꿔야 한다 — 타입 체커나 링터가 잡아주지 않는다.
 - **문자열 이스케이프**: 맵/항목 이름에 작은따옴표(`'`)가 들어가면 onclick 인라인 속성이 깨지므로, `renderMapGrid()`에서 `m.name.replace(/'/g,"\\'")`로 이스케이프한 `safe` 값을 사용한다. 이름을 쓰는 새 UI를 추가할 때 이 패턴을 재사용해야 한다.
 - **Supabase 에러 패턴**: 비동기 Supabase 호출은 예외를 던지지 않고 `{ data, error }`를 반환한다. 새 코드도 이 패턴(`if(error){ alert(...); return; }`)을 따라야 한다 — CODING_RULES.md 참고.

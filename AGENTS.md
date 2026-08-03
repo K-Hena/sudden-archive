@@ -4,9 +4,10 @@
 `docs/AI_CONTEXT.md`의 "문서 지도"를 따라 필요한 문서를 확인한다.
 
 ## 프로젝트 성격
-- `index.html` 하나로 이루어진 바닐라 JavaScript 정적 사이트. 빌드 도구, 프레임워크, 번들러 없음.
+- `index.html`(마크업), `styles.css`(전체 스타일), `app.js`(전체 동작)로 이루어진 바닐라 JavaScript 정적 사이트. 빌드 도구, 프레임워크, 번들러 없음.
+- `app.js`는 ES Module이 아닌 기존 전역 스크립트다. `index.html`의 인라인 `onclick`과 전역 상태가 이 구조에 의존하므로 별도 설계 없이 모듈화하거나 실행 순서를 바꾸지 않는다. `<head>`의 짧은 테마 선적용 스크립트는 화면 깜빡임 방지를 위해 의도적으로 HTML에 남겨뒀다.
 - 백엔드는 Supabase(Auth/DB/Storage). 별도 서버 코드 없음.
-- User 사이트(이 저장소)와 레거시 Admin 사이트(`sudden-archive-admin`, 별도 저장소)가 공존하며, 편집모드를 User 사이트로 이식해 Admin 사이트를 폐기하는 마이그레이션이 진행 중.
+- User 사이트(이 저장소)의 Master 대시보드가 운영 기능을 대체했고, 레거시 Admin 사이트(`sudden-archive-admin`, 별도 저장소)는 최종 정리만 남아 있다.
 
 ## 반드시 지킬 것
 - 기존 코드 스타일/구조 유지. React/Vue/TypeScript 전환 금지.
@@ -21,7 +22,7 @@
 ## 하지 말 것
 - 추측으로 존재하지 않는 기능/파일/테이블을 가정하지 않는다.
 - 불필요한 리팩터링, 대규모 구조 변경.
-- 검색 범위를 넘겨짚지 않는다 — 첫 화면 전체 제목 검색(`renderGlobalTitleSearch()`)과 맵·팀 내 제목 검색(`renderCards()`)이 구현되어 있지만, 둘 다 `items.title`만 검색하고 설명·태그·맵 이름·영상 URL은 검색하지 않는다 (`docs/architecture/search-flow.md` 참고).
+- 검색 범위를 넘겨짚지 않는다 — 전체 맵 검색(`renderGlobalTitleSearch()`)과 맵·팀 내 검색(`renderCards()`)은 `items.title`과 `items.channel_name`만 검색하고 설명·태그·맵 이름·영상 URL은 검색하지 않는다 (`docs/architecture/search-flow.md` 참고).
 
 ## 참고 문서
 - 구조: `docs/PROJECT_STRUCTURE.md`

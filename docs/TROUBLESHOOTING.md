@@ -82,7 +82,7 @@ Playwright(Chromium)로 duration=35, 시작=9, 끝=19인 상태를 실제로 재
 1. `updateClipRangeFill()`이 `value/clipDuration` 대신 각 슬라이더 **자기 자신의 살아있는 `min`/`max` 속성**을 읽어 `(value - min)/(max - min)`으로 비율을 구하도록 바꿨다. 두 손잡이가 어떤 이유로든 서로 다른 min/max를 갖게 되더라도, 채움 바는 항상 실제 렌더링된 손잡이 위치 사이에만 그려진다(`left = min(시작비율, 끝비율)`, `right = max(시작비율, 끝비율)`로 계산해 순서가 뒤바뀌어도 안전).
 2. 근본 원인인 "상대 슬라이더의 min/max를 좁히는" 교차 방지 방식 자체를 제거했다. 이제 `applyClipDuration()`/`syncClipSliders()`는 두 슬라이더의 `min`/`max`를 항상 `[0, clipDuration]`으로 고정해서 유지하고, 교차 방지는 `onClipStartInput`/`onClipEndInput`에서 **자기 자신의 value만** `Math.max(e-1, 0)` / `Math.min(s+1, clipDuration)`으로 clamp하는 방식으로 바꿨다. 상대방의 값이나 min/max는 절대 건드리지 않으므로, "끝쪽이 뻑뻑함" 버그(상대 슬라이더 값을 매 틱마다 재할당해서 생긴 문제)를 다시 만들지 않으면서도, 손잡이의 실제 화면 위치가 항상 `value/clipDuration`과 정확히 일치하게 됐다.
 
-**검증(실제 브라우저)**: jsdom이 아니라 Playwright로 Chromium을 직접 띄워서, index.html의 CSS(`.clip-range-*`)와 수정된 JS 함수를 그대로 복사한 재현 페이지를 만들어 확인했다(index.html 자체는 Supabase 로그인 + 편집모드 + 유튜브 IFrame API에 의존하고 있어 앱 전체를 그대로 구동하며 값을 세팅하기 어려워, 동일한 마크업/CSS/함수를 쓰는 축소 재현 페이지로 검증하는 방식을 택했다). 슬라이더 컨테이너의 `getBoundingClientRect()`를 기준으로, 채움 바의 실제 좌/우 픽셀과 "손잡이가 렌더링되어야 할 위치"(동일한 `calc(8px + (100%-16px)*비율)` 공식을 손잡이 쪽에도 그대로 적용해 노란 세로선으로 겹쳐 그림, 실제 화면 스크린샷으로 원 중심과 정확히 겹치는지 육안 확인)를 비교했다.
+**검증(실제 브라우저)**: jsdom이 아니라 Playwright로 Chromium을 직접 띄워서, 당시 `index.html`에 있던 CSS(`.clip-range-*`)와 수정된 JS 함수를 그대로 복사한 재현 페이지를 만들어 확인했다(현재 해당 코드는 `styles.css`와 `app.js`로 분리됨). 앱 전체는 Supabase 로그인 + 편집모드 + 유튜브 IFrame API에 의존하고 있어 값을 세팅하기 어려워, 동일한 마크업/CSS/함수를 쓰는 축소 재현 페이지로 검증하는 방식을 택했다. 슬라이더 컨테이너의 `getBoundingClientRect()`를 기준으로, 채움 바의 실제 좌/우 픽셀과 "손잡이가 렌더링되어야 할 위치"(동일한 `calc(8px + (100%-16px)*비율)` 공식을 손잡이 쪽에도 그대로 적용해 노란 세로선으로 겹쳐 그림, 실제 화면 스크린샷으로 원 중심과 정확히 겹치는지 육안 확인)를 비교했다.
 
 | 시나리오 | duration | 시작 | 끝 | 채움 바 left(px) | 채움 바 right(px) | 손잡이 위치(left/right, px) | 일치 여부 |
 |---|---|---|---|---|---|---|---|
@@ -147,10 +147,10 @@ Playwright(Chromium)로 duration=35, 시작=9, 끝=19인 상태를 실제로 재
 
 ## 모바일 반응형 모달 오버라이드를 `@media` 블록에 추가했는데 적용되지 않았음
 
-**원인**: `.modal`/`.modal-box`의 기본(비반응형) 선언이 `index.html` 소스에서 350번째 줄 부근에 있는데, 반응형 오버라이드를 그보다 앞쪽(153번째 줄 부근)의 기존 `@media(max-width:600px)` 블록에 추가했다. CSS는 명시도가 같으면 **소스에서 더 나중에 나오는 규칙이 이긴다** — `@media` 안에 있는지 여부와 무관하게, 미디어 조건이 실제로 참이면 일반 규칙과 똑같이 취급된다. 그 결과 뒤쪽의 기본 선언(`padding:30px`, `width:min(560px,95vw)`)이 앞쪽의 모바일 오버라이드(`padding:12px`, `width:min(560px, calc(100vw - 24px))`)를 항상 덮어썼다.
+**원인**: 당시 `index.html`의 `.modal`/`.modal-box` 기본 선언보다 앞쪽 미디어쿼리에 반응형 오버라이드를 추가했다(현재 CSS는 `styles.css`로 분리됨). CSS는 명시도가 같으면 **소스에서 더 나중에 나오는 규칙이 이긴다** — `@media` 안에 있는지 여부와 무관하게, 미디어 조건이 실제로 참이면 일반 규칙과 똑같이 취급된다. 그 결과 뒤쪽의 기본 선언(`padding:30px`, `width:min(560px,95vw)`)이 앞쪽의 모바일 오버라이드(`padding:12px`, `width:min(560px, calc(100vw - 24px))`)를 항상 덮어썼다.
 
 **어떻게 발견했는지**: Playwright 실제 디바이스 에뮬레이션(390px)에서 `.modal-box`의 `getBoundingClientRect()`를 측정했더니 폭이 330px로 나왔다. 의도한 계산식(`min(560px, calc(100vw-24px))` = 366px)과 달라, 역산해보니 "기본 선언의 `padding:30px`가 그대로 적용된 상태에서 flexbox가 폭을 축소시킨 값"과 정확히 일치했다 — 즉 오버라이드 자체가 아예 반영되지 않고 있었다.
 
 **해결**: 모달 전용 오버라이드를 기존 앞쪽 블록에서 빼서, `.modal-box` 기본 선언 바로 뒤에 새 `@media(max-width:600px){ .modal{padding:12px;} .modal-box{width:min(560px, calc(100vw - 24px));} }` 블록을 만들어 넣었다. 같은 셀렉터를 다루는 `@media` 오버라이드는 반드시 그 셀렉터의 기본 선언보다 소스상 뒤에 있어야 한다는 원칙을 지켰다. 헤더(`header`/`.brand`/`.status`) 오버라이드는 기본 선언이 82~94번째 줄로 원래도 153번째 줄보다 앞이라 이 문제가 없었다.
 
-**예방**: 반응형 오버라이드를 "기존 미디어쿼리 블록에 넣는다"는 원칙만으로 판단하지 말고, 그 블록이 오버라이드하려는 기본 선언보다 **소스상 뒤에 있는지**를 먼저 확인한다. 이 저장소는 CSS-in-JS나 CSS Modules 같은 스코프 도구 없이 순수 전역 `<style>` 한 블록을 쓰므로, 소스 순서가 곧 우선순위에 직접 영향을 준다. 새 반응형 규칙을 추가한 뒤에는 값을 눈으로 짐작하지 말고 Playwright로 실제 `getBoundingClientRect()`/`getComputedStyle()` 값을 찍어서 의도한 값과 일치하는지 확인하는 습관이 이런 "조용히 무시되는 오버라이드"를 잡아낸다.
+**예방**: 반응형 오버라이드를 "기존 미디어쿼리 블록에 넣는다"는 원칙만으로 판단하지 말고, 그 블록이 오버라이드하려는 기본 선언보다 **소스상 뒤에 있는지**를 먼저 확인한다. 이 저장소는 CSS-in-JS나 CSS Modules 같은 스코프 도구 없이 `styles.css` 한 파일의 순수 전역 CSS를 쓰므로, 소스 순서가 곧 우선순위에 직접 영향을 준다. 새 반응형 규칙을 추가한 뒤에는 값을 눈으로 짐작하지 말고 Playwright로 실제 `getBoundingClientRect()`/`getComputedStyle()` 값을 찍어서 의도한 값과 일치하는지 확인하는 습관이 이런 "조용히 무시되는 오버라이드"를 잡아낸다.

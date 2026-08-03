@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-08-03 — HTML/CSS/JavaScript 정적 파일 분리
+
+- 3,061줄 `index.html`에서 전역 CSS 481줄을 `styles.css`, 메인 JavaScript 2,234줄을 `app.js`로 내용·순서 변경 없이 이동
+- `index.html`은 마크업과 화면 깜빡임 방지용 head 테마 선적용 스크립트만 유지하고 `/styles.css`, `/app.js`를 정적 경로로 로드
+- ES Module·번들러·새 의존성 없이 기존 전역 상태, 함수 선언, 인라인 `onclick`, CDN 및 초기화 순서를 그대로 유지
+
 ## 2026-08-03 — 프로젝트 문서 현행화
 
 - `AI_CONTEXT.md`와 `TODO.md`를 그룹 D-2·E 완료, 그룹 F 기본 흐름 완료/F-5 진행 상태에 맞게 갱신

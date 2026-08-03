@@ -89,9 +89,11 @@ User
 
 Frontend
 
-- HTML
-- JavaScript
-- CSS
+- `index.html` — 마크업과 테마 선적용 스크립트
+- `styles.css` — 전체 전역 스타일
+- `app.js` — 전체 Vanilla JavaScript 동작(기존 전역 구조 유지)
+
+빌드 도구·번들러·프레임워크는 없다. `index.html`이 루트 경로의 CSS/JS를 직접 불러오며 Vercel이 정적 파일 세 개를 하나의 배포로 제공한다.
 
 Backend
 
@@ -287,7 +289,7 @@ AI는 프로젝트 전체 구조를 우선 이해한 후 작업하며, 불확실
 | Claude Code의 행동 규칙, 담당 업무 | `docs/CLAUDE_CODE_RULES.md` |
 | 기능 추가/버그 수정/SQL 작성/리팩터링 등 표준 작업 절차 | `docs/PROMPTS.md` |
 | 어떤 작업을 하면 어떤 문서를 함께 확인해야 하는지 | `docs/MAINTENANCE.md` |
-| 실제 폴더/파일 구조, index.html 내부 CSS/HTML/JS 구성 | `docs/PROJECT_STRUCTURE.md` |
+| 실제 폴더/파일 구조, `index.html`/`styles.css`/`app.js` 역할 | `docs/PROJECT_STRUCTURE.md` |
 | Supabase 테이블/컬럼/RLS/Storage 버킷 구조 | `docs/DATABASE.md` |
 | 커밋 단위 변경 이력 | `docs/CHANGELOG.md` |
 | 완료/진행중/예정/아이디어 최신 목록 | `docs/TODO.md` |
