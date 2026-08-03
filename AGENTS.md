@@ -29,6 +29,13 @@
 - 진행 상황/결정: `docs/AI_CONTEXT.md`, `docs/TODO.md`, `docs/DECISIONS.md`
 - 세부 흐름: `docs/architecture/*.md`
 
+## Notion 개발 기록 자동 갱신
+- 기능 구현, 버그 수정, DB/RLS 변경, 배포처럼 개발 이력으로 남길 실질적인 작업이 완료되면 사용자가 따로 요청하지 않아도 Notion `개발 공부 → 개발 기록 → 서든 아카이브 (Sudden Archive)` 페이지를 갱신한다.
+- 대상 페이지 ID: `3aae0df0-3fa7-819b-87ea-d620a4d7901d`
+- 기존 페이지를 먼저 읽고, 중복 없이 작업 배경·핵심 결정·발견한 문제·검증 결과·커밋/배포·남은 TODO를 간결하게 추가한다. 기존 기록 중 이번 작업으로 상태가 바뀐 항목도 함께 바로잡는다.
+- 단순 조회, 설계 대화만 진행한 경우, 작업이 실패하거나 미완료인 경우에는 자동 기록하지 않는다.
+- 비밀값, 인증 토큰, 개인 데이터, 테스트용 원문 데이터는 기록하지 않는다.
+
 <!-- code-review-graph MCP tools -->
 ## MCP Tools: code-review-graph
 
