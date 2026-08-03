@@ -20,6 +20,7 @@
 | 상세 카드와 즐겨찾기 | `renderCards()`, `renderHomeItemCard()`, `renderGlobalTitleSearch()`, `favoriteButton()`, `toggleFavorite()` | `ARCHITECTURE.md`(탐색/검색 흐름), `tests/favorites.test.js`, `tests/map-label-card.test.js` |
 | 인증과 관리자 판별 | `initAuth()`, `renderAuthArea()`, `discordLogin()` | `ARCHITECTURE.md`(인증 흐름), `DATABASE.md` |
 | Master 대시보드 | `openMaster()`, `switchMasterTab()`, `loadMasterStats()`와 `renderMaster*` 함수 | `ARCHITECTURE.md`(관리자 흐름) |
+| 항목 휴지통·복구 | `setMasterItemsView()`, `renderMasterItemsTable()`, `moveItemToTrash()`, `restoreItem()` | `DATABASE.md`, `DECISIONS.md` |
 | 승인 흐름 | `renderMasterApprovals()`, `reviewItem()`, `renderMyItems()`, `hideOwnItem()` | `ARCHITECTURE.md`(관리자 흐름), `DATABASE.md` |
 | 재생 오버레이 | `openOverlay()`, `closeOverlay()`, `showFullVideo()`와 `overlay*` 함수 | `DECISIONS.md`, `TROUBLESHOOTING.md` |
 | 이미지 확대·이동 | `initImageZoomPan()`과 `onImage*` 함수 | `DECISIONS.md` |
@@ -32,7 +33,7 @@
 ## 핵심 상태 라우팅 (변수 → 카테고리)
 
 - 서버 데이터 캐시: `maps`, `items`, `favorites`, `masterComments`
-- 화면 선택 상태: `currentMap`, `currentMapName`, `currentTeam`
+- 화면 선택 상태: `currentMap`, `currentMapName`, `currentTeam`, `masterItemsView`
 - 인증 상태: `currentSession`, `isAdminUser`
 - 오버레이 상태: `overlay*`, `ytPlayer`
 - 추가 모달 상태: `modal*`, `clip*`, `cropper`, `resumingDraftId`
@@ -42,6 +43,7 @@
 ## 변경 시 같이 확인할 것 (구조 설명은 ARCHITECTURE.md 참고)
 
 - 공개/승인 상태를 바꾸면 클라이언트 필터와 DB RLS 양쪽을 확인한다.
+- `items.status='trashed'` 전환·복구는 `trashed_from_status`를 직접 계산하지 말고 DB 트리거가 보존한 값을 사용한다.
 - 이미지 업로드 경로를 바꾸면 Storage 정책의 사용자 폴더 규칙을 확인한다.
 - CSS는 전역이며 같은 명시도에서는 뒤에 선언된 규칙이 이긴다.
 - DB 고위험 작업은 `DEVELOPMENT_GUIDE.md`의 "SQL 실행 규칙"을 따른다.
@@ -55,6 +57,7 @@ node tests\channel-name.test.js
 node tests\favorites.test.js
 node tests\clip-preview.test.js
 node tests\volume-persistence.test.js
+node tests\item-operations.test.js
 git diff --check
 ```
 

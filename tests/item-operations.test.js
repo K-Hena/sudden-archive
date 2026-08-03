@@ -1,0 +1,28 @@
+const assert = require('assert');
+const fs = require('fs');
+
+const app = fs.readFileSync('app.js', 'utf8');
+const between = (start, end) => app.slice(app.indexOf(start), app.indexOf(end, app.indexOf(start) + start.length));
+
+const homeAdd = between('function openHomeAdd', '\nfunction renderMyItems');
+assert.match(homeAdd, /isAdminUser \? tagOrder : tagOrder\.filter\(tag => tag !== '맵 지명'\)/);
+assert.match(homeAdd, /allowedTags\.includes\(tag\)/);
+
+const addModal = between('function openAddModal', '\nfunction openEditModal');
+const submit = between('async function submitItem', '\n\/\/ --- 컨텐츠 추가 임시저장');
+[addModal, submit].forEach(source => assert.match(source, /'맵 지명' && !isAdminUser/));
+
+const trash = between('async function moveItemToTrash', '\nasync function restoreItem');
+assert.match(trash, /update\(\{ status:'trashed' \}\)/);
+assert.doesNotMatch(trash, /\.delete\(\)/);
+
+const restore = between('async function restoreItem', '\nlet pendingMapId');
+assert.match(restore, /\['pending','published','rejected'\]\.includes\(restoreStatus\)/);
+assert.match(restore, /update\(\{ status:restoreStatus \}\)/);
+
+const masterItems = between('function renderMasterItemsTable', '\nfunction renderMasterMapsTable');
+assert.match(masterItems, /it\.status !== 'trashed'/);
+assert.match(masterItems, /it\.status === 'trashed'/);
+assert.match(masterItems, /trashed_from_status/);
+
+console.log('ITEM_OPERATIONS_CHECKS_OK');

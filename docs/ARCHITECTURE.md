@@ -54,7 +54,7 @@ CDN으로 불러오는 외부 자원: `@supabase/supabase-js@2`, `cropperjs@1.6.
 
 ## CSS (`styles.css`)
 - `:root`에 색상 변수 정의: `--bg/--panel/--line/--text/--muted` (베이스), `--red/--blue` (팀 컬러), `--amber` (즐겨찾기 별 등에 사용), `--edit-accent/--edit-accent-ink` (Master 버튼·탭·강조 요소 전용 강조색), `--green` (성공 메시지)
-- 컴포넌트별 스타일: 헤더/브랜드, 홈 대시보드(`home-*`), 맵 그리드(`map-tile`), 검색창(`detail-search`)과 전체 맵·상세 상단 검색 행(`map-head`, 모바일 세로 배치), 카드 그리드(`card`, `card-fav`, 작성자 표시), 재생 오버레이(`overlay`, 댓글·이미지 확대/이동), Master 대시보드(`master-shell`, `master-sidebar`, `master-tab`, `master-content`, `master-pane`, `master-table`, `master-btn`), 컨텐츠 추가 모달(`modal`, `type-toggle`, `cropper-wrap`, `clip-tools`, `clip-btns`, `clip-range`), 구간 슬라이더(`clip-sliders`, `clip-range-slider`/`clip-range-track`/`clip-range-fill`/`clip-range-input`)
+- 컴포넌트별 스타일: 헤더/브랜드, 홈 대시보드(`home-*`), 맵 그리드(`map-tile`), 검색창(`detail-search`)과 전체 맵·상세 상단 검색 행(`map-head`, 모바일 세로 배치), 카드 그리드(`card`, `card-fav`, 작성자 표시), 재생 오버레이(`overlay`, 댓글·이미지 확대/이동), Master 대시보드(`master-shell`, `master-sidebar`, `master-tab`, `master-content`, `master-pane`, `master-table`, `master-view-switch`), 컨텐츠 추가 모달(`modal`, `type-toggle`, `cropper-wrap`, `clip-tools`, `clip-btns`, `clip-range`), 구간 슬라이더(`clip-sliders`, `clip-range-slider`/`clip-range-track`/`clip-range-fill`/`clip-range-input`)
 - 기본 본문·UI는 Pretendard, 댓글은 조선굴림체를 사용한다. Paperlogy 제목과 Rajdhani/JetBrains Mono의 영문·숫자 역할은 유지하되 한글 fallback은 Pretendard다.
 - 과거 편집모드 전용이었던 `tile-actions`/`add-tile`/`editmode-btn`/`admin-badge`/`card-edit`/`card-del`/`card-fav.with-delete`는 그룹 D-2 4단계에서 기능과 함께 CSS도 완전히 삭제됨
 
@@ -66,22 +66,22 @@ CDN으로 불러오는 외부 자원: `@supabase/supabase-js@2`, `cropperjs@1.6.
 - `#viewGrid`: 맵 선택 화면 — 맵 선택 문구와 전체 제목 검색창(`#globalTitleSearch`) 아래 `#mapGrid`에 맵 타일 또는 검색 결과 카드 표시
 - `#viewDetail`: 맵 상세 화면 — 상단 `map-head detail-toolbar` 안에 뒤로가기 버튼(왼쪽)과 제목 검색창(`#titleSearch`, 오른쪽), 그 아래 맵 제목·RED/BLUE 팀 토글과 `#cardGrid`
 - `#overlay`: 영상/이미지 재생 오버레이 — 실제 미디어(iframe/img)는 `#overlayMediaContent`에만 그리고, 그 위에 뜨는 재생/일시정지 버튼(`#overlayPlayPause`)과 클립 항목 전용 "전체 영상 보기" 버튼(`#overlayFullBtn`)은 형제 요소로 분리해 `innerHTML` 교체로 지워지지 않게 함
-- `#addModal`: 컨텐츠 추가/수정 모달(홈과 Master에서 재사용) — `#pasteStep` → `#videoWrap/#imageWrap` → `#titleWrap` 3단계 화면 전환. 유튜브 URL/이미지를 자동 판별하고, 이미지는 Cropper.js, 영상은 `#clipTools`(버튼 + 슬라이더)로 연결. "맵 지명" 태그는 이미지 고정
+- `#addModal`: 컨텐츠 추가/수정 모달(홈에서 진입) — `#pasteStep` → `#videoWrap/#imageWrap` → `#titleWrap` 3단계 화면 전환. 유튜브 URL/이미지를 자동 판별하고, 이미지는 Cropper.js, 영상은 `#clipTools`(버튼 + 슬라이더)로 연결. "맵 지명" 태그는 이미지 고정이며 관리자만 추가 가능
 - `#mapImgInput`: 맵 이미지 업로드용 숨김 `<input type=file>`
-- `#viewMaster`: 관리자 전용 Master 대시보드 — `.master-sidebar`(통계/컨텐츠 추가/항목 관리/맵 관리/댓글/승인 대기 6탭) + `.master-content`(탭별 `.master-pane`, `switchMasterTab()`으로 표시만 전환하고 DOM은 항상 유지)
+- `#viewMaster`: 관리자 전용 Master 대시보드 — `.master-sidebar`(통계/항목 관리/맵 관리/댓글/승인 대기 5탭) + `.master-content`(탭별 `.master-pane`, `switchMasterTab()`으로 표시만 전환하고 DOM은 항상 유지). 항목 관리는 `masterItemsView`로 활성/휴지통을 전환
 - `</body>` 직전 `/app.js`: DOM이 모두 만들어진 뒤 기존 전역 스크립트를 같은 시점에 실행. 인라인 `onclick` 42개가 전역 함수 선언에 의존하므로 `type="module"`을 사용하지 않음
 
 ## JavaScript (`app.js`)
 - Supabase 클라이언트 초기화 (`sb`)
-- 전역 상태: `maps`, `items`, `currentMap`, `currentMapName`, `currentTeam`, `currentSession`, `favorites`, `favoritePending`, `isAdminUser`, `modalTag`, `modalType`, `modalStep`, `cropper`, `pendingMapId`, `clipStart`, `clipEnd`, `clipDuration`, `clipYtPlayer`(재생 오버레이용 `ytPlayer`와는 별도 — `docs/DECISIONS.md` 참고), `clipPreviewTimer`(편집 미리보기 구간 감시 전용, 일반 오버레이 `clipTimer`와 분리), `clipScrubLastSeek`(드래그 스크러빙 스로틀용)
+- 전역 상태: `maps`, `items`, `currentMap`, `currentMapName`, `currentTeam`, `currentSession`, `favorites`, `favoritePending`, `isAdminUser`, `masterItemsView`, `modalTag`, `modalType`, `modalStep`, `cropper`, `pendingMapId`, `clipStart`, `clipEnd`, `clipDuration`, `clipYtPlayer`(재생 오버레이용 `ytPlayer`와는 별도 — `docs/DECISIONS.md` 참고), `clipPreviewTimer`(편집 미리보기 구간 감시 전용, 일반 오버레이 `clipTimer`와 분리), `clipScrubLastSeek`(드래그 스크러빙 스로틀용)
 - 데이터 로드: `loadAll()` — `maps`/`items` 테이블을 조회해 전역 배열을 채우고 홈·전체 맵을 갱신. 공개 화면은 `publicItems()`로 `published`만 사용하며, Master 화면이 활성이면 현재 탭에 맞는 렌더 함수도 호출
 - 맵 그리드: `renderMapGrid()`는 검색어가 없으면 맵 타일을, 있으면 `renderGlobalTitleSearch()`를 통해 공개 항목의 제목·채널명 검색 결과를 표시. 맵 CRUD 함수 `addMap()/renameMap()/deleteMap()/pickMapImage()`는 Master "맵 관리" 탭에서만 호출됨
-- 상세 카드: `renderCards()`가 현재 맵·팀과 제목·채널명으로 공개 항목을 필터링한 뒤 위폭·팁 즐겨찾기를 최신순 우선 정렬(액션 아이콘 없음, 관리자·비관리자 동일). `favoriteButton()/toggleFavorite()`가 상세·전체 검색 카드의 별 버튼과 DB 성공 후 상태 갱신을 담당하고 `favoritePending`으로 중복 요청을 차단. 컨텐츠 추가는 홈과 Master의 기존 탭이 같은 모달을 재사용하고, 수정·관리자 삭제는 Master 항목 관리 또는 본인 컨텐츠 흐름에서 권한에 맞게 진입한다.
+- 상세 카드: `renderCards()`가 현재 맵·팀과 제목·채널명으로 공개 항목을 필터링한 뒤 위폭·팁 즐겨찾기를 최신순 우선 정렬(액션 아이콘 없음, 관리자·비관리자 동일). `favoriteButton()/toggleFavorite()`가 상세·전체 검색 카드의 별 버튼과 DB 성공 후 상태 갱신을 담당하고 `favoritePending`으로 중복 요청을 차단. 컨텐츠 추가는 홈에서 같은 모달을 사용하고, 일반 사용자는 위폭·팁만 선택할 수 있다. 수정·관리자 휴지통 이동은 Master 항목 관리 또는 본인 컨텐츠 흐름에서 권한에 맞게 진입한다.
 - 클립 구간 지정: `loadClipPlayer()/markClipStart()/markClipEnd()/clearClip()/updateClipLabel()`(버튼), `onClipStartInput()/onClipStartChange()/onClipEndInput()/onClipEndChange()/syncClipSliders()/updateClipSliderLabels()/updateClipRangeFill()`(단일 트랙 슬라이더 — `min`/`max`는 항상 `[0, clipDuration]`로 고정, 교차 방지는 각 입력 핸들러가 자기 자신의 value만 clamp하는 방식), `onClipScrubStart()/scrubClipPreview()`(드래그 중 일시정지 + 스로틀된 정지 프레임 미리보기), `applyClipDuration(duration)`(`getDuration()`이 안정된 값으로 확정됐을 때만 슬라이더 `min`/`max`/`value`에 반영 — 모달 초기화 시 `0`으로도 호출해 이전 영상 상태를 리셋), `syncClipPreviewTimer()/stopClipPreviewTimer()`(양쪽 경계가 있을 때만 `[clipStart, clipEnd)` 감시, 초기화·영상 교체·이미지 전환·모달 종료 시 정리) — 버튼과 슬라이더 모두 `clipStart`/`clipEnd`를 공유
 - 재생: `openOverlay()/closeOverlay()` — 유튜브 IFrame API로 클립 구간 반복 재생 지원, 클립 항목은 `controls:0`으로 컨트롤바를 숨기고 `toggleOverlayPlay()`(커스텀 재생/일시정지)와 `showFullVideo()`(같은 위치에서 이어서 `controls:1` 플레이어로 재생성, 구간 제한 해제)를 제공. 상태는 `overlayVideoId`/`overlayHasClip`에 저장되며 오버레이를 닫으면 초기화됨(전체 모드 전환은 세션 한정, `docs/DECISIONS.md` 참고)
 - 인증·홈: `initAuth()/renderAuthArea()/discordLogin()/loadFavorites()/showHome()/renderHomeDashboard()` — Discord OAuth, 즐겨찾기·최근 본 컨텐츠·임시저장·본인 등록 목록을 로그인 상태에 맞게 렌더링하고 `admins` 조회 결과로 `#masterBtn` 노출 여부 결정
-- 사용자 등록: 일반 사용자는 `pending`, 관리자는 `published`로 저장. 작성자 표시 정보는 DB 트리거가 Discord 인증 메타데이터로 강제하며, 일반 사용자는 승인 전 항목만 수정·숨김 가능
-- Master 대시보드: `openMaster()/switchMasterTab()` — 통계·컨텐츠 추가·항목 관리·맵 관리·댓글·승인 대기 탭 전환. `renderMasterApprovals()/reviewItem()`이 승인·반려를 담당
+- 사용자 등록: 일반 사용자는 위폭·팁만 `pending`, 관리자는 맵 지명을 포함해 `published`로 저장. 작성자 표시 정보는 DB 트리거가 Discord 인증 메타데이터로 강제하며, 일반 사용자는 승인 전 항목만 수정·숨김 가능
+- Master 대시보드: `openMaster()/switchMasterTab()` — 통계·항목 관리·맵 관리·댓글·승인 대기 탭 전환. `renderMasterApprovals()/reviewItem()`이 승인·반려를, `moveItemToTrash()/restoreItem()`이 휴지통 이동·원래 상태 복구를 담당
 
 ---
 
@@ -249,20 +249,19 @@ Cropper.js(CDN, `cropperjs@1.6.1`)를 이미지 크롭에 사용 — User 사이
 
 로그인 + `admins` 테이블 등록 여부로 관리자를 판별한다(위 "4. 인증(Auth) 흐름" 참고). 관리자면 헤더에 "Master" 버튼이 노출되고, 클릭하면 `#viewMaster`(사이드바 탭 + 콘텐츠)로 전환된다(`openMaster()`). 일반 사용자가 보는 맵 그리드·카드 그리드 화면에는 CRUD 액션이 전혀 섞여 들어가지 않는다 — **과거에는 같은 화면에서 `editMode` 토글로 액션을 켜고 끄는 방식이었지만, 그룹 D-2 4단계에서 이 방식을 완전히 폐기하고 지금의 별도 Master 대시보드 방식으로 바꿨다.**
 
-### Master 사이드바 탭 (현재 6개)
+### Master 사이드바 탭 (현재 5개)
 - **통계**: 항목별 클릭수·즐겨찾기 집계 테이블(그룹 D-2 1단계)
-- **컨텐츠 추가**: 맵/태그 선택 후 기존 `openAddModal(tag)` 모달 재사용(그룹 D-2 2단계). 같은 기능이 홈으로 이전돼 F-5에서 이 중복 탭을 제거할 예정
-- **항목 관리**: 맵/태그/진영 필터 + 제목 검색 + 테이블, 각 행의 ⚙(수정)/✕(삭제) 버튼이 기존 `openEditModal()`/`deleteItem()`을 그대로 호출(그룹 D-2 3단계)
+- **항목 관리**: 맵/태그/진영 필터 + 제목 검색 + 테이블. `활성 항목/휴지통`을 전환하고 활성 행의 ⚙(수정)/🗑(휴지통 이동), 휴지통 행의 원래 상태·이동 시각·복구를 제공(그룹 D-2 3단계, F-6)
 - **맵 관리**: 맵 목록 테이블, 각 행의 🖼(이미지 변경)/✎(이름 변경)/✕(삭제) 버튼이 기존 `pickMapImage()`/`renameMap()`/`deleteMap()`을 그대로 호출, 상단 "새 맵 추가" 버튼이 `addMap()` 호출(그룹 D-2 4단계)
 - **댓글**: 전체 댓글을 `created_at` 내림차순으로 조회, `items[]`/`maps[]`에서 항목 제목·맵 이름 조회(삭제된 항목은 "삭제된 항목"), 맵 필터·검색(본문/작성자/항목 제목)은 클라이언트 사이드. "항목 보기"는 기존 `openOverlay()` 재사용, 삭제는 `deleteComment()`를 성공 여부(`boolean`) 반환하도록 최소 수정해 재사용(그룹 D-2 5단계)
 - **승인 대기**: 일반 사용자가 등록한 `pending` 컨텐츠의 작성자·맵·미리보기를 확인하고 승인 또는 사유를 입력해 반려. 관리자 미리보기는 클릭수·최근 본 항목에 포함되지 않음(그룹 F-4)
 
-### 항목 추가/수정 모달 (레거시 Admin에서 이식, 홈·Master에서 재사용)
+### 항목 추가/수정 모달 (레거시 Admin에서 이식, 홈에서 진입)
 - **붙여넣기 우선 3단계 모달** — `paste → media → details` 순서로 같은 모달 안에서 화면만 전환한다. 첫 화면은 `readAddClipboard()` 버튼과 이미지 업로드 링크만 노출하고, 자동 판별된 유튜브 URL은 기존 `loadClipPlayer()`, 이미지는 기존 Cropper.js 흐름으로 보낸다. media/details 단계에는 뒤로가기를 제공한다.
 - **클립보드 자동 판별 + 폴백** — 사용자 클릭 안에서 `navigator.clipboard.read()`를 우선 호출해 `text/plain`은 `parseYouTube()`로 검증하고 이미지 MIME은 Cropper로 전달한다. API 미지원·권한 거부·빈 클립보드는 전용 입력 영역에 포커스를 주고 네이티브 `paste` 이벤트로 Ctrl+V를 받는다. "맵 지명"에서 URL을 붙여넣으면 이미지 전용 오류를 표시한다.
 - **모든 태그의 이미지 업로드** — 붙여넣기 또는 "붙여넣지 않고 업로드" → Cropper.js로 크롭 → jpg blob 변환 → Storage `media`의 `items/{userId}/{timestamp}.jpg`에 업로드 → `img_url` 저장. 파일 선택은 `accept="image/*"`를 유지하고 GIF는 선택/붙여넣기 직후 명시적으로 거부한다.
 - `submitItem()`이 `isMapLabel` 전용 분기가 아니라 레거시처럼 `modalType`(vid/img) 기준으로 일반화됨
-- **개별 항목 삭제** — `deleteItem()`, Master "항목 관리" 탭의 ✕ 아이콘 → confirm → `items` 행 삭제. 레거시 `deleteItem()`과 동일하게 confirm 한 번만 거침
+- **개별 항목 휴지통·복구** — `moveItemToTrash()`가 행을 `trashed`로 전환하고 `restoreItem()`이 DB 트리거가 기록한 `trashed_from_status`로 복구한다. 영구 삭제 UI와 Storage 정리는 이번 범위에 없음
 - **클립 구간(`clip_start`/`clip_end`) 마킹** — 레거시의 `loadClipPlayer()`/`markClipStart()`/`markClipEnd()`/`clearClip()`/`updateClipLabel()`을 버튼 방식 그대로 이식. 레거시에는 없던 **슬라이더 UI**(`<input type=range>` 2개, 시작/끝)를 추가로 도입해 드래그로도 구간 지정이 가능하다. 버튼/슬라이더 모두 같은 `clipStart`/`clipEnd` 전역 변수를 공유해 항상 동기화됨(`docs/DECISIONS.md` 참고). `submitItem()`이 `modalType==='vid'`일 때 이 값들을 그대로 저장한다(더 이상 항상 `null`이 아님)
 - 모달의 클립 플레이어는 오버레이 재생용 `ytPlayer`와 이름이 겹치지 않도록 `clipYtPlayer`라는 별도 변수로 분리 (재생 중인 유튜브 IFrame API 로드 자체는 오버레이 코드와 공유)
 - **저장된 항목 수정** — 레거시 Admin에는 없던 새 기능(포팅이 아님). Master "항목 관리" 탭의 ⚙ 아이콘 → `openEditModal()`이 기존 항목 추가 모달을 `modalMode==='edit'`로 열어 제목·설명·진영·(영상이면) 클립 구간만 수정한다. 태그·타입·이미지·영상 URL은 읽기전용/변경불가로 표시하고 삭제 후 재등록을 안내. `submitItem()`이 수정 모드에서는 `insert` 대신 `update()`를 호출한다. 세부 결정은 `docs/DECISIONS.md` 참고
@@ -303,7 +302,7 @@ Master 대시보드가 레거시 Admin의 맵/항목 CRUD(추가·수정·삭제
 
 ## 쓰기(INSERT/UPDATE/DELETE)
 
-- `maps` 쓰기는 관리자만 가능하다. `items`는 일반 로그인 사용자도 본인 `pending` 등록과 승인 전 수정·숨김이 가능하지만 직접 승인하거나 공개 항목을 삭제할 수 없고, 관리자는 전체 생명주기를 관리한다. `favorites`는 로그인 사용자 본인 행 중심의 별도 RLS를 쓴다 (`docs/DATABASE.md` 참고).
+- `maps` 쓰기는 관리자만 가능하다. `items`는 일반 로그인 사용자도 본인 위폭·팁 `pending` 등록과 승인 전 수정·숨김이 가능하지만 맵 지명 등록·직접 승인·공개 항목 휴지통 이동·복구는 할 수 없고, 관리자는 전체 생명주기를 관리한다. 휴지통 이전 상태는 DB 트리거가 보존한다. `favorites`는 로그인 사용자 본인 행 중심의 별도 RLS를 쓴다 (`docs/DATABASE.md` 참고).
 - `maps`/`items` 쓰기 흐름은 항상 **"Supabase에 직접 쓰기 → 성공하면 `loadAll()`로 전체 재조회"** 패턴이다. 낙관적 업데이트(Optimistic UI, 로컬 배열을 먼저 바꾸는 방식)는 쓰지 않는다. 예외: `favorites` 쓰기(`toggleFavorite()`)는 DB 성공 후 `loadAll()`을 다시 부르지 않고, 로컬 `favorites` 배열만 직접 갱신한 뒤 현재 화면을 다시 렌더링한다.
 - 예: `renameMap()` → `sb.from('maps').update(...)` → 성공 시 `await loadAll()` → `maps`/`items` 전체 재조회 → `renderMapGrid()`
 
@@ -330,7 +329,7 @@ Storage에 올라간 파일 자체는 별도 권한 체크 없이 공개 URL로 
 
 - **파일은 분리됐지만 전역 구조는 유지**: `maps`, `items`, `currentMap`, `currentTeam`, `isAdminUser` 등은 모두 `app.js` 최상단의 전역 변수다. 여러 렌더 함수와 `index.html`의 인라인 이벤트 속성이 이를 직접 참조한다. 파일 분리와 모듈화는 별개이므로, 새 기능을 작업하면서 임의로 ES Module·클래스·상태 관리 계층으로 바꾸지 않는다.
 - **로드 순서 유지**: Supabase와 Cropper CDN → 본문 DOM → `/app.js` 순서다. `app.js`에 `defer`나 `type="module"`을 추가하거나 head로 옮기려면 인라인 이벤트와 초기화 시점을 별도로 검증해야 한다.
-- **전역 상태 갱신**: 상태를 바꾸는 코드를 추가할 때는 관련 렌더 함수를 다시 호출해야 화면이 갱신된다 (예: `addMap()`/`deleteItem()` 등이 성공 후 `loadAll()`을 호출해 공개 화면과 Master 활성 탭을 함께 갱신).
+- **전역 상태 갱신**: 상태를 바꾸는 코드를 추가할 때는 관련 렌더 함수를 다시 호출해야 화면이 갱신된다 (예: `addMap()`/`moveItemToTrash()` 등이 성공 후 `loadAll()`을 호출해 공개 화면과 Master 활성 탭을 함께 갱신).
 - **인라인 onclick과 함수명 결합**: 카드/타일 HTML은 템플릿 리터럴로 `onclick="함수명(...)"` 문자열을 직접 만든다. 전역 함수명을 바꾸면 HTML 문자열 안의 문자열도 함께 바꿔야 한다 — 타입 체커나 링터가 잡아주지 않는다.
 - **문자열 이스케이프**: 맵/항목 이름에 작은따옴표(`'`)가 들어가면 onclick 인라인 속성이 깨지므로, `renderMapGrid()`에서 `m.name.replace(/'/g,"\\'")`로 이스케이프한 `safe` 값을 사용한다. 이름을 쓰는 새 UI를 추가할 때 이 패턴을 재사용해야 한다.
 - **Supabase 에러 패턴**: 비동기 Supabase 호출은 예외를 던지지 않고 `{ data, error }`를 반환한다. 새 코드도 이 패턴(`if(error){ alert(...); return; }`)을 따라야 한다 — `DEVELOPMENT_GUIDE.md` 참고.

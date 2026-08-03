@@ -139,6 +139,10 @@
           <div class="section-label">항목 관리</div>
           <button class="back-btn" onclick="showMapGrid()">← 일반 화면으로</button>
         </div>
+        <div class="master-view-switch" role="group" aria-label="항목 상태">
+          <button type="button" id="masterItemsActiveBtn" class="master-view-toggle active" aria-pressed="true" onclick="setMasterItemsView('active')">활성 항목</button>
+          <button type="button" id="masterItemsTrashBtn" class="master-view-toggle" aria-pressed="false" onclick="setMasterItemsView('trash')">휴지통</button>
+        </div>
         <div class="master-add-row">
           <select id="masterItemsMapFilter" class="master-select" onchange="renderMasterItemsTable()"></select>
           <select id="masterItemsTagFilter" class="master-select" onchange="renderMasterItemsTable()">

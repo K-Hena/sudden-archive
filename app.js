@@ -29,6 +29,7 @@ let favorites = [];
 let isAdminUser = false;
 let masterComments = [];
 let lastDataLoadedAt = 0;
+let masterItemsView = 'active';
 const favoritePending = new Set();
 const tagOrder = ['맵 지명', '위폭', '팁'];
 const PUBLIC_REFRESH_MS = 5 * 60 * 1000;
@@ -149,8 +150,9 @@ function openHomeAdd(){
   const mapName = prompt('맵 이름을 입력해주세요.\n' + maps.map(m => m.name).join(', '));
   const map = maps.find(m => m.name === String(mapName || '').trim());
   if(!map){ if(mapName) alert('목록에 있는 맵 이름을 정확히 입력해주세요.'); return; }
-  const tag = prompt('태그를 입력해주세요.\n' + tagOrder.join(', '));
-  if(!tagOrder.includes(tag)){ if(tag) alert('목록에 있는 태그를 정확히 입력해주세요.'); return; }
+  const allowedTags = isAdminUser ? tagOrder : tagOrder.filter(tag => tag !== '맵 지명');
+  const tag = prompt('태그를 입력해주세요.\n' + allowedTags.join(', '));
+  if(!allowedTags.includes(tag)){ if(tag) alert('목록에 있는 태그를 정확히 입력해주세요.'); return; }
   currentMap = map.id;
   currentMapName = map.name;
   openAddModal(tag);
@@ -262,13 +264,26 @@ async function deleteMap(e,id,name){
   await loadAll();
 }
 
-async function deleteItem(e,id){
+async function moveItemToTrash(e,id){
   e.stopPropagation();
-  if(!confirm('이 항목을 삭제하시겠어요? 되돌릴 수 없어요.')) return;
-  const { error } = await sb.from('items').delete().eq('id', id);
-  if(error){ alert('삭제 실패: ' + error.message); return; }
+  if(!confirm('이 항목을 휴지통으로 이동할까요? 나중에 복구할 수 있습니다.')) return;
+  const { error } = await sb.from('items').update({ status:'trashed' }).eq('id', id);
+  if(error){ alert('휴지통 이동 실패: ' + error.message); return; }
   await loadAll();
-  renderCards();
+}
+
+async function restoreItem(e,id){
+  e.stopPropagation();
+  const item = items.find(it => it.id === id);
+  const restoreStatus = item && item.trashed_from_status;
+  if(!['pending','published','rejected'].includes(restoreStatus)){
+    alert('복구할 원래 상태를 확인할 수 없습니다.');
+    return;
+  }
+  if(!confirm(`이 항목을 ${restoreStatus === 'published' ? '공개' : restoreStatus === 'pending' ? '승인 대기' : '반려'} 상태로 복구할까요?`)) return;
+  const { error } = await sb.from('items').update({ status:restoreStatus }).eq('id', id);
+  if(error){ alert('복구 실패: ' + error.message); return; }
+  await loadAll();
 }
 
 let pendingMapId = null;
@@ -393,29 +408,54 @@ function renderMasterItemsTab(){
   renderMasterItemsTable();
 }
 
+function setMasterItemsView(view){
+  masterItemsView = view === 'trash' ? 'trash' : 'active';
+  renderMasterItemsTable();
+}
+
 function renderMasterItemsTable(){
   const wrap = document.getElementById('masterItemsTableWrap');
-  if(items.length === 0){
-    wrap.innerHTML = '<div class="loading">등록된 항목이 없어요.</div>';
-    return;
-  }
+  const activeItems = items.filter(it => it.status !== 'trashed');
+  const trashedItems = items.filter(it => it.status === 'trashed');
+  const activeBtn = document.getElementById('masterItemsActiveBtn');
+  const trashBtn = document.getElementById('masterItemsTrashBtn');
+  activeBtn.textContent = `활성 항목 ${activeItems.length}`;
+  trashBtn.textContent = `휴지통 ${trashedItems.length}`;
+  activeBtn.classList.toggle('active', masterItemsView === 'active');
+  trashBtn.classList.toggle('active', masterItemsView === 'trash');
+  activeBtn.setAttribute('aria-pressed', String(masterItemsView === 'active'));
+  trashBtn.setAttribute('aria-pressed', String(masterItemsView === 'trash'));
+
+  const source = masterItemsView === 'trash' ? trashedItems : activeItems;
   const mapId = document.getElementById('masterItemsMapFilter').value;
   const tag = document.getElementById('masterItemsTagFilter').value;
   const team = document.getElementById('masterItemsTeamFilter').value;
   const query = document.getElementById('masterItemsSearch').value.trim().toLowerCase();
-  const filtered = items.filter(it =>
+  const filtered = source.filter(it =>
     (!mapId || it.map_id === mapId) &&
     (!tag || it.tag === tag) &&
     (!team || it.team === team) &&
     (!query || String(it.title ?? '').toLowerCase().includes(query))
   );
   if(filtered.length === 0){
-    wrap.innerHTML = '<div class="loading">조건에 맞는 항목이 없어요.</div>';
+    const emptyMessage = source.length === 0 && masterItemsView === 'trash' ? '휴지통이 비어 있어요.' : '조건에 맞는 항목이 없어요.';
+    wrap.innerHTML = `<div class="loading">${emptyMessage}</div>`;
     return;
   }
+  const statusLabels = { pending:'승인 대기', published:'공개', rejected:'반려' };
   const rows = filtered.map(it => {
     const mapName = maps.find(m => m.id === it.map_id)?.name || '알 수 없는 맵';
     const thumbUrl = it.type === 'vid' ? ytThumb(it.video_url) : it.img_url;
+    if(masterItemsView === 'trash') return `<tr>
+      <td class="thumb-cell">${thumbUrl ? `<img loading="lazy" src="${thumbUrl}" alt="">` : ''}</td>
+      <td>${escapeHtml(it.title)}</td>
+      <td>${escapeHtml(mapName)}</td>
+      <td>${escapeHtml(it.tag||'')}</td>
+      <td>${contributorBadge(it) || '-'}</td>
+      <td><span class="status-pill">${statusLabels[it.trashed_from_status] || '확인 필요'}</span></td>
+      <td>${it.deleted_at ? new Date(it.deleted_at).toLocaleString('ko-KR') : '-'}</td>
+      <td><button class="btn-ghost" onclick="restoreItem(event,'${it.id}')">복구</button></td>
+    </tr>`;
     return `<tr>
       <td class="thumb-cell">${thumbUrl ? `<img loading="lazy" src="${thumbUrl}" alt="">` : ''}</td>
       <td>${escapeHtml(it.title)}</td>
@@ -423,12 +463,16 @@ function renderMasterItemsTable(){
       <td>${escapeHtml(it.tag||'')}</td>
       <td>${escapeHtml(teamLabel(it.team) || '')}</td>
       <td><span class="icon-btn" onclick="openEditModal(event,'${it.id}')" title="수정">⚙</span></td>
-      <td><span class="icon-btn del" onclick="deleteItem(event,'${it.id}')" title="삭제">✕</span></td>
+      <td><span class="icon-btn del" onclick="moveItemToTrash(event,'${it.id}')" title="휴지통 이동">🗑</span></td>
     </tr>`;
   }).join('');
+  if(masterItemsView === 'trash'){
+    wrap.innerHTML = `<table class="master-table"><thead><tr><th>미리보기</th><th>제목</th><th>맵</th><th>태그</th><th>작성자</th><th>이전 상태</th><th>이동 시각</th><th>복구</th></tr></thead><tbody>${rows}</tbody></table>`;
+    return;
+  }
   wrap.innerHTML = `
     <table class="master-table">
-      <thead><tr><th>미리보기</th><th>제목</th><th>맵</th><th>태그</th><th>진영</th><th>수정</th><th>삭제</th></tr></thead>
+      <thead><tr><th>미리보기</th><th>제목</th><th>맵</th><th>태그</th><th>진영</th><th>수정</th><th>휴지통</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 }
@@ -440,7 +484,7 @@ function renderMasterMapsTable(){
     return;
   }
   const rows = maps.map(m => {
-    const count = items.filter(i => i.map_id === m.id).length;
+    const count = items.filter(i => i.map_id === m.id && i.status !== 'trashed').length;
     const safe = m.name.replace(/'/g,"\\'");
     return `<tr>
       <td class="thumb-cell">${m.img ? `<img loading="lazy" src="${m.img}" alt="">` : ''}</td>
@@ -553,20 +597,24 @@ async function loadMasterStats(){
     wrap.innerHTML = `<div class="loading">조회 실패: ${(clickErr||favErr).message}</div>`;
     return;
   }
+  const activeItems = items.filter(it => it.status !== 'trashed');
+  const activeIds = new Set(activeItems.map(it => it.id));
+  const activeClickRows = clickRows.filter(row => activeIds.has(row.item_id));
+  const activeFavRows = favRows.filter(row => activeIds.has(row.item_id));
   const clickCountByItem = new Map();
-  clickRows.forEach(r => clickCountByItem.set(r.item_id, (clickCountByItem.get(r.item_id)||0) + 1));
+  activeClickRows.forEach(r => clickCountByItem.set(r.item_id, (clickCountByItem.get(r.item_id)||0) + 1));
   const favCountByItem = new Map();
-  favRows.forEach(r => favCountByItem.set(r.item_id, (favCountByItem.get(r.item_id)||0) + 1));
+  activeFavRows.forEach(r => favCountByItem.set(r.item_id, (favCountByItem.get(r.item_id)||0) + 1));
 
-  document.getElementById('statTotalClicks').textContent = clickRows.length;
-  document.getElementById('statTotalFavorites').textContent = favRows.length;
-  document.getElementById('statTotalItems').textContent = items.length;
+  document.getElementById('statTotalClicks').textContent = activeClickRows.length;
+  document.getElementById('statTotalFavorites').textContent = activeFavRows.length;
+  document.getElementById('statTotalItems').textContent = activeItems.length;
 
-  if(items.length === 0){
+  if(activeItems.length === 0){
     wrap.innerHTML = '<div class="loading">등록된 항목이 없어요.</div>';
     return;
   }
-  const rows = [...items]
+  const rows = [...activeItems]
     .sort((a,b) => (clickCountByItem.get(b.id)||0) - (clickCountByItem.get(a.id)||0))
     .map(it => {
       const mapName = maps.find(m => m.id === it.map_id)?.name || '알 수 없는 맵';
@@ -1808,6 +1856,10 @@ function updateTextCounters(){
 }
 
 function openAddModal(tag){
+  if(tag === '맵 지명' && !isAdminUser){
+    alert('맵 지명은 관리자만 추가할 수 있습니다.');
+    return false;
+  }
   modalTag = tag;
   modalMode = 'add';
   editingItemId = null;
@@ -1847,6 +1899,7 @@ function openAddModal(tag){
   showModalStep('paste');
 
   document.getElementById('addModal').classList.add('active');
+  return true;
 }
 function openEditModal(e, id){
   e.stopPropagation();
@@ -1950,6 +2003,10 @@ function setModalMsg(t, cls){
   el.textContent = t;
 }
 async function submitItem(){
+  if(modalTag === '맵 지명' && !isAdminUser){
+    setModalMsg('맵 지명은 관리자만 추가할 수 있습니다.', 'err');
+    return;
+  }
   const savedTeam = modalTeam || 'none';
 
   if(modalMode === 'edit'){
@@ -2100,10 +2157,14 @@ function resumeContentDraft(id){
   loadContentDrafts();
   const draft = contentDrafts.find(d => d.id === id);
   if(!draft) return;
+  if(draft.tag === '맵 지명' && !isAdminUser){
+    alert('이 임시저장은 관리자 계정에서만 이어서 작성할 수 있습니다.');
+    return;
+  }
   const map = maps.find(m => m.id === draft.mapId);
   currentMap = draft.mapId;
   currentMapName = map ? map.name : (draft.mapName || '');
-  openAddModal(draft.tag); // 기본 상태로 초기화(제목/설명 등 clear) 후 아래에서 값 복원
+  if(!openAddModal(draft.tag)) return; // 기본 상태로 초기화(제목/설명 등 clear) 후 아래에서 값 복원
   resumingDraftId = draft.id;
   document.getElementById('mTitle').value = draft.title || '';
   document.getElementById('mNote').value = draft.note || '';

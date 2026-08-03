@@ -34,7 +34,7 @@ URL: `https://mvyepqqstaipxqfesalv.supabase.co` (User/Admin 두 사이트가 동
 | map_id | `maps.id`를 참조하는 FK로 추정 (`items.filter(i => i.map_id === m.id)`) | |
 | team | `'red'` \| `'blue'` \| `'none'` | RED/BLUE는 팀 필터 기준. `'none'`은 "진영 없음(공통)" 항목 — TOTAL/FAVORITE 뷰에서만 보이고 RED/BLUE 필터에서는 제외됨(NOT NULL, CHECK `items_team_check`로 세 값만 허용) |
 | type | `'vid'` \| `'img'` | 영상/이미지 구분 |
-| tag | 문자열. 실제 코드에서 쓰는 값: `'맵 지명'`, `'위폭'`, `'팁'` (`tagOrder` 배열 기준) | 이 외의 값도 저장 가능하지만 정렬 순서 밖으로 밀림 |
+| tag | `'맵 지명'` \| `'위폭'` \| `'팁'` (`items_tag_check`) | 일반 사용자는 RLS로 `'위폭'`/`'팁'`만 등록·수정 가능. `'맵 지명'` 등록은 관리자 전용 |
 | title | 항목 제목. `tag==='맵 지명'`이면 항상 `'맵 전체 지명'`로 고정 저장 | 컬럼 타입은 `text`로 DB 레벨 길이 제한 없음. 항목 추가 모달의 `<input id="mTitle" maxlength="17">`는 **클라이언트 입력 단계에서만** 걸리는 제한이라 DB에는 강제되지 않음(SQL이나 다른 클라이언트로는 더 긴 값도 저장 가능) — 표시 단계에서 `.card .title`의 `text-overflow:ellipsis`(1줄)로 함께 방어. 실측 근거는 `docs/DECISIONS.md` 참고 |
 | note | 설명, null 가능 | 컬럼 타입은 `text`로 DB 레벨 길이 제한 없음. `<textarea id="mNote" maxlength="41">`도 title과 동일하게 클라이언트 입력 단계 전용 제한이며, 표시 단계에서 `.card .note`의 `-webkit-line-clamp:2`(2줄)로 함께 방어. 기존에 이 기준보다 긴 값이 저장돼 있어도 수정 모달 로드 시 잘리지 않고 그대로 보인다(자동 절단 없음) |
 | video_url | 유튜브 URL (`type==='vid'`일 때) | 전체 영상 또는 `/shorts/` 모두 지원 |
@@ -48,8 +48,19 @@ URL: `https://mvyepqqstaipxqfesalv.supabase.co` (User/Admin 두 사이트가 동
 | submitted_at | timestamptz, 기본값 `now()` | 제출 시각 |
 | reviewed_at / reviewed_by | timestamptz / uuid | 관리자 검토 시각·사용자 |
 | rejection_reason / deleted_at | text / timestamptz | 반려 사유·숨김 시각 |
+| trashed_from_status | text, null 가능 | 휴지통 이동 전 상태(`pending`/`published`/`rejected`). DB 트리거가 기록하고 복구 완료 시 null로 초기화 |
 
-RLS는 익명 사용자에게 `published`만, 로그인 사용자에게 공개 항목과 본인 항목, 관리자에게 전체 항목을 허용한다. 일반 사용자는 본인 `pending` 등록과 승인 전 항목 수정·`trashed` 전환만 가능하고, 승인·하드 삭제는 관리자만 가능하다.
+RLS는 익명 사용자에게 `published`만, 로그인 사용자에게 공개 항목과 본인 항목, 관리자에게 전체 항목을 허용한다. 일반 사용자는 본인 명의 `위폭`/`팁`을 `pending`으로 등록하고 승인 전 항목 수정·`trashed` 전환만 가능하며, `맵 지명` 등록과 승인·복구·하드 삭제는 관리자만 가능하다.
+
+### F-6 태그 권한·휴지통 복구 스키마
+
+Supabase migration `restrict_map_labels_and_add_item_trash_restore`로 적용했다.
+
+- `items_tag_check`: 태그를 `맵 지명`/`위폭`/`팁`으로 제한
+- 일반 사용자 INSERT/UPDATE 정책: 결과 행의 태그가 `위폭` 또는 `팁`일 때만 허용
+- `trashed_from_status`: 휴지통 이동 전 상태 보존
+- `items_preserve_trash_status()` + `items_preserve_trash_status` BEFORE UPDATE 트리거: 휴지통 진입 시 기존 상태와 시각을 기록하고, 복구 시 반드시 기록된 상태로만 돌아가도록 강제. 클라이언트가 `trashed_from_status`를 임의로 보내도 실제 이전 상태로 덮어쓴다
+- 휴지통 이동은 Storage 파일과 DB 행을 유지한다. 이번 단계에는 영구 삭제 UI가 없다
 
 ### `items.channel_name` 추가 SQL
 
@@ -126,7 +137,7 @@ Discord 로그인 사용자의 즐겨찾기. Supabase migration `create_user_fav
 
 - `maps`: SELECT는 누구나 가능하고 INSERT/UPDATE/DELETE는 `admins` 테이블에 등록된 사용자만 허용
 - `items`: 익명 사용자는 `published`만, 로그인 사용자는 `published`와 본인 항목 전체, 관리자는 모든 상태를 SELECT 가능
-- `items`: 로그인 사용자는 본인 명의 `pending`만 등록 가능하고 본인의 승인 전 항목(`pending`/`rejected`) 수정·재제출·`trashed` 전환만 가능. 관리자는 모든 상태를 등록·검토·수정·삭제할 수 있으며 관리자 신규 등록은 `published`로 저장
+- `items`: 로그인 사용자는 본인 명의 `위폭`/`팁` `pending`만 등록 가능하고 본인의 승인 전 항목(`pending`/`rejected`) 수정·재제출·`trashed` 전환만 가능. 일반 사용자의 `맵 지명` INSERT와 UPDATE 결과는 RLS가 거부한다. 관리자는 세 태그와 모든 상태를 등록·검토·수정·휴지통 이동·복구·삭제할 수 있으며 관리자 신규 등록은 `published`로 저장
 - `admins`: RLS 활성화, `pg_policies`로 직접 조회해 확인함 — `admins_select_own`, `본인 확인 가능` 두 개의 SELECT 정책이 있으며 둘 다 조건은 동일하게 `auth.uid() = user_id`(본인 행만 조회 가능, `roles: public`). INSERT/UPDATE/DELETE 정책은 없음 — `admins` 테이블 자체는 클라이언트에서 쓰기 불가하고, 관리자 등록은 Supabase 대시보드/MCP로만 이뤄진다.
 - `favorites`: RLS 활성화. `authenticated`에 SELECT/INSERT/DELETE를 부여한다. INSERT/DELETE는 `(select auth.uid()) = user_id`로 본인 행만 허용. SELECT는 두 정책이 OR로 합쳐진다 — 기존 "Users can view their own favorites"(본인 행만)에 더해, 그룹 D-2 1단계(Master 대시보드 통계 탭)에서 `admins can select favorites` 정책을 추가해 관리자는 전체 행을 조회할 수 있다(`exists(select 1 from admins where admins.user_id = (select auth.uid()))`, `item_clicks`의 "admins can select clicks"와 동일 패턴). 2026-07-27 실행, RLS 변경이라 사전에 사용자 확인을 받았다. `anon` 권한과 UPDATE 정책은 없다.
 - `item_clicks`: RLS 활성화. INSERT는 `anon`/`authenticated` 모두 허용하되 `user_id is null or user_id = (select auth.uid())`로 본인 것이거나 `null`만 허용(타인 user_id로의 스푸핑은 차단). SELECT는 `authenticated` 중 `admins`에 등록된 사용자만 가능(`exists (select 1 from admins where admins.user_id = (select auth.uid()))`). UPDATE/DELETE 정책은 없음. 실제 anon 세션으로 REST API를 직접 호출해 검증함 — `user_id: null` INSERT 성공(201), 타인 `user_id` 스푸핑 INSERT 실패(401/`42501`), anon SELECT는 빈 배열 반환(정책이 없어 RLS가 조용히 필터링). **알려진 한계**: 로그인 사용자가 고의로 `user_id: null`을 보내 본인 클릭을 익명 처리하는 것은 이 정책으로 막지 못한다(세션 검증까지는 이번 범위 밖, `docs/DECISIONS.md` 참고). 또한 `.insert().select()`처럼 `Prefer: return=representation`을 쓰면 anon은 SELECT 정책이 없어 INSERT 자체가 롤백된다 — 앱 코드(`trackClick`)는 `.select()`를 체이닝하지 않아 영향 없음.
