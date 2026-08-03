@@ -173,7 +173,7 @@ Discord 로그인 사용자의 즐겨찾기. Supabase migration `create_user_fav
 |---|---|---|
 | `maps/{mapId}-{timestamp}.{ext}` | 맵 썸네일 이미지 | User 사이트 `pickMapImage`/`mapImgInput` change 핸들러 |
 | `items/{userId}/{timestamp}.jpg` | 사용자 사이트 항목 이미지 (본인 폴더만 업로드 허용) | User 사이트 `submitItem` |
-| `items/{timestamp}.jpg` | 기존/레거시 Admin 항목 이미지 | 레거시 Admin 사이트 및 기존 데이터 |
+| `items/{timestamp}.jpg` | 레거시 Admin이 남긴 기존 항목 이미지 | 기존 데이터 호환용(신규 업로드 없음) |
 
 업로드 후 `getPublicUrl()`로 공개 URL을 받아 그대로 `maps.img` / `items.img_url`에 저장한다. 즉 버킷은 공개 읽기가 가능해야 현재 서비스가 동작한다.
 
@@ -182,9 +182,9 @@ Discord 로그인 사용자의 즐겨찾기. Supabase migration `create_user_fav
 # Auth
 
 - **User 사이트**: Supabase Auth의 **Discord OAuth Provider** (`sb.auth.signInWithOAuth({ provider: 'discord' })`). 닉네임은 `session.user.user_metadata.full_name` 또는 `.name`을 사용.
-- **레거시 Admin 사이트** (`sudden-archive-admin`): Supabase Auth의 **이메일/비밀번호 로그인** (`sb.auth.signInWithPassword`). User 사이트의 Discord OAuth 로그인 + Master 대시보드와는 별개의 인증 방식이며, AI_CONTEXT.md 기준 이 사이트 자체가 정리(폐기) 예정이다.
+- **삭제된 레거시 Admin**: 이메일/비밀번호 로그인을 사용했으나 사이트·저장소 삭제 후 더 이상 운영 경로에 존재하지 않는다.
 
-두 인증 방식이 당분간 공존한다는 점에 주의 — 자세한 흐름은 `docs/ARCHITECTURE.md`의 "인증(Auth) 흐름" 참고.
+현재 인증 방식은 User 사이트의 Discord OAuth 하나다. 자세한 흐름은 `docs/ARCHITECTURE.md`의 "인증(Auth) 흐름" 참고.
 
 ## 세션 유지 정책
 

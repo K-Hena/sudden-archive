@@ -34,15 +34,11 @@ sudden-archive/                     (이 저장소, User 사이트 — github.co
 │   ├── agents/                      code-reviewer.md, bug-hunter.md
 │   ├── commands/commit.md           `/commit` 슬래시 커맨드
 │   └── output-styles/terse.md       응답 스타일 설정
-├── docs/                           AI 운영 문서 (이 문서들)
-│   └── LLM_WIKI.md                 LLM용 작업별 코드·문서 라우팅 허브
-└── sudden-archive-admin/           레거시 Admin 사이트 — 별도 git 저장소, .gitignore로 이 repo 추적에서 제외됨
-    └── index.html                  Admin 사이트 전체 (HTML+CSS+JS 단일 파일)
+└── docs/                           AI 운영 문서 (이 문서들)
+    └── LLM_WIKI.md                 LLM용 작업별 코드·문서 라우팅 허브
 ```
 
-`sudden-archive-admin/`은 `github.com/K-Hena/sudden-archive-admin`이라는 **완전히 별개의 git 저장소**이며, 이 저장소(`sudden-archive`) 안에는 로컬 참고용으로만 존재한다 (`.gitignore`에 `sudden-archive-admin/` 등록됨). Master 대시보드로 CRUD를 이식하는 작업 시 로직을 참고하는 용도로 쓰인다.
-
-빌드 도구, package.json, 프레임워크가 전혀 없다. Vercel이 두 저장소를 각각 정적 사이트로 배포한다.
+별도 `sudden-archive-admin` 저장소와 Vercel 프로젝트는 Master 대시보드로 기능을 통합한 뒤 2026-08-04 삭제했다. 현재 배포되는 저장소와 사이트는 `sudden-archive` 하나다.
 
 CDN으로 불러오는 외부 자원: `@supabase/supabase-js@2`, `cropperjs@1.6.1`(이미지 크롭, 레거시 Admin과 동일 버전), YouTube IFrame API(`https://www.youtube.com/iframe_api`, 클립 구간 재생/마킹용), Pretendard와 조선굴림체 웹폰트. Paperlogy는 저장소의 기존 폰트 역할을 유지한다.
 
@@ -109,7 +105,7 @@ Master에서 실제로 어떤 CRUD가 이식/미이식 상태인지는 아래 "6
 
 # 4. 인증(Auth) 흐름
 
-> User 사이트의 `app.js`와 `sudden-archive-admin/index.html`(레거시 Admin)의 실제 인증 코드를 분석해서 작성했다. 두 배포는 서로 다른 로그인 방식을 쓰며, 운영 기능은 User 사이트의 Discord 로그인 + Master로 통합됐다.
+> 현재 인증과 운영 기능은 User 사이트의 Discord 로그인 + Master로 통합됐다. 아래 레거시 설명은 삭제 전 이관 근거를 요약한 기록이다.
 
 ## User 사이트 — Discord OAuth (현재 방식)
 
@@ -155,19 +151,9 @@ sequenceDiagram
 - `isAdminUser`는 **클라이언트 상태일 뿐**이며, 실제 쓰기 권한은 Supabase RLS가 `admins` 테이블 기준으로 강제한다(→ `DATABASE.md`). 즉 `isAdminUser=true`로 Master 버튼이 보여도 RLS를 통과하지 못하면 실제 insert/update/delete는 실패한다.
 - 로그아웃하거나 세션이 없어지면 `isAdminUser`가 `false`로 갱신되고, Master 화면을 보고 있었다면 `showMapGrid()`로 강제 이동한다.
 
-## 레거시 Admin 사이트 — 이메일/비밀번호 로그인 (폐기 예정)
+## 삭제된 레거시 인증
 
-`sudden-archive-admin/index.html`은 User 사이트와 완전히 별개의 인증 흐름을 쓴다.
-
-- `checkSession()`: 세션이 있으면 `enterSite()`, 없으면 `showLogin()`
-- 로그인 폼(`#loginView`)에서 이메일/비밀번호 입력 → `sb.auth.signInWithPassword({ email, password })`
-- 로그아웃: `sb.auth.signOut()` 후 로그인 화면으로 복귀
-
-이 사이트는 User 사이트의 Master 대시보드가 CRUD를 완전히 대체하면 정리(폐기)될 예정이다 (`AI_CONTEXT.md`, `TODO.md` 참고). 맵/항목 CRUD는 이미 이관 완료됐다. 새 기능은 이 흐름에 추가하지 않는다.
-
-## 두 흐름이 같은 Supabase 프로젝트를 공유한다
-
-두 사이트 모두 동일한 `SUPABASE_URL`과 anon key를 코드에 하드코딩해서 쓴다(코드로 확인됨). 다만 로그인 방식(Discord OAuth vs 이메일/비밀번호)이 다르면 Supabase Auth 상에서 별개의 `auth.users` 레코드로 취급되는 것이 일반적인 Supabase Auth 동작이므로, 같은 사람이 두 방식으로 각각 로그인하면 서로 다른 `user_id`를 갖게 될 수 있다 — 이는 Supabase Auth의 일반적 동작에 대한 설명이며, 이 프로젝트에서 실제로 계정 연결(link)을 하고 있는지는 코드로 확인되지 않았다. 향후 통합 시 `admins` 테이블에 어떤 `user_id`를 등록해야 하는지 결정할 때 확인이 필요하다.
+구 Admin은 이메일/비밀번호 로그인을 사용했으나 Discord 로그인 기반 Master로 대체됐다. 사이트·저장소 삭제 후 현재 인증 경로에서는 사용하지 않는다.
 
 ---
 
@@ -221,29 +207,7 @@ sequenceDiagram
 
 # 6. 관리자(Admin) 흐름
 
-> 관리자 기능이 현재 **두 곳에 나뉘어 존재**한다 — 레거시 Admin 사이트(전체 CRUD)와 User 사이트의 Master 대시보드(맵/항목 CRUD 이식 완료). 둘 다 실제 코드를 근거로 정리했다.
-
-## 레거시 Admin 사이트 (`sudden-archive-admin/index.html`, 폐기 예정)
-
-이메일/비밀번호로 로그인한 뒤(위 "4. 인증(Auth) 흐름" 참고) 전체 CRUD를 제공한다.
-
-### 맵 관리
-- `renderMapGrid()` — 모든 맵 타일에 항상 `tile-actions`(이미지 변경/이름 변경/삭제)와 "맵 추가" 타일을 노출 (로그인한 사람은 곧 관리자이므로 조건 분기가 없음)
-- `pickMapImage()` → `mapImgInput` change → Storage `media` 버킷의 `maps/{id}-{timestamp}.{ext}`에 업로드 → `maps.img` 갱신
-- `renameMap()` → `maps.name` 갱신
-- `deleteMap()` → 해당 맵에 속한 항목 개수를 보여주는 confirm 후 `maps` 행 삭제 (연결된 `items`는 DB 쪽 FK 설정에 따라 함께 삭제될 수 있음 — 코드로는 확인 불가)
-- `addMap()` → 이름 중복 체크 후 `sort_order = max+1`로 insert
-
-### 항목 관리
-- 태그 섹션마다 `add-tile` → `openAddModal(tag)`
-- 모달에서 영상/이미지 유형 선택(`type-toggle`), "맵 지명" 태그면 제목/설명 입력을 숨김(`isMapLabel`)
-- **영상**: 유튜브 링크 입력 → `loadClipPlayer()`로 실제 유튜브 플레이어를 모달 안에 띄우고, `markClipStart()`/`markClipEnd()`로 재생 중 현재 시각을 클립 시작/끝으로 기록 (`clip_start`/`clip_end`)
-- **이미지**: 파일 선택 또는 Ctrl+V 붙여넣기(`pasteImage`, `document.addEventListener('paste', ...)`) → Cropper.js로 자르기 → jpg blob으로 변환 → Storage `media`의 `items/{timestamp}.jpg`에 업로드
-- `deleteItem()` → confirm 후 `items` 행 삭제
-- `submitItem()` → 위 입력값으로 `items` insert, 완료 후 `loadAll()` 재조회
-
-### 라이브러리
-Cropper.js(CDN, `cropperjs@1.6.1`)를 이미지 크롭에 사용 — User 사이트에도 동일 버전이 이식됐다(아래 참고).
+> 관리자 기능은 User 사이트의 Master 대시보드 한 곳에만 존재한다. 레거시 Admin의 CRUD·크롭·클립 구간 지정 기능은 이관 검증 후 사이트와 저장소를 삭제했다.
 
 ## User 사이트 Master 대시보드 (`index.html`, 맵/항목 CRUD 이식 완료)
 
@@ -269,9 +233,9 @@ Cropper.js(CDN, `cropperjs@1.6.1`)를 이미지 크롭에 사용 — User 사이
 ### 폐기된 방식 — 카드/맵 타일 호버 편집모드 (그룹 D-2 4단계에서 완전 제거)
 과거에는 `editMode` 전역 변수(관리자가 헤더 "편집모드" 버튼으로 토글)에 따라 `renderMapGrid()`/`renderCards()`가 맵 타일 호버 액션·"맵 추가" 타일·카드의 ⚙/✕ 아이콘·"+추가" 타일을 조건부로 문자열에 끼워 넣는 방식이었다. 지금은 `editMode` 변수 자체가 코드에서 삭제됐고, 위 CRUD는 전부 Master 대시보드 탭을 통해서만 가능하다 — 일반 사용자가 보는 화면과 관리자가 보는 일반 화면(맵 그리드·카드 그리드)은 이제 완전히 동일하다.
 
-## 두 관리자 흐름의 최종 목표
+## 관리자 통합 완료
 
-Master 대시보드가 레거시 Admin의 맵/항목 CRUD(추가·수정·삭제·이미지 크롭·영상 클립 구간)를 모두 흡수했고, 현재 확인된 기능 격차는 없다. F-5에서 홈 이전 뒤 남은 중복 `컨텐츠 추가` 진입점을 정리하고 최종 회귀 검증한 후 `sudden-archive-admin` 사이트의 실제 폐기를 별도 작업으로 진행한다(`docs/TODO.md` 참고).
+Master 대시보드가 레거시 Admin의 맵/항목 CRUD·이미지 크롭·영상 클립 구간 지정을 모두 흡수했다. 기능 격차 없음과 최종 회귀를 확인한 뒤 구 Admin의 Vercel 프로젝트·GitHub 저장소·로컬 복제본을 삭제했다.
 
 ---
 
@@ -282,17 +246,15 @@ Master 대시보드가 레거시 Admin의 맵/항목 CRUD(추가·수정·삭제
 ## 전체 그림
 
 ```
-[레거시 Admin 사이트]         [User 사이트 (일반 사용자 + 관리자 Master 대시보드)]
-        \                              /
-         \                            /
-          →      Supabase (공유)     ←
-          - 동일 SUPABASE_URL / anon key
-          - maps, items, admins, favorites, comments, item_clicks 테이블
-          - media Storage 버킷
-          - Auth (Discord OAuth / 이메일·비밀번호 공존)
+[User 사이트: 공개 화면 + 관리자 Master]
+                  ↓
+              Supabase
+  - maps, items, admins, favorites, comments, item_clicks
+  - media Storage 버킷
+  - Discord OAuth
 ```
 
-두 프론트엔드가 **완전히 같은 Supabase 프로젝트**를 공유한다 (URL/anon key가 코드에 동일하게 하드코딩돼 있음). 별도 백엔드 서버는 없고, 쓰기 권한 통제는 오직 Supabase RLS로만 이뤄진다.
+별도 백엔드 서버는 없고, 쓰기 권한 통제는 Supabase RLS가 담당한다.
 
 ## 조회(SELECT)
 
@@ -334,4 +296,3 @@ Storage에 올라간 파일 자체는 별도 권한 체크 없이 공개 URL로 
 - **문자열 이스케이프**: 맵/항목 이름에 작은따옴표(`'`)가 들어가면 onclick 인라인 속성이 깨지므로, `renderMapGrid()`에서 `m.name.replace(/'/g,"\\'")`로 이스케이프한 `safe` 값을 사용한다. 이름을 쓰는 새 UI를 추가할 때 이 패턴을 재사용해야 한다.
 - **Supabase 에러 패턴**: 비동기 Supabase 호출은 예외를 던지지 않고 `{ data, error }`를 반환한다. 새 코드도 이 패턴(`if(error){ alert(...); return; }`)을 따라야 한다 — `DEVELOPMENT_GUIDE.md` 참고.
 - **재생 오버레이의 YouTube 플레이어 정리**: `openOverlay()`를 다시 열거나 닫을 때 기존 `ytPlayer`/`clipTimer`를 정리하지 않으면 중복 재생/누수가 생긴다. 관련 코드를 건드릴 때는 이 정리 로직을 유지해야 한다.
-- **`sudden-archive-admin/`은 이 저장소의 일부가 아니다**: Master 대시보드로 로직을 이식할 때 참고는 하되, 그 폴더 자체를 수정해도 이 저장소에는 반영되지 않는다 (별도 git 저장소, `.gitignore` 처리됨).

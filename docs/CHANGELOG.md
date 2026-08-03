@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-08-04 — 구 Admin 사이트·저장소 폐기
+
+- Master 대시보드의 기능 이관과 격차 없음 확인을 근거로 Vercel `sudden-archive-admin` 프로젝트와 전체 배포 삭제
+- GitHub `K-Hena/sudden-archive-admin` 저장소와 로컬 복제본 삭제
+- GitHub와 Vercel 공개 URL이 모두 404인지 확인하고 현재 구조·인증·TODO 문서 현행화
+
 ## 2026-08-04 — 그룹 F-4 승인 대기 맵·태그 필터
 
 - Master 승인 대기 목록에 맵·태그 조합 필터와 `현재 / 전체` 결과 수 추가

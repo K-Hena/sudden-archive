@@ -52,7 +52,7 @@
 - **정적 파일 역할 분리** — 3,061줄 `index.html`의 CSS와 메인 JavaScript를 내용·순서 변경 없이 `styles.css`와 `app.js`로 분리. 빌드 도구·ES Module·새 의존성 없이 Vercel 정적 배포 방식을 유지하고, 인라인 `onclick`과 전역 상태도 그대로 보존. `<head>`의 테마 선적용 스크립트는 화면 깜빡임 방지를 위해 HTML에 유지. 세부 결정은 `docs/DECISIONS.md` 참고
 - **LLM 위키 생성** — code-review-graph를 현재 커밋 기준으로 갱신하고 자동 위키를 생성. 자동 커뮤니티가 단일 전역 `app.js`를 충분히 분류하지 못하는 한계를 보완하기 위해 추적 가능한 `docs/LLM_WIKI.md`에 작업별 함수·문서·검증 경로를 정리하고 Claude Code 진입 문서에 연결
 
-# 진행중
+# 완료된 그룹
 
 - **그룹 F: 홈 대시보드 + 사용자 컨텐츠 등록·승인**
   - [x] **F-1 홈 셸과 공개 탐색 연결** — 비로그인도 홈을 첫 화면으로 사용. 타이틀 클릭 시 홈 이동, 홈에서 로그인 없이 볼 수 있는 승인 완료 컨텐츠의 `전체 맵` 화면으로 가는 CTA를 가장 크게 노출. 기존 `#viewGrid`/`#viewDetail`/`#viewMaster` 패턴에 `#viewHome` 추가
@@ -68,15 +68,15 @@
   - [x] **F-3 승인 후 삭제 정책** — `published`가 된 컨텐츠는 작성자가 숨김·삭제할 수 없고 관리자만 삭제 가능하다는 안내 및 RLS/UI 강제
   - [x] **F-4 Master 컨텐츠 승인 기본 흐름** — 승인 대기 목록, 작성자·맵, 클릭수에 포함되지 않는 미리보기, 승인·반려 사유 구현
   - [x] **F-4 승인 탭 필터 보완** — 승인 대기 목록에 맵·태그 조합 필터, 필터 결과 수, 조건별 빈 상태를 추가. 태그 열도 함께 표시해 처리 전 분류를 바로 확인 가능
-  - [x] **F-5 진입점 정리** — Master의 기존 `컨텐츠 추가` 탭(마크업 + `renderMasterAddTab()`/`startMasterAdd()`/미사용 `openMasterAdd()`) 제거로 컨텐츠 등록 진입점을 홈(`openHomeAdd()`) 하나로 통일. 임시저장 UI는 애초에 홈에만 있었고 Master 쪽 중복 DOM은 없었음(재확인 완료). 구 Admin 기능 격차는 코드 비교로 재확인한 결과 격차 없음 — 아래 "예정" 항목 참고
+  - [x] **F-5 진입점 정리** — Master의 기존 `컨텐츠 추가` 탭(마크업 + `renderMasterAddTab()`/`startMasterAdd()`/미사용 `openMasterAdd()`) 제거로 컨텐츠 등록 진입점을 홈(`openHomeAdd()`) 하나로 통일. 임시저장 UI는 애초에 홈에만 있었고 Master 쪽 중복 DOM은 없었음(재확인 완료). 구 Admin 기능 격차는 코드 비교로 재확인한 결과 격차 없음
   - [x] **F-6 컨텐츠 운영 권한·휴지통 보완**
     - [x] **F-6a "맵 지명" 관리자 전용 등록** — 일반 사용자의 컨텐츠 추가 태그 목록·임시저장 복원에서 제외하고, 모달/등록 함수 방어와 Supabase INSERT·UPDATE RLS로 직접 API 우회도 차단. 유효 태그 CHECK 제약 추가
     - [x] **F-6b Master 휴지통 이동·복구** — 기존 `status='trashed'`/`deleted_at`을 재사용하고 원래 상태를 DB에서 보존해 `published`/`pending`/`rejected`로 정확히 복구. 항목 관리 안에 활성 항목/휴지통 전환 UI 제공. 영구 삭제는 이번 범위에서 제외
     - [x] **F-6 검증·문서화** — 일반 사용자/관리자 RLS 왕복, 공개 목록 제외·복구, 기존 사용자 숨김 흐름과 모바일 UI 회귀 검증 후 DATABASE/DECISIONS/LLM 위키 현행화
 
-# 예정
+# 완료된 정리
 
-- 구 Admin 사이트(`sudden-archive-admin.vercel.app`) 정리 — Master 대시보드가 맵/항목 CRUD(4단계)와 댓글 모아보기(5단계)까지 대체했다(그룹 D-2 전체 완료). F-5에서 `sudden-archive-admin/index.html`의 함수 목록을 현재 코드와 실제로 비교 재확인한 결과 남은 기능 격차는 없다(맵/항목 CRUD, 이미지 크롭, 클립 구간 마킹 모두 이식 완료). 남은 작업은 실제 사이트 정리(폐기)뿐 — 정리 시점은 별도 논의
+- [x] 구 Admin 사이트·저장소 폐기 — Master 대시보드로 기능 이관을 확인한 뒤 Vercel 프로젝트와 전체 배포, GitHub `K-Hena/sudden-archive-admin` 저장소, 로컬 복제본을 삭제. 두 공개 URL의 404 확인 완료
 
 # 아이디어 (AI_CONTEXT.md "향후 개발 예정", 구체화 전)
 
