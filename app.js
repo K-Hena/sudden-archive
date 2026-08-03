@@ -1378,6 +1378,7 @@ let clipStart = null, clipEnd = null, clipYtPlayer = null;
 let clipPreviewTimer = null;
 let clipDuration = 0;
 let clipScrubLastSeek = 0;
+let clipScrubbing = false;
 let contentDrafts = []; // localStorage 'sa-content-drafts'의 메모리 캐시(배열, 각 원소는 고유 id를 가짐)
 let resumingDraftId = null; // 현재 모달이 이어서 작성 중인 임시저장 항목의 id, 새로 시작한 경우 null
 let clipEndMarkGraceUntil = 0;
@@ -1453,9 +1454,11 @@ function stopClipPreviewTimer(){
   if(clipPreviewTimer){ clearInterval(clipPreviewTimer); clipPreviewTimer = null; }
 }
 function syncClipPreviewTimer(){
+  clipScrubbing = false;
   stopClipPreviewTimer();
   if(clipStart === null || clipEnd === null || !clipYtPlayer) return;
   clipPreviewTimer = setInterval(() => {
+    if(clipScrubbing) return; // clearInterval 직전에 큐에 들어온 마지막 콜백도 무시
     if(!clipYtPlayer || !clipYtPlayer.getCurrentTime) return;
     const current = clipYtPlayer.getCurrentTime();
     const inEndMarkGrace = Date.now() < clipEndMarkGraceUntil;
@@ -1493,7 +1496,8 @@ function loadClipPlayer(onDurationReady){
       playerVars: { playsinline: 1, enablejsapi: 1, origin: location.origin, rel: 0, cc_load_policy: 0 },
       events: {
         onStateChange: (e) => {
-          if(!clipPreviewTimer && modalType === 'vid' && document.getElementById('addModal').classList.contains('active') && [YT.PlayerState.PLAYING, YT.PlayerState.PAUSED, YT.PlayerState.BUFFERING, YT.PlayerState.ENDED].includes(e.data)) syncClipPreviewTimer();
+          if(e.data === YT.PlayerState.PLAYING) clipScrubbing = false;
+          if(!clipScrubbing && !clipPreviewTimer && modalType === 'vid' && document.getElementById('addModal').classList.contains('active') && [YT.PlayerState.PLAYING, YT.PlayerState.PAUSED, YT.PlayerState.BUFFERING, YT.PlayerState.ENDED].includes(e.data)) syncClipPreviewTimer();
         },
         onReady: (e) => {
           e.target.setVolume(50);
@@ -1550,6 +1554,8 @@ function clearClip(){
   stopClipPreviewTimer();
 }
 function onClipScrubStart(){
+  clipScrubbing = true;
+  stopClipPreviewTimer();
   if(clipYtPlayer && clipYtPlayer.pauseVideo) clipYtPlayer.pauseVideo();
 }
 // 손잡이 두 개가 겹칠 때(값이 서로 가까울 때) 항상 올바른 쪽이 클릭되도록, z-index가 아니라
@@ -1574,6 +1580,9 @@ function updateClipThumbClipPaths(){
 }
 function scrubClipPreview(t){
   if(!clipYtPlayer || !clipYtPlayer.seekTo) return;
+  // 슬라이더가 clipEnd 프레임을 보여주는 동안 구간 감시가 이를 범위 이탈로 보고
+  // clipStart로 되돌리지 않게 한다. 다시 재생하면 onStateChange가 감시를 복구한다.
+  onClipScrubStart();
   const now = Date.now();
   if(now - clipScrubLastSeek < 100) return; // 과도한 seekTo 호출 방지 (약 100ms 스로틀)
   clipScrubLastSeek = now;
@@ -1594,9 +1603,9 @@ function onClipStartInput(){
   updateClipThumbClipPaths();
   updateClipLabel();
   scrubClipPreview(clipStart);
-  syncClipPreviewTimer();
 }
 function onClipStartChange(){
+  onClipScrubStart();
   if(clipYtPlayer && clipYtPlayer.seekTo) clipYtPlayer.seekTo(clipStart, true);
 }
 function onClipEndInput(){
@@ -1612,9 +1621,9 @@ function onClipEndInput(){
   updateClipThumbClipPaths();
   updateClipLabel();
   scrubClipPreview(clipEnd);
-  syncClipPreviewTimer();
 }
 function onClipEndChange(){
+  onClipScrubStart();
   if(clipYtPlayer && clipYtPlayer.seekTo) clipYtPlayer.seekTo(clipEnd, true);
 }
 

@@ -4,6 +4,13 @@
 
 ---
 
+## 2026-08-04 — 클립 슬라이더 프레임 미리보기 복귀 버그 수정
+
+- 시작·끝 손잡이 조작 시 편집 플레이어를 일시정지하고 구간 감시 타이머를 중단해 해당 손잡이의 실제 프레임을 유지
+- 끝 프레임(`current === clipEnd`)을 감시 타이머가 범위 이탈로 판단해 `clipStart`로 되돌리던 충돌을 `clipScrubbing` 상태로 차단
+- 실제 재생이 다시 시작되면 기존 YouTube `onStateChange` 경로가 구간 감시를 복구해 반복 재생 동작은 유지
+- Node 회귀 테스트와 Chromium DOM·모의 YouTube Player 재현으로 일시정지 프레임 유지 및 재생 시 감시 복구 확인
+
 ## 2026-08-04 — 그룹 F-5 진입점 정리
 
 - Master 사이드바의 "컨텐츠 추가" 탭(마크업 + `renderMasterAddTab()`/`startMasterAdd()`)과 미사용 상태였던 `openMasterAdd()`를 삭제해 컨텐츠 등록 진입점을 홈(`openHomeAdd()`) 하나로 통일
