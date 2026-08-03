@@ -116,7 +116,6 @@
   <div class="master-shell">
     <nav class="master-sidebar">
       <button class="master-tab active" data-tab="stats" onclick="switchMasterTab('stats')">📊 통계</button>
-      <button class="master-tab" data-tab="add" onclick="switchMasterTab('add')">🎬 컨텐츠 추가</button>
       <button class="master-tab" data-tab="items" onclick="switchMasterTab('items')">🗂 항목 관리</button>
       <button class="master-tab" data-tab="maps" onclick="switchMasterTab('maps')">🗺 맵 관리</button>
       <button class="master-tab" data-tab="comments" onclick="switchMasterTab('comments')">💬 댓글</button>
@@ -134,18 +133,6 @@
           <div class="master-stat"><b id="statTotalItems">-</b><span>등록된 항목 수</span></div>
         </div>
         <div id="masterTableWrap"></div>
-      </div>
-      <div class="master-pane" id="masterPaneAdd">
-        <div class="map-head">
-          <div class="section-label">컨텐츠 추가</div>
-          <button class="back-btn" onclick="showMapGrid()">← 일반 화면으로</button>
-        </div>
-        <div class="master-add-row">
-          <select id="masterAddMap" class="master-select"></select>
-          <select id="masterAddTag" class="master-select"></select>
-        </div>
-        <button class="btn-primary" onclick="startMasterAdd()">등록 시작</button>
-        <div class="msg-modal" id="masterAddMsg"></div>
       </div>
       <div class="master-pane" id="masterPaneItems">
         <div class="map-head">

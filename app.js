@@ -154,7 +154,6 @@ function openHomeAdd(){
   currentMapName = map.name;
   openAddModal(tag);
 }
-function openMasterAdd(){ openHomeAdd(); }
 
 function renderMyItems(){
   const wrap = document.getElementById('homeMyItems');
@@ -345,13 +344,11 @@ function openMaster(){
 function switchMasterTab(tab){
   document.querySelectorAll('.master-tab[data-tab]').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
   document.getElementById('masterPaneStats').classList.toggle('active', tab === 'stats');
-  document.getElementById('masterPaneAdd').classList.toggle('active', tab === 'add');
   document.getElementById('masterPaneItems').classList.toggle('active', tab === 'items');
   document.getElementById('masterPaneMaps').classList.toggle('active', tab === 'maps');
   document.getElementById('masterPaneComments').classList.toggle('active', tab === 'comments');
   document.getElementById('masterPaneApprovals').classList.toggle('active', tab === 'approvals');
   if(tab === 'stats') loadMasterStats();
-  if(tab === 'add') renderMasterAddTab();
   if(tab === 'items') renderMasterItemsTab();
   if(tab === 'maps') renderMasterMapsTable();
   if(tab === 'comments') loadMasterComments();
@@ -376,15 +373,6 @@ async function reviewItem(id, approve){
   if(error){ alert('처리 실패: ' + error.message); return; }
   await loadAll();
   renderMasterApprovals();
-}
-
-function renderMasterAddTab(){
-  document.getElementById('masterAddMap').innerHTML = '<option value="">맵을 선택해주세요</option>' +
-    maps.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
-  document.getElementById('masterAddTag').innerHTML = '<option value="">태그를 선택해주세요</option>' +
-    tagOrder.map(t => `<option value="${t}">${t}</option>`).join('');
-  document.getElementById('masterAddMsg').textContent = '';
-  renderContentDraftsList();
 }
 
 function renderMasterItemsTab(){
@@ -546,23 +534,6 @@ async function masterDeleteComment(commentId){
   if(!ok) return;
   masterComments = masterComments.filter(c => c.id !== commentId);
   renderMasterCommentsTable();
-}
-
-function startMasterAdd(){
-  const mapId = document.getElementById('masterAddMap').value;
-  const tag = document.getElementById('masterAddTag').value;
-  const msg = document.getElementById('masterAddMsg');
-  if(!mapId || !tag){
-    msg.className = 'msg-modal err';
-    msg.textContent = '맵과 태그를 모두 선택해주세요.';
-    return;
-  }
-  msg.className = 'msg-modal';
-  msg.textContent = '';
-  const map = maps.find(m => m.id === mapId);
-  currentMap = mapId;
-  currentMapName = map ? map.name : '';
-  openAddModal(tag);
 }
 
 async function loadMasterStats(){
@@ -2116,7 +2087,7 @@ function renderContentDraftsList(){
   loadContentDrafts();
   const section = document.getElementById('contentDraftsSection');
   const list = document.getElementById('contentDraftsList');
-  if(!section || !list) return; // Master "컨텐츠 추가" 탭이 아직 렌더링되지 않은 시점 방어
+  if(!section || !list) return; // 홈 DOM이 아직 준비되지 않은 시점 방어
   if(contentDrafts.length === 0){
     section.style.display = 'none';
     list.innerHTML = '';

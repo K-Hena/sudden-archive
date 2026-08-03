@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-08-04 — 그룹 F-5 진입점 정리
+
+- Master 사이드바의 "컨텐츠 추가" 탭(마크업 + `renderMasterAddTab()`/`startMasterAdd()`)과 미사용 상태였던 `openMasterAdd()`를 삭제해 컨텐츠 등록 진입점을 홈(`openHomeAdd()`) 하나로 통일
+- 임시저장(`sa-content-drafts`) UI는 애초에 홈에만 있었고 Master 쪽 중복 DOM은 없었음을 코드로 재확인, `renderContentDraftsList()`의 stale 주석("Master 컨텐츠 추가 탭이 아직 렌더링되지 않은 시점 방어")을 실제 동작에 맞게 수정
+- `sudden-archive-admin/index.html`의 함수 목록을 현재 코드와 직접 비교해 구 Admin과의 기능 격차가 없음을 재확인(맵/항목 CRUD·이미지 크롭·클립 구간 마킹 모두 이식 완료), `docs/TODO.md`에 반영
+
 ## 2026-08-03 — Claude Code용 LLM 위키 생성
 
 - code-review-graph를 커밋 `0f2c766` 기준 176노드/1,557엣지로 갱신하고 `.code-review-graph/wiki/` 자동 위키 생성
