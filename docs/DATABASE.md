@@ -124,6 +124,25 @@ Discord 로그인 사용자의 즐겨찾기. Supabase migration `create_user_fav
 
 정책 SQL은 Supabase MCP(`pg_policies` 조회) 또는 대시보드의 Authentication/Database > Policies에서 확인할 수 있다.
 
+## comments
+
+오버레이 내 댓글. 그룹 J(2026-08-03)에서 생성. "맵 지명" 태그가 아닌 모든 항목(위폭·팁, 영상·이미지 무관)에서만 표시된다.
+
+| 컬럼 | 자료형/제약 |
+|---|---|
+| id | uuid PK, `gen_random_uuid()` 기본값 |
+| item_id | uuid NOT NULL, `public.items(id)` FK, ON DELETE CASCADE |
+| user_id | uuid NOT NULL, `auth.users(id)` FK, ON DELETE CASCADE |
+| author_name | text NOT NULL — 작성 시점의 표시 이름(`user_metadata.full_name`\|`.name`)을 그대로 저장(비정규화). 이후 사용자가 닉네임을 바꿔도 과거 댓글의 이름은 바뀌지 않음(의도된 동작) |
+| body | text NOT NULL, `CHECK (char_length(body) <= 300)` |
+| created_at | timestamptz NOT NULL DEFAULT `now()` |
+
+- 인덱스: `(item_id)`
+- 수정 기능 없음(삭제 후 재작성만 가능)
+- RLS 활성화. SELECT는 `anon`/`authenticated` 모두 허용(비로그인도 조회 가능). INSERT는 `authenticated`만, `user_id = (select auth.uid())`로 본인 명의로만 허용. DELETE는 `authenticated` 중 작성자 본인(`user_id = (select auth.uid())`) 또는 관리자(`exists(select 1 from admins where admins.user_id = (select auth.uid()))`, `favorites`/`item_clicks`와 동일 패턴)만 허용. UPDATE 정책은 없음(수정 기능 자체가 없으므로)
+- **`author_name` 서버측 강제 트리거**: `comments_set_trusted_author_name()`(SECURITY DEFINER) + `BEFORE INSERT` 트리거 `comments_set_trusted_author_name`. INSERT RLS 정책이 `user_id`만 검증하고 `author_name`은 검증하지 않아, 클라이언트가 임의의 `author_name`(예: 관리자 사칭)을 보낼 수 있다는 점이 커밋 전 Codex 리뷰에서 지적됐다. 이 트리거가 `NEW.author_name`을 `auth.users.raw_user_meta_data`(`full_name`\|`name`\|`'사용자'`) 기준으로 무조건 덮어써 클라이언트가 보낸 값은 무시된다. 실제로 스푸핑 값을 보내는 INSERT를 실행해 저장된 값이 실제 계정 이름으로 강제 치환됨을 확인했다(2026-08-03)
+- 2026-08-03 실제 Discord 로그인 세션으로 INSERT/DELETE 왕복 검증 완료(본인 댓글 작성 → SELECT로 저장 확인 → 삭제 → SELECT로 삭제 확인, 테스트 데이터는 최종적으로 0건으로 정리됨)
+
 ---
 
 # Storage

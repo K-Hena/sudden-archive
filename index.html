@@ -308,6 +308,20 @@ header{
   border:1px solid var(--line);padding:6px 12px;
 }
 .overlay-close:hover{color:var(--red);border-color:var(--red);}
+.overlay-comments{width:100%;max-width:880px;margin-top:4px;padding-top:14px;border-top:1px solid var(--line);box-sizing:border-box;}
+.overlay-comments-count{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);}
+.overlay-comments-list{max-height:240px;overflow-y:auto;margin:10px 0;}
+.overlay-comment{padding:8px 0;border-bottom:1px solid var(--line);}
+.overlay-comment-head{display:flex;align-items:center;gap:8px;}
+.overlay-comment-author{font-size:12.5px;color:var(--text);font-weight:600;}
+.overlay-comment-time{font-size:11px;color:var(--muted);}
+.overlay-comment-del{margin-left:auto;cursor:pointer;color:var(--muted);font-size:12px;}
+.overlay-comment-del:hover{color:var(--red);}
+.overlay-comment-body{font-size:13px;color:var(--text);line-height:1.5;margin-top:4px;word-break:break-word;}
+.overlay-comments-empty{font-size:12px;color:var(--muted);padding:12px 0;text-align:center;}
+.overlay-comments-form{display:flex;gap:8px;align-items:flex-start;}
+.overlay-comments-form textarea{flex:1;background:var(--bg);border:1px solid var(--line);color:var(--text);padding:8px 10px;font-family:'Inter',sans-serif;font-size:13px;resize:vertical;min-height:38px;box-sizing:border-box;}
+.overlay-comments-login-msg{font-size:12px;color:var(--muted);margin-top:6px;}
 .loading{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);padding:40px;text-align:center;}
 
 .site-footer{
@@ -363,6 +377,7 @@ header{
 @media(max-width:600px){
   .modal{padding:12px;}
   .modal-box{width:min(560px, calc(100vw - 24px));}
+  .overlay-comments-form{flex-direction:column;align-items:stretch;}
 }
 @media(max-width:340px){
   .team-toggle button{padding:9px 12px;}
@@ -556,6 +571,15 @@ header{
         <button class="btn-ghost" id="overlayFullBtn" onclick="showFullVideo()" style="display:none;">전체 영상 보기</button>
         <div class="overlay-close" onclick="closeOverlay()">닫기 ✕</div>
       </div>
+    </div>
+    <div class="overlay-comments" id="overlayComments" style="display:none;">
+      <div class="overlay-comments-count" id="overlayCommentsCount">댓글 0</div>
+      <div class="overlay-comments-list" id="overlayCommentsList"></div>
+      <div class="overlay-comments-form">
+        <textarea id="overlayCommentInput" maxlength="300" placeholder="댓글을 입력하세요" disabled></textarea>
+        <button type="button" class="btn-ghost" id="overlayCommentSubmit" onclick="submitComment()" disabled>등록</button>
+      </div>
+      <div class="overlay-comments-login-msg" id="overlayCommentsLoginMsg" style="display:none;">댓글을 작성하려면 로그인해주세요</div>
     </div>
   </div>
 </div>
@@ -1278,6 +1302,8 @@ let lastPolledVolume = null;
 let lastPolledMuted = null;
 let overlaySession = 0; // 오버레이를 열거나 모드를 바꿀 때마다 증가 — 지연된 build()/onReady가 낡은 세션에 뒤늦게 적용되는 것을 막음
 let overlayBuildTimer = null; // YT.Player API 로드 대기용 폴링(ytReady가 아직 false일 때만 사용)
+let overlayCommentItemId = null; // 현재 오버레이가 열려 있는 항목의 id, 댓글 로딩 응답이 늦게 와도 이 값과 다르면 무시
+let overlayComments = [];
 function waitForYT(session, build){
   if(ytReady && window.YT && YT.Player){ build(); return; }
   if(overlayBuildTimer) clearInterval(overlayBuildTimer);
@@ -1442,6 +1468,7 @@ function openOverlay(id){
     media.innerHTML = it.type==='vid' ? '<span>아직 등록된 영상이 없어요</span>' : '<span>아직 등록된 이미지가 없어요</span>';
   }
   document.getElementById('overlayNote').textContent = it.note ? it.title + ' — ' + it.note : it.title;
+  renderCommentsSection(it);
   document.getElementById('overlay').classList.add('active');
 }
 function toggleOverlayPlay(){
@@ -1509,11 +1536,127 @@ function closeOverlay(){
   document.getElementById('overlayVolumeBtn').style.display = 'none';
   document.getElementById('overlayVolumeSlider').style.display = 'none';
   document.getElementById('overlaySeekbar').style.display = 'none';
+  overlayCommentItemId = null;
+  overlayComments = [];
+  document.getElementById('overlayComments').style.display = 'none';
+  document.getElementById('overlayCommentsList').innerHTML = '';
+  document.getElementById('overlayCommentInput').value = '';
   overlayVideoId = null;
   overlayHasClip = false;
   overlayClipRange = null;
   overlaySeeking = false;
   document.getElementById('overlay').classList.remove('active');
+}
+
+function formatRelativeTime(iso){
+  const sec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if(sec < 60) return '방금 전';
+  const min = Math.floor(sec / 60);
+  if(min < 60) return min + '분 전';
+  const hour = Math.floor(min / 60);
+  if(hour < 24) return hour + '시간 전';
+  const day = Math.floor(hour / 24);
+  if(day < 7) return day + '일 전';
+  const d = new Date(iso);
+  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function renderCommentsSection(it){
+  const wrap = document.getElementById('overlayComments');
+  const list = document.getElementById('overlayCommentsList');
+  if(it.tag === '맵 지명'){
+    wrap.style.display = 'none';
+    overlayCommentItemId = null;
+    overlayComments = [];
+    list.innerHTML = '';
+    return;
+  }
+  wrap.style.display = 'block';
+  overlayCommentItemId = it.id;
+  overlayComments = [];
+  list.innerHTML = '';
+  document.getElementById('overlayCommentsCount').textContent = '댓글 0';
+  document.getElementById('overlayCommentInput').value = '';
+  refreshCommentAuthUI();
+  loadComments(it.id);
+}
+
+function refreshCommentAuthUI(){
+  if(!overlayCommentItemId) return; // 댓글 영역이 없는 항목(맵 지명)이거나 오버레이가 닫힌 상태면 아무것도 하지 않음
+  const input = document.getElementById('overlayCommentInput');
+  const submitBtn = document.getElementById('overlayCommentSubmit');
+  const loginMsg = document.getElementById('overlayCommentsLoginMsg');
+  const loggedIn = !!currentSession;
+  input.disabled = !loggedIn;
+  submitBtn.disabled = !loggedIn;
+  loginMsg.style.display = loggedIn ? 'none' : 'block';
+  renderCommentsList(); // 로그인/로그아웃으로 본인 소유·관리자 여부가 바뀌면 삭제 아이콘도 다시 계산
+}
+
+async function loadComments(itemId){
+  const { data, error } = await sb.from('comments').select('id, user_id, author_name, body, created_at').eq('item_id', itemId).order('created_at', { ascending: true });
+  if(overlayCommentItemId !== itemId) return; // 그 사이 오버레이가 닫히거나 다른 항목으로 바뀐 응답은 무시
+  if(error){ alert('댓글을 불러오지 못했어요: ' + error.message); return; }
+  overlayComments = data || [];
+  renderCommentsList();
+}
+
+function renderCommentsList(){
+  document.getElementById('overlayCommentsCount').textContent = `댓글 ${overlayComments.length}`;
+  const list = document.getElementById('overlayCommentsList');
+  list.innerHTML = overlayComments.map(c => {
+    const canDelete = currentSession && (currentSession.user.id === c.user_id || isAdminUser);
+    return `
+      <div class="overlay-comment" data-id="${c.id}">
+        <div class="overlay-comment-head">
+          <span class="overlay-comment-author">${escapeHtml(c.author_name)}</span>
+          <span class="overlay-comment-time">${formatRelativeTime(c.created_at)}</span>
+          ${canDelete ? `<span class="overlay-comment-del" title="삭제" onclick="deleteComment('${c.id}')">🗑</span>` : ''}
+        </div>
+        <div class="overlay-comment-body">${escapeHtml(c.body)}</div>
+      </div>
+    `;
+  }).join('') || '<div class="overlay-comments-empty">아직 댓글이 없어요</div>';
+}
+
+async function submitComment(){
+  if(!currentSession || !overlayCommentItemId) return;
+  const itemId = overlayCommentItemId;
+  const input = document.getElementById('overlayCommentInput');
+  const body = input.value.trim();
+  if(!body) return;
+  const nickname = currentSession.user.user_metadata.full_name || currentSession.user.user_metadata.name || '사용자';
+  const submitBtn = document.getElementById('overlayCommentSubmit');
+  submitBtn.disabled = true;
+  try {
+    const { data, error } = await sb.from('comments').insert({
+      item_id: itemId,
+      user_id: currentSession.user.id,
+      author_name: nickname,
+      body
+    }).select('id, user_id, author_name, body, created_at').single();
+    if(error) throw error;
+    if(overlayCommentItemId !== itemId) return; // 등록 응답이 오는 사이 다른 항목으로 전환된 경우 무시
+    overlayComments.push(data);
+    renderCommentsList();
+    input.value = '';
+  } catch(error){
+    alert('댓글 등록 실패: ' + error.message);
+  } finally {
+    submitBtn.disabled = !currentSession;
+  }
+}
+
+async function deleteComment(commentId){
+  if(!confirm('이 댓글을 삭제할까요?')) return;
+  try {
+    const { error } = await sb.from('comments').delete().eq('id', commentId);
+    if(error) throw error;
+    overlayComments = overlayComments.filter(c => c.id !== commentId);
+    renderCommentsList();
+  } catch(error){
+    alert('댓글 삭제 실패: ' + error.message);
+  }
 }
 
 let modalTag = null;
@@ -2126,6 +2269,7 @@ async function renderAuthArea(session){
   isAdminUser = isAdmin;
   document.getElementById('masterBtn').style.display = isAdminUser ? 'inline-flex' : 'none';
   if(!isAdminUser && document.getElementById('viewMaster').classList.contains('active')) showMapGrid();
+  refreshCommentAuthUI(); // 오버레이가 열려 있는 채로 로그인/로그아웃하면 댓글 입력·삭제 아이콘 상태도 즉시 갱신
   rerenderCurrentView();
 }
 

@@ -473,3 +473,32 @@ oEmbed 조회 실패는 영상 저장을 막지 않고 `null`로 처리한다. �
 **CSS만으로 못 고칠 만한 구조적 문제는 발견되지 않음**: 설계 리뷰에서 오버레이 미디어(`width:min(880px,90vw)`+`padding:40px`)가 이론상 320px에서 좁을 수 있다고 지적했지만, 실측하면 `.overlay`가 `position:fixed;inset:0`인 뷰포트 전체 오버레이라 미디어가 패딩 영역으로 살짝 넘치더라도 화면 자체 밖으로는 나가지 않아(중앙 정렬, 351px 미디어가 뷰포트 390px 안에 자연스럽게 들어감) 실제 문제가 아니었다. Master 사이드바 탭 텍스트, 클립 슬라이더, 맵 그리드도 320px에서 실측·스크린샷으로 확인한 결과 전부 정상이었다(맵 그리드는 `minmax(280px,1fr)`가 이론상 256px 콘텐츠 폭보다 커 보였지만 실제로는 그리드가 안전하게 축소됨). "레이아웃을 새로 설계해야 하는 수준"의 문제는 이번 스윕에서 나오지 않아 `KNOWN_ISSUES.md`에 새로 추가한 항목은 없다.
 
 **검증 방법**: 모든 확인을 Playwright 실제 디바이스 에뮬레이션(iPhone UA, `isMobile:true`, `hasTouch:true`, `deviceScaleFactor:3`)으로 진행했고, 390px·320px 각각에서 8개 화면 전부의 `document.documentElement.scrollWidth`를 측정했다(지시서가 지정한 정확히 이 프로퍼티 사용). 두 문제를 고친 뒤에는 같은 화면들을 재측정해 전/후 수치를 비교했고, 데스크톱(1920px/1440px)·태블릿(768px)에서도 홈/카드그리드/Master 항목관리 `scrollWidth`와 팀 토글 패딩 계산값(22px 그대로)을 확인해 회귀가 없음을 검증했다.
+
+---
+
+## 그룹 J: 댓글 기능 (오버레이 내 표시)
+
+**표시 위치**: 재생 오버레이의 `.overlay-media`+`.overlay-meta` 아래, `.overlay-box` 안에 `.overlay-comments`로 배치했다. Codex 설계 리뷰가 "`.overlay-media`와 `.overlay-meta` 사이"보다 "`.overlay-meta` 아래"가 기존 제목·닫기 버튼 영역을 그대로 보존해 자연스럽다고 지적한 것을 그대로 채택했다. 댓글 목록에는 `max-height:240px;overflow-y:auto`를 둬서 세로로 짧은 `.overlay-media.tall`(9:16 클립)과 긴 댓글 목록이 함께 있어도 오버레이 전체가 화면 밖으로 밀리지 않게 했다.
+
+**대상 범위**: `it.tag !== '맵 지명'`을 직접 조건으로 썼다. 기존 `favoriteButton()`은 `it.tag !== '위폭' && it.tag !== '팁'`라는 별개의 화이트리스트 패턴을 쓰지만(태그가 셋 외의 값이면 두 결과가 달라짐), 이번 지시서는 "맵 지명이 아닌 모든 항목"을 명시했으므로 그 화이트리스트를 재사용하지 않고 직접 부정 조건을 썼다(Codex 설계 리뷰에서 두 패턴이 동등하지 않음을 확인).
+
+**관리자 판정**: 새 `admins` 쿼리를 만들지 않고, `renderAuthArea()`가 로그인 시마다 이미 계산해 두는 전역 `isAdminUser`를 그대로 재사용했다. 지시서가 "기존 판정 로직 재사용"을 명시했고, 삭제 아이콘 노출 여부(`currentSession.user.id === comment.user_id || isAdminUser`)에는 클라이언트 쿼리가 필요 없어 가장 단순한 방법이었다.
+
+**삭제 권한**: 작성자 본인 또는 관리자. RLS DELETE 정책의 관리자 서브쿼리(`exists (select 1 from public.admins where admins.user_id = (select auth.uid()))`)는 `favorites`/`item_clicks`에 이미 쓰인 것과 동일한 패턴을 그대로 재사용했다(`docs/DATABASE.md`의 RLS 절 참고).
+
+**수정 기능 없음**: 지시서가 "삭제 후 재작성"으로 명시했으므로 UPDATE 정책 자체를 만들지 않았고 클라이언트에도 수정 UI가 없다.
+
+**`author_name` 비정규화 저장**: 댓글 작성 시점의 `currentSession.user.user_metadata.full_name || .name || '사용자'` 값을 그 댓글 행에 그대로 저장한다(매 조회 시 `auth.users`를 조인하지 않음). 지시서가 "나중에 닉네임이 바뀌어도 과거 댓글엔 그때 이름이 남는 것은 의도된 동작"이라고 명시했고, 이 방식이면 조인 없이 댓글 목록만 조회해도 표시 이름이 그대로 나온다는 이점도 있다.
+
+**상대 시간 포맷**: 기존 코드에 유사 함수가 없어(Codex 설계 리뷰로 확인) `formatRelativeTime()`을 새로 작성했다. 방금 전/N분 전/N시간 전/N일 전(7일 미만)/절대 날짜(`YYYY.MM.DD`, 7일 이상) 기준이며, 렌더링 시점에 1회 계산하고 별도 자동 갱신 타이머는 두지 않았다(오버레이를 다시 열거나 목록을 새로 그릴 때 다시 계산되는 것으로 충분하다고 판단, 과설계 방지).
+
+**빈 댓글 방지**: `comments.body`에는 빈 문자열을 막는 DB 제약이 없다(300자 상한 CHECK만 있음, 이미 승인된 SQL을 그대로 실행했으므로 스키마는 바꾸지 않았다). 대신 `submitComment()`에서 `input.value.trim()`이 빈 문자열이면 등록 자체를 막았다(Codex 설계 리뷰가 지적한 "공백만 있는 댓글" 허용 문제를 클라이언트 단에서 보완).
+
+**검증 방법**: 클라이언트 로직(맵 지명 항목 숨김, XSS 이스케이프, 본인/관리자 삭제 아이콘 노출)은 Playwright `evaluate()`로 합성 데이터를 주입해 직접 확인했다. 실제 DB 왕복(INSERT/DELETE)은 Discord OAuth로 로그인한 실제 세션(관리자 계정, `user_id: c9642556-c6d5-427d-9e46-92ecfe507f2e`)의 Supabase 인증 토큰을 배포 도메인에서 발급받아 로컬 테스트 서버(origin이 달라 OAuth 콜백이 localhost로 오지 않으므로) `localStorage`로 옮겨 재현했다 — 실제로 댓글을 작성해 Supabase MCP `SELECT`로 저장을 확인하고, 삭제해 `SELECT`로 제거를 확인했으며, 테스트 데이터는 최종적으로 0건으로 남겼다. 이 프로젝트에 실제 로그인 계정이 이 관리자 계정 하나뿐이라, "관리자가 타인의 댓글을 삭제"하는 시나리오는 실제 REST 왕복으로는 검증하지 못했다 — 대신 RLS 정책의 관리자 서브쿼리가 이미 프로덕션에서 검증된 `favorites`/`item_clicks` 패턴과 동일함을 `pg_policies` 조회로 확인하고, 클라이언트 쪽 삭제 아이콘 노출 로직은 합성 데이터(타인 소유 댓글 + `isAdminUser=true`)로 확인하는 것으로 대체했다. 모바일(390px/320px, 실제 디바이스 에뮬레이션)과 데스크톱(1920/1440/768px)에서 `document.documentElement.scrollWidth` 회귀도 없음을 확인했다.
+
+**커밋 전 Codex 리뷰에서 발견해 수정한 두 가지**:
+
+1. **작성자 이름 위조 가능**(P1) — INSERT RLS 정책이 `user_id`만 검증하고 `author_name`은 검증하지 않아, 로그인한 사용자라면 누구든 Supabase REST를 직접 호출해 임의의 `author_name`(예: 관리자 사칭)을 보낼 수 있었다. 공개 댓글 기능이라 사칭 악용 가능성이 실질적이라고 판단해, 고치는 방법(`comments` 테이블에 `BEFORE INSERT` 트리거 추가)이 새 DB 객체 생성이라는 점을 사용자에게 명시하고 확인받은 뒤 진행했다. `comments_set_trusted_author_name()`(SECURITY DEFINER) 함수가 `NEW.author_name`을 `auth.users.raw_user_meta_data` 기준으로 무조건 덮어쓰도록 만들어, 클라이언트가 보낸 값은 완전히 무시된다. 스푸핑 INSERT를 실제로 실행해 저장된 값이 강제로 실제 계정 이름(`hena_`)으로 바뀌는 것을 확인했다. 스키마는 `docs/DATABASE.md` 참고
+2. **로그인 상태 변경 시 댓글 UI 미갱신**(P2) — 오버레이가 열린 채로 로그인/로그아웃하면 `renderAuthArea()`가 `currentSession`/`isAdminUser`는 갱신하지만 댓글 입력창 비활성화·삭제 아이콘 노출 여부는 그대로 남아있었다. `refreshCommentAuthUI()`를 새로 만들어 `renderCommentsSection()`(오버레이를 열 때)과 `renderAuthArea()`(로그인 상태가 바뀔 때) 양쪽에서 호출하도록 통합했다. 합성 세션으로 로그인 전/후 입력창 활성화 상태가 즉시 바뀌는 것을 확인했다.
+
+두 수정 모두 재리뷰(2회차)에서 추가 지적 없이 통과했다.
