@@ -287,6 +287,13 @@ header{
 .overlay-media.tall{height:min(80vh,720px);aspect-ratio:9/16;}
 #overlayMediaContent{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
 .overlay-media iframe,.overlay-media img{width:100%;height:100%;display:block;object-fit:contain;border:0;}
+.overlay-media img{transform-origin:0 0;}
+.overlay-zoom-reset{
+  position:absolute;top:14px;right:14px;z-index:5;width:36px;height:36px;border-radius:50%;
+  background:rgba(6,7,9,.75);color:#fff;border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;
+}
+.overlay-zoom-reset:hover{border-color:var(--edit-accent);color:var(--edit-accent);}
 .overlay-playpause{
   position:absolute;bottom:14px;left:14px;z-index:5;width:40px;height:40px;border-radius:50%;
   background:rgba(6,7,9,.75);color:#fff;border:1px solid var(--line);
@@ -564,6 +571,7 @@ header{
       <span class="overlay-volume-btn" id="overlayVolumeBtn" onclick="toggleOverlayMute()" style="display:none;" aria-label="음소거">🔊</span>
       <input type="range" id="overlayVolumeSlider" class="overlay-volume-slider" min="0" max="100" step="1" value="50" style="display:none;" aria-label="볼륨" oninput="onOverlayVolumeInput(this.value)">
       <input type="range" id="overlaySeekbar" class="overlay-seekbar" min="0" max="100" step="0.1" value="0" style="display:none;" aria-label="재생 위치" oninput="onOverlaySeekbarInput(this.value)" onpointerdown="overlaySeeking=true" onpointerup="overlaySeeking=false" onpointercancel="overlaySeeking=false">
+      <button type="button" class="overlay-zoom-reset" id="overlayZoomReset" onclick="resetImageZoom(event)" style="display:none;" aria-label="원래 크기로" title="원래 크기로">↺</button>
     </div>
     <div class="overlay-meta">
       <div class="note" id="overlayNote"></div>
@@ -1303,6 +1311,14 @@ let lastPolledMuted = null;
 let overlaySession = 0; // 오버레이를 열거나 모드를 바꿀 때마다 증가 — 지연된 build()/onReady가 낡은 세션에 뒤늦게 적용되는 것을 막음
 let overlayBuildTimer = null; // YT.Player API 로드 대기용 폴링(ytReady가 아직 false일 때만 사용)
 let overlayCommentItemId = null; // 현재 오버레이가 열려 있는 항목의 id, 댓글 로딩 응답이 늦게 와도 이 값과 다르면 무시
+let overlayImgZoomEnabled = false; // 현재 열린 항목이 이미지 타입일 때만 true(영상 타입에는 확대/이동 로직이 전혀 동작하지 않음)
+let overlayImgScale = 1;
+let overlayImgTx = 0;
+let overlayImgTy = 0;
+let overlayImgDragging = false;
+let overlayImgDragStart = null; // {x, y, tx, ty} — 마우스/한 손가락 드래그 시작 시점 스냅샷
+let overlayImgPinch = null; // {distance, scale} — 핀치 제스처 시작 시점 스냅샷
+let overlayImgLastTapTime = 0; // 모바일 더블탭 리셋 판정용
 let overlayComments = [];
 function waitForYT(session, build){
   if(ytReady && window.YT && YT.Player){ build(); return; }
@@ -1398,6 +1414,10 @@ function openOverlay(id){
   overlayHasClip = false;
   overlayClipRange = null;
   overlaySeeking = false;
+  overlayImgZoomEnabled = false;
+  resetImageZoomState();
+  document.getElementById('overlayZoomReset').style.display = 'none';
+  media.style.touchAction = '';
 
   if(it.type === 'vid' && it.video_url){
     const p = parseYouTube(it.video_url);
@@ -1463,6 +1483,9 @@ function openOverlay(id){
   } else if(it.type === 'img' && it.img_url){
     document.getElementById('overlayMedia').className = 'overlay-media wide';
     media.innerHTML = `<img src="${it.img_url}">`;
+    overlayImgZoomEnabled = true;
+    media.style.touchAction = 'none'; // 브라우저 기본 핀치줌/스크롤과 충돌하지 않도록(직접 구현한 핀치·팬으로 대체)
+    applyImageZoomTransform();
   } else {
     document.getElementById('overlayMedia').className = 'overlay-media wide';
     media.innerHTML = it.type==='vid' ? '<span>아직 등록된 영상이 없어요</span>' : '<span>아직 등록된 이미지가 없어요</span>';
@@ -1545,7 +1568,179 @@ function closeOverlay(){
   overlayHasClip = false;
   overlayClipRange = null;
   overlaySeeking = false;
+  overlayImgZoomEnabled = false;
+  resetImageZoomState();
+  document.getElementById('overlayZoomReset').style.display = 'none';
   document.getElementById('overlay').classList.remove('active');
+}
+
+// --- 이미지 오버레이 확대/축소 + 드래그 이동 (포토샵 스타일) ---
+// transform-origin:0 0 기준으로 <img> 요소 자체(letterbox 포함 100%x100% 박스)를 확대·이동 대상으로 삼는다.
+// 배율 범위 1~4배. 팬 범위는 <img> 요소 박스 기준으로 clamp(실제 표시 픽셀이 아닌 요소 박스 기준 — object-fit:contain의
+// 레터박스도 이미지와 함께 확대되지만, "박스 밖으로 완전히 벗어나 빈 공간만 보이는" 상태는 이 기준으로도 정확히 방지된다).
+
+function resetImageZoomState(){
+  overlayImgScale = 1;
+  overlayImgTx = 0;
+  overlayImgTy = 0;
+  overlayImgDragging = false;
+  overlayImgDragStart = null;
+  overlayImgPinch = null;
+}
+
+function applyImageZoomTransform(){
+  const img = document.querySelector('#overlayMediaContent img');
+  if(!img) return;
+  img.style.transform = `translate(${overlayImgTx}px, ${overlayImgTy}px) scale(${overlayImgScale})`;
+  img.style.cursor = overlayImgScale > 1 ? (overlayImgDragging ? 'grabbing' : 'grab') : 'default';
+  document.getElementById('overlayZoomReset').style.display = overlayImgScale > 1 ? 'flex' : 'none';
+}
+
+function resetImageZoom(e){
+  if(e) e.stopPropagation();
+  resetImageZoomState();
+  applyImageZoomTransform();
+}
+
+function clampImageTranslate(tx, ty, scale, boxW, boxH){
+  if(scale <= 1) return { tx: 0, ty: 0 };
+  const minTx = boxW * (1 - scale); // scale>1이면 음수 — 왼쪽/위로 이동 가능한 최대치
+  const minTy = boxH * (1 - scale);
+  return {
+    tx: Math.min(0, Math.max(minTx, tx)),
+    ty: Math.min(0, Math.max(minTy, ty))
+  };
+}
+
+function zoomImageAt(mx, my, targetScale){
+  const rect = document.getElementById('overlayMediaContent').getBoundingClientRect();
+  const newScale = Math.min(4, Math.max(1, targetScale));
+  const ix = (mx - overlayImgTx) / overlayImgScale; // 커서 아래 지점의 확대 전(scale=1 기준) 좌표
+  const iy = (my - overlayImgTy) / overlayImgScale;
+  const rawTx = mx - ix * newScale; // 그 지점이 확대 후에도 같은 화면 위치(mx,my)에 남도록 역산
+  const rawTy = my - iy * newScale;
+  overlayImgScale = newScale;
+  const clamped = clampImageTranslate(rawTx, rawTy, newScale, rect.width, rect.height);
+  overlayImgTx = clamped.tx;
+  overlayImgTy = clamped.ty;
+  applyImageZoomTransform();
+}
+
+function onImageWheel(e){
+  if(!overlayImgZoomEnabled) return;
+  e.preventDefault(); // 페이지 스크롤과 충돌 방지
+  const rect = document.getElementById('overlayMediaContent').getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+  zoomImageAt(mx, my, overlayImgScale * factor);
+}
+
+function onImageDblClick(e){
+  if(!overlayImgZoomEnabled) return;
+  resetImageZoom(e);
+}
+
+function onImageMouseDown(e){
+  if(!overlayImgZoomEnabled || overlayImgScale <= 1) return; // 1배에서는 드래그해도 이동하지 않음
+  e.preventDefault();
+  overlayImgDragging = true;
+  overlayImgDragStart = { x: e.clientX, y: e.clientY, tx: overlayImgTx, ty: overlayImgTy };
+  applyImageZoomTransform();
+  window.addEventListener('mousemove', onImageMouseMove);
+  window.addEventListener('mouseup', onImageMouseUp);
+}
+function onImageMouseMove(e){
+  if(!overlayImgDragging || !overlayImgDragStart) return;
+  const rect = document.getElementById('overlayMediaContent').getBoundingClientRect();
+  const dx = e.clientX - overlayImgDragStart.x;
+  const dy = e.clientY - overlayImgDragStart.y;
+  const clamped = clampImageTranslate(overlayImgDragStart.tx + dx, overlayImgDragStart.ty + dy, overlayImgScale, rect.width, rect.height);
+  overlayImgTx = clamped.tx;
+  overlayImgTy = clamped.ty;
+  applyImageZoomTransform();
+}
+function onImageMouseUp(){
+  overlayImgDragging = false;
+  overlayImgDragStart = null;
+  applyImageZoomTransform();
+  window.removeEventListener('mousemove', onImageMouseMove);
+  window.removeEventListener('mouseup', onImageMouseUp);
+}
+
+function touchDistance(t1, t2){
+  return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+}
+function touchCenter(t1, t2, rect){
+  return { x: (t1.clientX + t2.clientX) / 2 - rect.left, y: (t1.clientY + t2.clientY) / 2 - rect.top };
+}
+function onImageTouchStart(e){
+  if(!overlayImgZoomEnabled) return;
+  if(e.touches.length === 2){
+    e.preventDefault();
+    overlayImgDragging = false;
+    overlayImgDragStart = null;
+    overlayImgPinch = { distance: touchDistance(e.touches[0], e.touches[1]), scale: overlayImgScale };
+  } else if(e.touches.length === 1){
+    const now = Date.now();
+    if(now - overlayImgLastTapTime < 300){ // 더블탭 → 리셋
+      overlayImgLastTapTime = 0;
+      resetImageZoom(e);
+      return;
+    }
+    overlayImgLastTapTime = now;
+    if(overlayImgScale > 1){
+      e.preventDefault();
+      overlayImgDragging = true;
+      overlayImgDragStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, tx: overlayImgTx, ty: overlayImgTy };
+    }
+  }
+}
+function onImageTouchMove(e){
+  if(!overlayImgZoomEnabled) return;
+  const rect = document.getElementById('overlayMediaContent').getBoundingClientRect();
+  if(e.touches.length === 2 && overlayImgPinch){
+    e.preventDefault();
+    const dist = touchDistance(e.touches[0], e.touches[1]);
+    const center = touchCenter(e.touches[0], e.touches[1], rect);
+    zoomImageAt(center.x, center.y, overlayImgPinch.scale * (dist / overlayImgPinch.distance));
+  } else if(e.touches.length === 1 && overlayImgDragging && overlayImgDragStart){
+    e.preventDefault();
+    const dx = e.touches[0].clientX - overlayImgDragStart.x;
+    const dy = e.touches[0].clientY - overlayImgDragStart.y;
+    const clamped = clampImageTranslate(overlayImgDragStart.tx + dx, overlayImgDragStart.ty + dy, overlayImgScale, rect.width, rect.height);
+    overlayImgTx = clamped.tx;
+    overlayImgTy = clamped.ty;
+    applyImageZoomTransform();
+  }
+}
+function onImageTouchEnd(e){
+  if(e.touches.length === 1 && overlayImgPinch){
+    // 핀치 중 손가락 하나를 뗀 경우, 남은 손가락으로 팬 제스처를 이어감(다시 터치할 필요 없이)
+    overlayImgPinch = null;
+    if(overlayImgScale > 1){
+      overlayImgDragging = true;
+      overlayImgDragStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, tx: overlayImgTx, ty: overlayImgTy };
+    }
+  } else if(e.touches.length < 2){
+    overlayImgPinch = null;
+  }
+  if(e.touches.length === 0){
+    overlayImgDragging = false;
+    overlayImgDragStart = null;
+    applyImageZoomTransform();
+  }
+}
+
+function initImageZoomPan(){
+  const container = document.getElementById('overlayMediaContent');
+  container.addEventListener('wheel', onImageWheel, { passive: false });
+  container.addEventListener('mousedown', onImageMouseDown);
+  container.addEventListener('dblclick', onImageDblClick);
+  container.addEventListener('touchstart', onImageTouchStart, { passive: false });
+  container.addEventListener('touchmove', onImageTouchMove, { passive: false });
+  container.addEventListener('touchend', onImageTouchEnd);
+  container.addEventListener('touchcancel', onImageTouchEnd);
 }
 
 function formatRelativeTime(iso){
@@ -2299,6 +2494,7 @@ async function initAuth(){
 }
 
 renderThemeToggle();
+initImageZoomPan();
 initAuth();
 loadAll();
 </script>

@@ -502,3 +502,25 @@ oEmbed 조회 실패는 영상 저장을 막지 않고 `null`로 처리한다. �
 2. **로그인 상태 변경 시 댓글 UI 미갱신**(P2) — 오버레이가 열린 채로 로그인/로그아웃하면 `renderAuthArea()`가 `currentSession`/`isAdminUser`는 갱신하지만 댓글 입력창 비활성화·삭제 아이콘 노출 여부는 그대로 남아있었다. `refreshCommentAuthUI()`를 새로 만들어 `renderCommentsSection()`(오버레이를 열 때)과 `renderAuthArea()`(로그인 상태가 바뀔 때) 양쪽에서 호출하도록 통합했다. 합성 세션으로 로그인 전/후 입력창 활성화 상태가 즉시 바뀌는 것을 확인했다.
 
 두 수정 모두 재리뷰(2회차)에서 추가 지적 없이 통과했다.
+
+---
+
+## 이미지 오버레이 확대/축소/이동 기능
+
+**결정**: 이미지 타입(`type='img'`) 재생 오버레이에 마우스 휠 확대·축소(커서 중심), 확대 상태 드래그 이동, 모바일 핀치·한 손가락 드래그, 리셋 버튼/더블클릭·더블탭 복귀를 순수 CSS `transform` + 마우스/터치 이벤트로 구현했다. 외부 라이브러리는 추가하지 않았다(지시서 요구사항). 영상 타입(`type='vid'`)에는 전혀 적용되지 않는다.
+
+**설계 리뷰에서 자동 수정한 사실 오류**: 지시서는 "`.overlay-media`에 `overflow:hidden`을 추가해야 한다"고 전제했지만, 실제 CSS([index.html:281](../index.html))에 이미 `overflow:hidden`이 있었다 — 새로 추가하지 않았다. 이미지 렌더링 코드 위치도 지시서가 말한 "1178번째 줄 부근"이 아니라 실제로는 `openOverlay()`의 `it.type==='img'` 분기(1463~1465번째 줄 부근)였다 — 그 위치에 구현했다.
+
+**좌표계·확대 기준**: `<img>` 요소 자체(width:100%/height:100%, `transform-origin:0 0`)를 확대·이동 대상으로 삼았다. `translateX`/`translateY`는 `#overlayMediaContent` 컨테이너 기준 화면 픽셀 좌표로 관리한다. 팬 범위 제한도 이미지의 실제 표시 픽셀(`object-fit:contain`으로 인한 레터박스 제외)이 아니라 `<img>` 요소 박스 전체를 기준으로 clamp했다 — Codex 설계 리뷰가 "정확한 픽셀 경계로 제한할지, 요소 박스로 제한할지" 애매하다고 지적한 지점인데, 지시서의 목표가 "과도하게 벗어나 보이지 않도록"이지 "레터박스까지 정밀 제거"가 아니라고 판단해 더 간단한 요소 박스 기준을 택했다(`naturalWidth`/`naturalHeight` 기반 정밀 계산은 구현 복잡도만 늘리고 체감 차이가 크지 않다고 판단).
+- 휠 확대 중심 보정 공식: `ix = (mx-tx)/scale`(커서 아래 지점의 확대 전 좌표) → `newTx = mx - ix*newScale`로 역산, 이 지점이 확대 후에도 같은 화면 위치에 남는다(Playwright로 불변식 `(mx-tx)/scale` 값이 확대 전후 동일함을 직접 검증).
+- 팬 clamp 공식: `scale<=1`이면 무조건 `(0,0)`(1배에서는 드래그해도 이동하지 않는다는 요구를 이 clamp 자체로 만족), `scale>1`이면 `tx ∈ [boxW*(1-scale), 0]`, `ty`도 동일 패턴.
+- 배율 범위는 지시서 권장값 그대로 1~4배 채택(조정 근거 없음, 그대로 사용).
+- 휠 감도: 한 단계당 ×1.15(배율 기반 증가, `deltaY` 부호로 확대/축소 방향만 판별) — 선형 증가 대신 배율 기반을 택해 이미 확대된 상태에서도 체감 확대/축소 속도가 일정하게 느껴지도록 했다.
+
+**이벤트 리스너 구조**: `#overlayMediaContent`(오버레이가 열릴 때마다 `innerHTML`만 교체되고 요소 자체는 유지됨)에 `wheel`(`{passive:false}`)/`mousedown`/`dblclick`/`touchstart`/`touchmove`(`{passive:false}`)/`touchend`/`touchcancel` 리스너를 페이지 로드 시 한 번만(`initImageZoomPan()`) 등록했다 — 오버레이를 열고 닫을 때마다 리스너를 추가·제거하지 않고, 대신 각 핸들러 내부에서 `overlayImgZoomEnabled` 플래그로 이미지 타입이 아닐 때 즉시 return하는 방식을 택했다(기존 코드가 `oninput`/`onclick` 같은 정적 바인딩을 선호하는 패턴과 맞물림, 매 오버레이 오픈마다 리스너 중복 등록 위험도 없음). 단, 드래그 중 `mousemove`/`mouseup`은 `window`에 `mousedown` 시점에만 임시로 등록하고 `mouseup` 시점에 항상 해제되므로 리스너 누수가 없다(Codex 설계 리뷰가 지적했던 "전역 리스너 해제" 우려는 이 방식으로 해소됨).
+
+**핀치 제스처**: 두 손가락 거리 변화 비율(`현재거리/제스처시작거리`)을 제스처 시작 시점 배율에 곱해 목표 배율을 구하고, 매 `touchmove`마다 현재 두 손가락 중점을 확대 중심으로 재계산한다(휠 확대와 동일한 `zoomImageAt()` 함수 재사용) — 핀치 도중 자연스럽게 팬도 함께 되는 흔한 방식이다. `touch-action:none`을 이미지 렌더링 시점에만 `#overlayMediaContent`에 적용하고 영상/빈 상태로 전환되면 해제해, 브라우저 기본 핀치줌·스크롤과 충돌하지 않으면서도 영상 타입의 기존 터치 동작에는 영향을 주지 않는다.
+
+**리셋**: `.overlay-media` 내부(우상단, 볼륨 버튼 등과 같은 절대 위치 패턴)에 `↺` 버튼을 추가해 확대 상태(`scale>1`)일 때만 노출한다. 더블클릭(데스크톱, `dblclick` 이벤트)과 더블탭(모바일, `touchstart` 300ms 이내 재발생 판정)도 동일하게 리셋한다. 오버레이를 열 때(`openOverlay()` 시작부)와 닫을 때(`closeOverlay()`) 모두 `resetImageZoomState()`를 호출해 이전 이미지의 확대 상태가 다음 이미지에 남지 않는다.
+
+**검증 방법**: DB 스키마 변경이 없는 순수 클라이언트 기능이라 실 세션 없이 Playwright로 전부 검증했다. 확대 중심 불변식(커서 아래 지점이 확대 전후 동일 화면 위치 유지), 배율 상한(4배)·하한(1배) clamp, 1배에서 드래그 무효, 실제 `wheel`/`mousedown`/`mousemove`/`mouseup`/`dblclick` DOM 이벤트 디스패치로 리스너 바인딩 자체도 확인했다. 모바일은 실제 디바이스 에뮬레이션(`isMobile:true`, `hasTouch:true`, 390px)에서 `Touch`/`TouchEvent` 생성자로 합성 핀치(거리 3배 벌림 → 3배 확대 확인)와 한 손가락 드래그, 더블탭 리셋을 검증했다. 영상 타입으로 전환 시 `overlayImgZoomEnabled`가 false로 바뀌고 확대 상태가 즉시 리셋됨을 확인했고, 확대된 상태에서도 닫기 버튼 클릭이 정상 동작함을 확인했다(닫기 버튼은 `.overlay-meta`에 있어 이벤트 리스너가 걸린 `#overlayMediaContent`와 DOM상 무관). 댓글 영역(`.overlay-comments`)도 `#overlayMediaContent` 밖의 별도 형제 요소라 이번 리스너의 영향을 받지 않는다. 데스크톱(1920/1440px)·태블릿(768px)에서 확대 상태로 오버레이를 열고 닫아도 `document.documentElement.scrollWidth` 회귀가 없음을 확인했다.
