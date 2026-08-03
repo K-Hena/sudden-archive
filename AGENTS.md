@@ -23,10 +23,10 @@
 ## 하지 말 것
 - 추측으로 존재하지 않는 기능/파일/테이블을 가정하지 않는다.
 - 불필요한 리팩터링, 대규모 구조 변경.
-- 검색 범위를 넘겨짚지 않는다 — 전체 맵 검색(`renderGlobalTitleSearch()`)과 맵·팀 내 검색(`renderCards()`)은 `items.title`과 `items.channel_name`만 검색하고 설명·태그·맵 이름·영상 URL은 검색하지 않는다 (`docs/architecture/search-flow.md` 참고).
+- 검색 범위를 넘겨짚지 않는다 — 전체 맵 검색(`renderGlobalTitleSearch()`)과 맵·팀 내 검색(`renderCards()`)은 `items.title`과 `items.channel_name`만 검색하고 설명·태그·맵 이름·영상 URL은 검색하지 않는다 (`docs/ARCHITECTURE.md`의 "탐색/검색 흐름" 참고).
 
 ## 참고 문서
-- 구조: `docs/PROJECT_STRUCTURE.md`
+- 구조: `docs/ARCHITECTURE.md`
 - DB: `docs/DATABASE.md`
 - 진행 상황/결정: `docs/AI_CONTEXT.md`, `docs/TODO.md`, `docs/DECISIONS.md`
 - 세부 흐름: `docs/architecture/*.md`

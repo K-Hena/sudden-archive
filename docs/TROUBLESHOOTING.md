@@ -26,7 +26,7 @@
 
 ## "맵 지명" 태그로 항목 추가 시 유튜브 링크 입력창이 떴음
 
-**원인**: 편집모드 항목 추가 모달(`openAddModal`/`submitItem`)이 처음 이식됐을 때(`62945d9`) 영상(vid) 유형만 지원하도록 만들어졌는데, `isMapLabel` 분기는 `titleWrap`(제목/설명)만 숨기고 유튜브 링크 입력(`mVideoUrl`)은 모든 태그에서 항상 노출하도록 되어 있었다. 즉 "유형을 잘못 전환하는" 버그가 아니라, 애초에 이미지 유형 자체와 유형별 표시 분기가 코드에 없었다(레거시 Admin의 `type-toggle`/이미지 업로드가 User 사이트로 이식되지 않은 상태, `docs/architecture/admin-flow.md` 참고).
+**원인**: 편집모드 항목 추가 모달(`openAddModal`/`submitItem`)이 처음 이식됐을 때(`62945d9`) 영상(vid) 유형만 지원하도록 만들어졌는데, `isMapLabel` 분기는 `titleWrap`(제목/설명)만 숨기고 유튜브 링크 입력(`mVideoUrl`)은 모든 태그에서 항상 노출하도록 되어 있었다. 즉 "유형을 잘못 전환하는" 버그가 아니라, 애초에 이미지 유형 자체와 유형별 표시 분기가 코드에 없었다(레거시 Admin의 `type-toggle`/이미지 업로드가 User 사이트로 이식되지 않은 상태, `docs/ARCHITECTURE.md`의 "관리자(Admin) 흐름" 참고).
 
 **해결**: 모달에 `videoWrap`/`imageWrap` 두 컨테이너를 추가하고, `openAddModal()`에서 `isMapLabel`이면 `videoWrap`을 숨기고 `imageWrap`(파일 선택 + Ctrl+V 붙여넣기)만 보이도록 했다. `submitItem()`도 `isMapLabel`이면 이미지 파일을 Storage `media` 버킷의 `items/{timestamp}.jpg`에 업로드해 `img_url`로 저장하는 분기를 별도로 추가했다. "위폭"/"팁" 태그는 기존처럼 영상 입력만 노출된다.
 

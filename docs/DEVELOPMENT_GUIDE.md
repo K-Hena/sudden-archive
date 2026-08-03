@@ -382,8 +382,8 @@ Claude Code 토큰이 부족해 Mode B(GPT 설계 → Codex 리뷰+구현+커밋
 - 버그를 수정했다 → TROUBLESHOOTING.md에 원인/해결 기록 (재발 방지 가치가 있는 경우만)
 - 설계/방식을 새로 결정했다(예: 라이브러리 선택, 구조 변경) → DECISIONS.md에 결정과 이유 기록
 - DB 스키마/RLS 관련 SQL을 새로 제시했다 → DATABASE.md 갱신 필요 여부 확인
-- 인증/검색/관리자 흐름 관련 코드를 바꿨다 → architecture/ 하위 관련 문서(auth-flow.md, search-flow.md, admin-flow.md, database-flow.md) 갱신 필요 여부 확인
-- 폴더/파일 구조가 바뀌었다 → PROJECT_STRUCTURE.md 갱신 필요 여부 확인
+- 인증/검색/관리자/DB 흐름 관련 코드를 바꿨다 → `ARCHITECTURE.md`의 해당 섹션(인증/탐색·검색/관리자/데이터베이스 흐름) 갱신 필요 여부 확인
+- 폴더/파일 구조가 바뀌었다 → `ARCHITECTURE.md`의 "폴더/파일 구조", "index.html 내부 구성" 갱신 필요 여부 확인
 - 위 어디에도 해당 안 되는 단순 작업(질문 답변, 사소한 수정 등)이었다 → 문서를 건드리지 않고, 보고서에 "해당 없음"이라고 명시
 - 작업 중 지시서 범위 밖의 이슈를 발견했지만 이번 작업에서 고치지 않기로 판단했다 → `KNOWN_ISSUES.md`에 기록(추측이나 단순 개선 아이디어가 아니라 실제로 확인된 이슈만)
 - `KNOWN_ISSUES.md`에 있던 이슈를 실제로 고쳤다 → 해당 항목을 제거하고 `CHANGELOG.md`에 기록. 재발 방지 가치가 있으면 `TROUBLESHOOTING.md`에도 원인·해결·예방 기록

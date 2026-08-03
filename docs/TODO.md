@@ -72,11 +72,11 @@
 
 # 예정
 
-- 구 Admin 사이트(`sudden-archive-admin.vercel.app`) 정리 — Master 대시보드가 맵/항목 CRUD(4단계)와 댓글 모아보기(5단계)까지 대체했다(그룹 D-2 전체 완료). 레거시 Admin에만 남은 나머지 기능 격차는 `docs/architecture/admin-flow.md` 참고 후 정리 여부 판단
+- 구 Admin 사이트(`sudden-archive-admin.vercel.app`) 정리 — Master 대시보드가 맵/항목 CRUD(4단계)와 댓글 모아보기(5단계)까지 대체했다(그룹 D-2 전체 완료). 레거시 Admin에만 남은 나머지 기능 격차는 `docs/ARCHITECTURE.md`의 "관리자(Admin) 흐름" 참고 후 정리 여부 판단
 
 # 아이디어 (AI_CONTEXT.md "향후 개발 예정", 구체화 전)
 
-- 검색 기능 고도화 — 제목 외 필드 검색, 자동완성·초성 검색은 미구현. `docs/architecture/search-flow.md` 참고
+- 검색 기능 고도화 — 제목 외 필드 검색, 자동완성·초성 검색은 미구현. `docs/ARCHITECTURE.md`의 "탐색/검색 흐름" 참고
 
 ## 2단계: 커뮤니티·운영 기능 (아이디어, 구체화 전)
 

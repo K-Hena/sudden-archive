@@ -62,7 +62,7 @@ https://sudden-archive-admin.vercel.app/
 - 데이터 삭제
 - 서비스 운영
 
-**※ User 사이트의 Master 대시보드가 주요 기능을 모두 대체했으며, 확인된 기능 격차는 없다. 이 사이트의 실제 정리(폐기)만 별도 예정 작업으로 남아 있다. 자세한 비교는 `docs/architecture/admin-flow.md` 참고.**
+**※ User 사이트의 Master 대시보드가 주요 기능을 모두 대체했으며, 확인된 기능 격차는 없다. 이 사이트의 실제 정리(폐기)만 별도 예정 작업으로 남아 있다. 자세한 비교는 `docs/ARCHITECTURE.md`의 "관리자(Admin) 흐름" 참고.**
 
 ---
 
@@ -80,8 +80,8 @@ User
 
 관리자가 등록하거나 승인한 데이터는 Supabase에 즉시 반영된다. 열린 클라이언트는 홈/전체 맵 재진입, 탭 복귀 또는 5분 주기 재조회로 최신 공개 데이터를 가져오며 Realtime 구독은 사용하지 않는다.
 
-실제 폴더/파일 구조는 `docs/PROJECT_STRUCTURE.md`, DB 스키마는 `docs/DATABASE.md`,
-쓰기 후 반영되는 방식(전체 재조회, Realtime 미사용 등)은 `docs/architecture/database-flow.md` 참고.
+실제 폴더/파일 구조는 `docs/ARCHITECTURE.md`, DB 스키마는 `docs/DATABASE.md`,
+쓰기 후 반영되는 방식(전체 재조회, Realtime 미사용 등)은 `docs/ARCHITECTURE.md`의 "데이터베이스 흐름" 참고.
 
 ---
 
@@ -104,7 +104,7 @@ Infrastructure
 - GitHub
 - Vercel
 
-파일별 상세 구성(CSS/HTML/JS 영역)은 `docs/PROJECT_STRUCTURE.md` 참고.
+파일별 상세 구성(CSS/HTML/JS 영역)은 `docs/ARCHITECTURE.md` 참고.
 
 ---
 
@@ -152,7 +152,7 @@ Infrastructure
 - [ ] 승인 탭의 맵·태그 필터와 관리자 휴지통은 실제 운영 필요가 확인될 때만 구현
 - [ ] 정상 동작 확인 후 구 Admin 사이트(`sudden-archive-admin.vercel.app`) 정리
 
-완료/진행중/예정의 세부 체크리스트는 `docs/TODO.md`, Master와 레거시 Admin의 기능 비교는 `docs/architecture/admin-flow.md` 참고.
+완료/진행중/예정의 세부 체크리스트는 `docs/TODO.md`, Master와 레거시 Admin의 기능 비교는 `docs/ARCHITECTURE.md`의 "관리자(Admin) 흐름" 참고.
 
 ## 참고 — 반복 작업 시 원칙
 DB 작업을 Claude Chat과 먼저 설계한 뒤, 위험도에 따라 Supabase MCP로 바로 실행하거나 고위험 SQL은 사용자 확인 후 실행하는 원칙, 코드 작업 지시서 작성 방식,
@@ -280,23 +280,19 @@ AI는 프로젝트 전체 구조를 우선 이해한 후 작업하며, 불확실
 
 이 문서(AI_CONTEXT.md)는 프로젝트의 기준 문서(Single Source of Truth)다.
 새로운 AI는 작업 전에 이 문서를 먼저 읽고, 아래 문서 지도에서 필요한 세부 문서를 이어서 확인한다.
-CHANGELOG.md / DECISIONS.md / TROUBLESHOOTING.md / architecture/*.md는 필요할 때만 참고하면 되고, 매번 전체를 읽을 필요는 없다.
+CHANGELOG.md / DECISIONS.md / TROUBLESHOOTING.md는 필요할 때만 참고하면 되고, 매번 전체를 읽을 필요는 없다.
 
 | 알고 싶은 것 | 문서 |
 |---|---|
 | AI 역할·워크플로우 모드(Mode A/B), 작업 순서, 코드 스타일, Claude Code 행동 규칙, SQL 실행 규칙, 문서 유지보수 규칙 | `docs/DEVELOPMENT_GUIDE.md` |
 | 작업별 코드 진입점, 전역 상태, 관련 문서와 검증 명령 | `docs/LLM_WIKI.md` |
 | 기능 추가/버그 수정/SQL 작성/리팩터링 등 표준 작업 절차 | `docs/PROMPTS.md` |
-| 실제 폴더/파일 구조, `index.html`/`styles.css`/`app.js` 역할 | `docs/PROJECT_STRUCTURE.md` |
+| 폴더/파일 구조, index.html 내부 구성(CSS/HTML/JS), 인증/탐색·검색/관리자/데이터베이스 흐름 | `docs/ARCHITECTURE.md` |
 | Supabase 테이블/컬럼/RLS/Storage 버킷 구조 | `docs/DATABASE.md` |
 | 커밋 단위 변경 이력 | `docs/CHANGELOG.md` |
 | 완료/진행중/예정/아이디어 최신 목록 | `docs/TODO.md` |
 | 확정된 설계 결정과 그 이유(세부) | `docs/DECISIONS.md` |
 | 실제로 해결했던 문제와 원인/해결/예방 | `docs/TROUBLESHOOTING.md` |
-| 로그인(Discord OAuth / 이메일·비밀번호) 흐름, 관리자 판별 세부 | `docs/architecture/auth-flow.md` |
-| 첫 화면 전체 제목 검색과 맵→팀→태그·상세 제목 검색 흐름 | `docs/architecture/search-flow.md` |
-| Master 대시보드 CRUD 이식 완료/미완료, 레거시 Admin과의 기능 격차 | `docs/architecture/admin-flow.md` |
-| 데이터 조회/쓰기/Storage 흐름, Realtime 미사용 등 | `docs/architecture/database-flow.md` |
 | GitHub Copilot용 핵심 규칙 요약 | `.github/copilot-instructions.md` |
 
 ---

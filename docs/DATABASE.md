@@ -173,7 +173,7 @@ Discord 로그인 사용자의 즐겨찾기. Supabase migration `create_user_fav
 - **User 사이트**: Supabase Auth의 **Discord OAuth Provider** (`sb.auth.signInWithOAuth({ provider: 'discord' })`). 닉네임은 `session.user.user_metadata.full_name` 또는 `.name`을 사용.
 - **레거시 Admin 사이트** (`sudden-archive-admin`): Supabase Auth의 **이메일/비밀번호 로그인** (`sb.auth.signInWithPassword`). User 사이트의 Discord OAuth 로그인 + Master 대시보드와는 별개의 인증 방식이며, AI_CONTEXT.md 기준 이 사이트 자체가 정리(폐기) 예정이다.
 
-두 인증 방식이 당분간 공존한다는 점에 주의 — 자세한 흐름은 `docs/architecture/auth-flow.md` 참고.
+두 인증 방식이 당분간 공존한다는 점에 주의 — 자세한 흐름은 `docs/ARCHITECTURE.md`의 "인증(Auth) 흐름" 참고.
 
 ## 세션 유지 정책
 
