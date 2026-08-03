@@ -459,3 +459,17 @@ oEmbed 조회 실패는 영상 저장을 막지 않고 `null`로 처리한다. �
 **Master "항목 관리"/"맵 관리" 탭의 가로 오버플로우는 발견만 하고 고치지 않음**: 작업 3(다른 기능 실기기 재확인) 스팟체크 중 `document.body.scrollWidth`가 672px로 나오는 것을 발견했다. 진단해보니 `.master-table{min-width:640px}`가 `.master-shell`이 `flex-direction:column`으로 바뀌는 모바일 레이아웃에서 상위 조상(`.master-content`/`.master-pane`/`#masterItemsTableWrap`) 어디에도 폭 제한이 없어 그대로 body까지 전파되는 것이 원인이었다. 지시서가 "이번 지시서 범위(헤더·모달)와 무관한 것은 기록만 하고 고치지 마세요"라고 명시했으므로 `docs/KNOWN_ISSUES.md`에 진단 내용과 함께 기록만 하고 수정하지 않았다.
 
 **검증 방법**: 모든 확인은 Playwright 실제 디바이스 에뮬레이션(`isMobile:true`, `hasTouch:true`, iPhone UA, `deviceScaleFactor:3`, 390px)으로 했고, 수정 전/후 `document.body.scrollWidth`를 비교했다(로그아웃 상태, 관리자+긴 닉네임 상태, 모달 열림 상태 각각 672→390 확인). 데스크톱(1920px/1440px)과 태블릿(768px)도 별도 컨텍스트로 열어 `scrollWidth`와 `header`의 `padding-left` 계산값(둘 다 32px 그대로)을 확인해 회귀가 없음을 검증했다 — 모든 새 규칙이 `max-width:600px` 안에만 있어 그 위 폭에는 영향을 주지 않기 때문이다.
+
+---
+
+## 전체 사이트 실기기 모바일 반응형 전수 점검 (`mobile_full_site_sweep.md`)
+
+**결정**: `docs/KNOWN_ISSUES.md`에 남아 있던 Master "항목 관리"/"맵 관리" 탭 오버플로우를 실제로 고치고, 지시서가 나열한 8개 화면(맵 그리드·전체 검색, 카드 그리드·진영 전환, 항목 추가 모달 3단계, 항목 수정 모달, 영상 재생 오버레이, 라이트/다크 테마, Master 5탭, 로그인/즐겨찾기)을 Playwright 실제 디바이스 에뮬레이션(iPhone, `isMobile:true`, 390px와 320px 둘 다)으로 전수 점검했다. 단순 `page.setViewportSize()` 리사이즈는 지시서가 명시적으로 금지했다 — 헤더·모달 오버플로우를 처음 놓쳤던 원인이 그 방식이었기 때문(`docs/DECISIONS.md`의 "viewport meta 태그 추가" 절 참고).
+
+**Master 테이블 수정**: `.master-content{flex:1;min-width:0}`는 데스크톱 가로 flex 레이아웃 전용 방어였고, `.master-shell`이 세로(column)로 바뀌는 `@media(max-width:768px)` 블록(기존에 이미 있던 블록, `.master-content`/`.master-table-wrap` 기본 선언보다 소스상 뒤에 위치 — 캐스케이드 순서 확인함)에 `.master-content{width:100%;} .master-table-wrap{max-width:100%;}` 두 줄만 추가했다. 이렇게 하면 표 자체는 여전히 `.master-table-wrap{overflow-x:auto}`로 가로 스크롤되지만(의도된 동작, 3단계 결정 유지), 그 스크롤이 표 컨테이너 안에서만 일어나고 페이지 전체(헤더·사이드바 포함)는 더 이상 밀려나지 않는다. "항목 관리"/"맵 관리" 탭 모두 같은 원인·같은 수정으로 해결됐다.
+
+**스윕 중 새로 발견해 함께 고친 것: 320px 진영 토글 오버플로우**: 8개 화면을 390px로는 전부 통과했지만, 지시서가 요구한 대로 320px도 함께 확인하는 과정에서 카드 그리드/항목 추가 모달/영상 재생 오버레이가 공통으로 362px까지 밀리는 것을 발견했다. `document.documentElement.scrollWidth`뿐 아니라 각 요소의 `getBoundingClientRect()`도 함께 찍어 원인을 좁혔더니 `.team-toggle`(TOTAL/RED/BLUE/FAVORITE)의 오른쪽 끝이 361px(320px 초과)로 나와, 모달·오버레이가 자체적으로 넘친 게 아니라 그 뒤에 계속 열려 있는 카드 그리드 화면의 진영 토글이 원인임을 확인했다(모달·오버레이는 배경 위에 겹쳐 뜨는 오버레이라, 배경 화면이 넓으면 `document.documentElement.scrollWidth`도 그대로 넓게 잡힌다). 지시서 사전 설계 리뷰(Codex)에서도 이 지점을 넓은 패딩 때문에 빠듯할 것으로 미리 짚었던 부분이라, 예측이 실측으로 확인된 경우다. 390px에서는 문제가 없었으므로(팀 토글 오른쪽 끝 361px, 여유 있음) 390px 스타일은 그대로 두고 `@media(max-width:340px)`라는 더 좁은 새 브레이크포인트를 추가해 `.team-toggle button` 패딩만 `9px 22px`→`9px 12px`로 줄였다 — 이미 통과한 390px 화면은 건드리지 않는다는 지시서 원칙("이미 정상으로 확인된 화면은 굳이 건드리지 마세요")을 지키기 위해서다.
+
+**CSS만으로 못 고칠 만한 구조적 문제는 발견되지 않음**: 설계 리뷰에서 오버레이 미디어(`width:min(880px,90vw)`+`padding:40px`)가 이론상 320px에서 좁을 수 있다고 지적했지만, 실측하면 `.overlay`가 `position:fixed;inset:0`인 뷰포트 전체 오버레이라 미디어가 패딩 영역으로 살짝 넘치더라도 화면 자체 밖으로는 나가지 않아(중앙 정렬, 351px 미디어가 뷰포트 390px 안에 자연스럽게 들어감) 실제 문제가 아니었다. Master 사이드바 탭 텍스트, 클립 슬라이더, 맵 그리드도 320px에서 실측·스크린샷으로 확인한 결과 전부 정상이었다(맵 그리드는 `minmax(280px,1fr)`가 이론상 256px 콘텐츠 폭보다 커 보였지만 실제로는 그리드가 안전하게 축소됨). "레이아웃을 새로 설계해야 하는 수준"의 문제는 이번 스윕에서 나오지 않아 `KNOWN_ISSUES.md`에 새로 추가한 항목은 없다.
+
+**검증 방법**: 모든 확인을 Playwright 실제 디바이스 에뮬레이션(iPhone UA, `isMobile:true`, `hasTouch:true`, `deviceScaleFactor:3`)으로 진행했고, 390px·320px 각각에서 8개 화면 전부의 `document.documentElement.scrollWidth`를 측정했다(지시서가 지정한 정확히 이 프로퍼티 사용). 두 문제를 고친 뒤에는 같은 화면들을 재측정해 전/후 수치를 비교했고, 데스크톱(1920px/1440px)·태블릿(768px)에서도 홈/카드그리드/Master 항목관리 `scrollWidth`와 팀 토글 패딩 계산값(22px 그대로)을 확인해 회귀가 없음을 검증했다.

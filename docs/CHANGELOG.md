@@ -4,6 +4,13 @@
 
 ---
 
+## 2026-08-03 — 전체 사이트 실기기 모바일 반응형 전수 점검 및 수정
+
+- **Master "항목 관리"/"맵 관리" 탭 오버플로우 수정**(`docs/KNOWN_ISSUES.md`에 기록돼 있던 항목) — 기존 `@media(max-width:768px)` 블록(`.master-shell`이 `flex-direction:column`으로 바뀌는 지점)에 `.master-content{width:100%;} .master-table-wrap{max-width:100%;}` 추가. `document.body.scrollWidth` 672px(오버플로우 282px) → 390px(오버플로우 없음)
+- **320px 초소형 화면에서 진영 토글(TOTAL/RED/BLUE/FAVORITE) 오버플로우 수정** — 스윕 중 새로 발견. `@media(max-width:340px){ .team-toggle button{padding:9px 12px;} }` 추가(390px 이상은 기존 `padding:9px 22px` 그대로 유지, 회귀 없음). 카드 그리드/항목 추가 모달/영상 재생 오버레이가 공통으로 이 토글에 의존해 함께 672→390(390px 기준)·362→320px(320px 기준)로 개선됨
+- 실제 디바이스 에뮬레이션(iPhone, `isMobile:true`, 390px와 320px 둘 다)으로 지시서가 나열한 8개 화면(맵 그리드/전체 검색·카드 그리드·진영 전환·항목 추가 모달 3단계·항목 수정 모달·영상 재생 오버레이·라이트/다크 테마·Master 5탭·로그인/즐겨찾기)을 전수 점검. 위 두 건 외에는 전부 `document.documentElement.scrollWidth`가 뷰포트를 넘지 않음을 확인, 코드 변경 없음
+- 데스크톱(1920px/1440px)·태블릿(768px) 회귀 없음 확인(모든 새 규칙이 `max-width:768px`/`max-width:600px`/`max-width:340px` 미디어쿼리 안에만 있음)
+
 ## 2026-08-03 — viewport meta 태그 추가 + 헤더·모달 모바일 오버플로우 수정
 
 - `<head>`에 없던 `<meta name="viewport" content="width=device-width, initial-scale=1">` 추가. 이 태그가 없으면 모바일 브라우저가 ~980px 레이아웃 뷰포트를 가정해 페이지를 축소 표시하므로, 지금까지 `page.setViewportSize()` 리사이즈만으로 해온 모바일 QA가 실제 기기 렌더링과 다를 수 있었음을 확인 — 이후 Playwright 실제 디바이스 에뮬레이션(`isMobile:true`, iPhone UA)으로 재검증하는 방식으로 QA 방법론을 교정
