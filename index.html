@@ -183,6 +183,16 @@
           <div class="section-label">승인 대기 컨텐츠</div>
           <button class="back-btn" onclick="showHome()">← 홈으로</button>
         </div>
+        <div class="master-add-row">
+          <select id="masterApprovalsMapFilter" class="master-select" aria-label="승인 대기 맵 필터" onchange="renderMasterApprovals()"></select>
+          <select id="masterApprovalsTagFilter" class="master-select" aria-label="승인 대기 태그 필터" onchange="renderMasterApprovals()">
+            <option value="">태그 전체</option>
+            <option value="맵 지명">맵 지명</option>
+            <option value="위폭">위폭</option>
+            <option value="팁">팁</option>
+          </select>
+        </div>
+        <div class="mono" id="masterApprovalsCount" style="font-size:12px;color:var(--muted);margin-bottom:8px;"></div>
         <div class="master-table-wrap" id="masterApprovalsTableWrap"></div>
       </div>
     </div>

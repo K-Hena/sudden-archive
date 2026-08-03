@@ -21,7 +21,7 @@
 | 인증과 관리자 판별 | `initAuth()`, `renderAuthArea()`, `discordLogin()` | `ARCHITECTURE.md`(인증 흐름), `DATABASE.md` |
 | Master 대시보드 | `openMaster()`, `switchMasterTab()`, `loadMasterStats()`와 `renderMaster*` 함수 | `ARCHITECTURE.md`(관리자 흐름) |
 | 항목 휴지통·복구 | `setMasterItemsView()`, `renderMasterItemsTable()`, `moveItemToTrash()`, `restoreItem()` | `DATABASE.md`, `DECISIONS.md` |
-| 승인 흐름 | `renderMasterApprovals()`, `reviewItem()`, `renderMyItems()`, `hideOwnItem()` | `ARCHITECTURE.md`(관리자 흐름), `DATABASE.md` |
+| 승인 흐름·필터 | `renderMasterApprovals()`, `reviewItem()`, `renderMyItems()`, `hideOwnItem()` | `ARCHITECTURE.md`(관리자 흐름), `DATABASE.md` |
 | 재생 오버레이 | `openOverlay()`, `closeOverlay()`, `showFullVideo()`와 `overlay*` 함수 | `DECISIONS.md`, `TROUBLESHOOTING.md` |
 | 이미지 확대·이동 | `initImageZoomPan()`과 `onImage*` 함수 | `DECISIONS.md` |
 | 댓글 | `renderCommentsSection()`, `loadComments()`, `submitComment()`, `deleteComment()` | `DATABASE.md`, `ARCHITECTURE.md`(관리자 흐름) |

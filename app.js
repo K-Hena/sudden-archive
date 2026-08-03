@@ -374,12 +374,21 @@ function switchMasterTab(tab){
 
 function renderMasterApprovals(){
   const wrap = document.getElementById('masterApprovalsTableWrap');
+  const mapSel = document.getElementById('masterApprovalsMapFilter');
+  const prevMap = mapSel.value;
+  mapSel.innerHTML = '<option value="">맵 전체</option>' +
+    maps.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+  mapSel.value = prevMap;
+  const mapId = mapSel.value;
+  const tag = document.getElementById('masterApprovalsTagFilter').value;
   const pending = items.filter(item => item.status === 'pending');
-  wrap.innerHTML = pending.length ? `<table class="master-table"><thead><tr><th>작성자</th><th>제목</th><th>맵</th><th>미리보기</th><th>처리</th></tr></thead><tbody>${pending.map(item => `<tr>
-    <td>${contributorBadge(item) || '-'}</td><td>${escapeHtml(item.title)}</td><td>${escapeHtml(maps.find(m => m.id === item.map_id)?.name || '-')}</td>
+  const filtered = pending.filter(item => (!mapId || item.map_id === mapId) && (!tag || item.tag === tag));
+  document.getElementById('masterApprovalsCount').textContent = `${filtered.length} / ${pending.length}개`;
+  wrap.innerHTML = filtered.length ? `<table class="master-table"><thead><tr><th>작성자</th><th>제목</th><th>맵</th><th>태그</th><th>미리보기</th><th>처리</th></tr></thead><tbody>${filtered.map(item => `<tr>
+    <td>${contributorBadge(item) || '-'}</td><td>${escapeHtml(item.title)}</td><td>${escapeHtml(maps.find(m => m.id === item.map_id)?.name || '-')}</td><td>${escapeHtml(item.tag || '-')}</td>
     <td><button class="btn-ghost" onclick="openOverlay('${item.id}',false)">보기</button></td>
     <td><button class="btn-primary" onclick="reviewItem('${item.id}',true)">승인</button> <button class="btn-ghost" onclick="reviewItem('${item.id}',false)">반려</button></td>
-  </tr>`).join('')}</tbody></table>` : '<div class="loading">승인 대기 컨텐츠가 없습니다.</div>';
+  </tr>`).join('')}</tbody></table>` : `<div class="loading">${pending.length ? '조건에 맞는 승인 대기 컨텐츠가 없습니다.' : '승인 대기 컨텐츠가 없습니다.'}</div>`;
 }
 
 async function reviewItem(id, approve){

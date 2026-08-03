@@ -25,4 +25,9 @@ assert.match(masterItems, /it\.status !== 'trashed'/);
 assert.match(masterItems, /it\.status === 'trashed'/);
 assert.match(masterItems, /trashed_from_status/);
 
+const approvals = between('function renderMasterApprovals', '\nasync function reviewItem');
+assert.match(approvals, /!mapId \|\| item\.map_id === mapId/);
+assert.match(approvals, /!tag \|\| item\.tag === tag/);
+assert.match(approvals, /filtered\.length.*pending\.length/);
+
 console.log('ITEM_OPERATIONS_CHECKS_OK');
