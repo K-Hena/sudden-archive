@@ -147,15 +147,11 @@ function renderHome(){
 }
 function openHomeAdd(){
   if(!currentSession){ discordLogin(); return; }
-  const mapName = prompt('맵 이름을 입력해주세요.\n' + maps.map(m => m.name).join(', '));
-  const map = maps.find(m => m.name === String(mapName || '').trim());
-  if(!map){ if(mapName) alert('목록에 있는 맵 이름을 정확히 입력해주세요.'); return; }
-  const allowedTags = isAdminUser ? tagOrder : tagOrder.filter(tag => tag !== '맵 지명');
-  const tag = prompt('태그를 입력해주세요.\n' + allowedTags.join(', '));
-  if(!allowedTags.includes(tag)){ if(tag) alert('목록에 있는 태그를 정확히 입력해주세요.'); return; }
-  currentMap = map.id;
-  currentMapName = map.name;
-  openAddModal(tag);
+  // 이전 맵 상세뷰 방문이나 지난 등록 흐름에서 남아있는 값이 target 단계 이전 draft에
+  // 잘못 딸려 들어가지 않도록, 새 등록을 시작할 때는 항상 맵 컨텍스트를 비운다
+  currentMap = null;
+  currentMapName = '';
+  openAddModal(null);
 }
 
 function renderMyItems(){
@@ -1572,6 +1568,8 @@ let clipScrubbing = false;
 let contentDrafts = []; // localStorage 'sa-content-drafts'의 메모리 캐시(배열, 각 원소는 고유 id를 가짐)
 let resumingDraftId = null; // 현재 모달이 이어서 작성 중인 임시저장 항목의 id, 새로 시작한 경우 null
 let clipEndMarkGraceUntil = 0;
+let pendingImageFile = null; // paste 직후~맵·태그 선택 단계 사이에 보관해두는 이미지 파일(Cropper는 target 단계 이후 media 단계에서 생성)
+let pendingDraftClipRange = null; // 맵·태그 미선택 상태로 저장된 영상 draft를 이어서 작성할 때, target 단계 통과 후 복원할 클립 구간
 
 function fmtClip(s){
   if(s === null) return '—';
@@ -1889,6 +1887,7 @@ function showModalStep(step){
   modalStep = step;
   const isMapLabel = modalTag === '맵 지명';
   document.getElementById('pasteStep').style.display = step === 'paste' ? 'block' : 'none';
+  document.getElementById('targetStep').style.display = step === 'target' ? 'block' : 'none';
   document.getElementById('titleWrap').style.display = step === 'details' && !isMapLabel ? 'block' : 'none';
   document.getElementById('videoWrap').style.display = step === 'media' && modalType === 'vid' ? 'block' : 'none';
   document.getElementById('imageWrap').style.display = step === 'media' && modalType === 'img' ? 'block' : 'none';
@@ -1900,7 +1899,7 @@ function showModalStep(step){
   document.getElementById('modalBackBtn').style.display =
     (step === 'paste' || (modalMode === 'edit' && (modalType === 'img' || step === 'media'))) ? 'none' : 'inline-block';
   const saveBtn = document.getElementById('modalSaveBtn');
-  saveBtn.style.display = step === 'paste' ? 'none' : 'inline-block';
+  saveBtn.style.display = (step === 'paste' || step === 'target') ? 'none' : 'inline-block';
   saveBtn.textContent = step === 'details' || isMapLabel ? '저장' : '다음';
   document.getElementById('modalDraftBtn').style.display = (modalMode === 'add' && step !== 'paste') ? 'inline-block' : 'none';
 }
@@ -1917,6 +1916,56 @@ function renderSavePreview(){
   }
 }
 
+// paste 완료 직후 진입하는 "맵·태그 선택" 단계. 태그 타일은 기존 F-6a 권한 로직을 그대로
+// 재사용하고, 영상을 붙여넣은 경우 "맵 지명" 태그는 이미지 전용이라 타일 자체를 숨긴다.
+function enterAddTargetStep(){
+  const sel = document.getElementById('targetMapSelect');
+  sel.innerHTML = '<option value="">맵을 선택해주세요</option>' + maps.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+  sel.value = '';
+  const allowedTags = isAdminUser ? tagOrder : tagOrder.filter(t => t !== '맵 지명');
+  const tileIcon = { '맵 지명': '🗺', '위폭': '🎯', '팁': '💡' };
+  document.getElementById('targetTagTiles').innerHTML = allowedTags
+    .filter(tag => !(tag === '맵 지명' && modalType === 'vid'))
+    .map(tag => `<button type="button" class="paste-box" onclick="confirmAddTarget('${tag}')">
+      <div class="paste-box-icon">${tileIcon[tag] || '＋'}</div>
+      <div class="paste-box-label">${tag}</div>
+    </button>`).join('');
+  setModalMsg('');
+  showModalStep('target');
+}
+
+// 태그 타일 클릭 → 맵 선택 검증 → 통과 직후 currentMap/currentMapName/modalTag 확정 →
+// media 단계로 연결(맵 지명은 showModalStep()의 기존 isMapLabel 분기로 media 단계에서 바로 저장까지 이어짐)
+function confirmAddTarget(tag){
+  const mapId = document.getElementById('targetMapSelect').value;
+  if(!mapId){ setModalMsg('맵을 선택해주세요.', 'err'); return; }
+  if(tag === '맵 지명' && !isAdminUser){ setModalMsg('맵 지명은 관리자만 추가할 수 있습니다.', 'err'); return; }
+  if(tag === '맵 지명' && modalType === 'vid'){ setModalMsg('맵 지명은 이미지만 가능합니다.', 'err'); return; }
+  const map = maps.find(m => m.id === mapId);
+  if(!map) return;
+  currentMap = map.id;
+  currentMapName = map.name;
+  modalTag = tag;
+  document.getElementById('modalTitle').textContent = tag + '에 추가';
+  setModalMsg('');
+  const clipRange = pendingDraftClipRange;
+  const draftIdAtCall = resumingDraftId;
+  pendingDraftClipRange = null;
+  showModalStep('media');
+  if(modalType === 'vid'){
+    loadClipPlayer(clipRange ? (duration) => {
+      if(resumingDraftId !== draftIdAtCall) return; // 그 사이 모달이 닫히거나 다른 draft를 열었으면 무시
+      clipStart = clipRange.start;
+      clipEnd = clipRange.end;
+      syncClipSliders();
+      updateClipLabel();
+      syncClipPreviewTimer();
+    } : undefined);
+  } else if(modalType === 'img' && pendingImageFile){
+    loadImageIntoCropper(pendingImageFile);
+  }
+}
+
 function showPasteFallback(message){
   setModalMsg(message, 'err');
   const input = document.getElementById('pasteFallback');
@@ -1926,10 +1975,6 @@ function showPasteFallback(message){
 }
 
 function startVideoFlow(text){
-  if(modalTag === '맵 지명'){
-    setModalMsg('맵 지명은 이미지만 가능합니다.', 'err');
-    return;
-  }
   const url = text.trim();
   if(!parseYouTube(url)){
     setModalMsg('유효한 유튜브 링크가 아닙니다.', 'err');
@@ -1937,8 +1982,7 @@ function startVideoFlow(text){
   }
   modalType = 'vid';
   document.getElementById('mVideoUrl').value = url;
-  showModalStep('media');
-  loadClipPlayer();
+  enterAddTargetStep();
 }
 
 function startImageFlow(file){
@@ -1953,9 +1997,9 @@ function startImageFlow(file){
   modalType = 'img';
   stopClipPreviewTimer();
   if(clipYtPlayer && clipYtPlayer.destroy){ clipYtPlayer.destroy(); clipYtPlayer = null; }
-  showModalStep('media');
+  pendingImageFile = file;
   setModalMsg('');
-  loadImageIntoCropper(file);
+  enterAddTargetStep();
 }
 
 async function readAddClipboard(){
@@ -2030,7 +2074,7 @@ function openAddModal(tag){
   updateClipLabel();
 
   const isMapLabel = (tag === '맵 지명');
-  document.getElementById('modalTitle').textContent = tag + '에 추가';
+  document.getElementById('modalTitle').textContent = tag ? (tag + '에 추가') : '컨텐츠 추가';
   modalType = isMapLabel ? 'img' : 'vid';
 
   modalTeam = null;
@@ -2113,6 +2157,8 @@ function closeModal(){
   modalMode = 'add';
   editingItemId = null;
   resumingDraftId = null;
+  pendingImageFile = null;
+  pendingDraftClipRange = null;
   document.getElementById('mVideoUrl').type = 'hidden';
   document.getElementById('mVideoUrl').readOnly = false;
   document.getElementById('mVideoUrlWrap').style.display = 'none';
@@ -2126,7 +2172,9 @@ function goBackModal(){
     showModalStep(modalStep === 'details' ? 'media' : modalStep);
     return;
   }
-  showModalStep(modalStep === 'details' ? 'media' : 'paste');
+  if(modalStep === 'details') return showModalStep('media');
+  if(modalStep === 'media') return showModalStep('target');
+  showModalStep('paste');
 }
 function advanceAddModal(){
   if(modalStep === 'details' || modalTag === '맵 지명'){ submitItem(); return; }
@@ -2314,15 +2362,22 @@ function resumeContentDraft(id){
   if(draft.type === 'vid' && draft.videoUrl && parseYouTube(draft.videoUrl)){
     modalType = 'vid';
     document.getElementById('mVideoUrl').value = draft.videoUrl;
-    showModalStep('media');
-    loadClipPlayer((duration) => {
-      if(resumingDraftId !== draft.id) return; // 그 사이 모달이 닫히거나 다른 draft를 열었으면 무시(openEditModal과 동일 패턴)
-      clipStart = draft.clipStart;
-      clipEnd = draft.clipEnd;
-      syncClipSliders();
-      updateClipLabel();
-      syncClipPreviewTimer();
-    });
+    if(draft.tag){
+      showModalStep('media');
+      loadClipPlayer((duration) => {
+        if(resumingDraftId !== draft.id) return; // 그 사이 모달이 닫히거나 다른 draft를 열었으면 무시(openEditModal과 동일 패턴)
+        clipStart = draft.clipStart;
+        clipEnd = draft.clipEnd;
+        syncClipSliders();
+        updateClipLabel();
+        syncClipPreviewTimer();
+      });
+    } else {
+      // 맵·태그 선택 전(target 단계)에 저장된 draft — target 단계로 복원하고, 클립 구간은
+      // 태그 타일을 다시 확정한 뒤(confirmAddTarget) media 단계에서 이어서 복원한다
+      pendingDraftClipRange = { start: draft.clipStart, end: draft.clipEnd };
+      enterAddTargetStep();
+    }
   } else if(draft.type === 'img'){
     // 원본 이미지는 저장하지 않으므로 재업로드가 필요하다 — paste 단계에 머물지만, 다음에
     // 사용자가 붙여넣기/파일선택 중 무엇을 하든 각자 modalType을 다시 정하므로 이 값은

@@ -719,4 +719,24 @@ oEmbed 조회 실패는 영상 저장을 막지 않고 `null`로 처리한다. �
 
 **Master 버튼 라벨 변경**: `history.back()`으로 재배선하면 Master는 진입한 위치(홈/전체 맵/맵 상세 어디든)로 돌아가므로, 항상 "일반 화면"이나 "홈"으로 고정 이동한다고 약속하는 기존 라벨이 실제 동작과 어긋난다. 다섯 버튼 모두 "← 이전 화면으로"로 통일해 라벨이 실제 동작(진입 전 화면 복원)과 일치하게 했다.
 
+---
+
+## 홈 "컨텐츠 추가" 맵 자유 텍스트 입력 → 드롭다운 + 태그 타일 (F-3 후속)
+
+**결정**: `openHomeAdd()`가 `prompt()` 두 번(맵 이름, 태그)으로 받던 자유 텍스트 입력을 제거하고, 모달을 붙여넣기 단계로 바로 연 뒤(`openAddModal(null)`) 붙여넣기 완료 직후 새 `target` 단계(맵 드롭다운 + 태그 타일)를 추가했다(지시서 `지시서-홈컨텐츠추가-맵드롭다운.md`).
+
+**"기존 +위폭/+팁 타일 재사용" 전제는 사실과 다름**: 지시서는 맵 상세뷰의 기존 "+위폭"/"+팁" 타일 버튼을 재사용하라고 했지만, 실제로는 그런 타일이 존재하지 않았다 — 관리자 편집모드 시절 `.add-tile`이 맵 타일·태그 섹션 양쪽에 있었지만 편집모드 전체 제거(그룹 D-2 4단계)로 이미 완전히 삭제된 상태였다. Codex 설계 리뷰로 이를 재확인한 뒤, 재사용할 기존 컴포넌트가 없으므로 같은 모달 안에서 이미 쓰이던 `.paste-box`/`.paste-choices`(붙여넣기 단계의 아이콘+라벨 타일 버튼) 스타일을 태그 타일에 그대로 재사용했다 — 새 CSS를 추가하지 않고도 지시서가 원한 "타일형 버튼" 느낌을 달성하는 가장 작은 변경이었다.
+
+**`openAddModal()`에 대한 최소 변경을 사용자에게 확인 후 허용**: 지시서의 "범위 확정"은 `openAddModal()`/`submitItem()` 내부를 수정하지 말라고 했지만, 목표 흐름("붙여넣기 먼저, 맵·태그는 그 다음")과 구조적으로 충돌했다 — `openAddModal(tag)`는 호출 시 `tag`를 필수로 받고, 호출되자마자 이미 붙여넣은 영상 URL/이미지/클립 상태를 전부 초기화해버리기 때문에 "먼저 붙여넣고 나중에 태그를 정한다"는 순서 자체를 그대로 두고는 만들 수 없었다. Codex 설계 리뷰도 동일하게 지적했고, AskUserQuestion으로 확인한 결과 `openAddModal()`에 한해 최소 변경을 허용하기로 했다(`submitItem()`은 손대지 않음). 실제로 바꾼 부분은 모달 제목 한 줄뿐이다: `tag`가 없으면(`null`) "컨텐츠 추가"로, 있으면 기존처럼 `tag + '에 추가'`로 표시한다. `isMapLabel`/`modalType` 기본값/"맵 지명은 관리자만" 가드는 `tag`가 falsy일 때 자연히 스킵되므로 추가 변경이 필요 없었다.
+
+**태그 확정 시점과 F-6a 재사용**: `currentMap`/`currentMapName`/`modalTag`는 태그 타일 클릭(`confirmAddTarget()`)이 맵 선택 검증을 통과한 직후에만 설정한다 — 맵 드롭다운 `onchange`에서는 설정하지 않는다. Master 2단계에서 같은 이유로 이미 내린 결정(드롭다운 선택/변경만으로 전역 내비게이션 상태가 바뀌는 것을 피함)을 그대로 따랐다. 태그 노출 권한은 `openHomeAdd()`가 쓰던 `isAdminUser ? tagOrder : tagOrder.filter(t => t !== '맵 지명')`(F-6a) 로직을 `enterAddTargetStep()`에 그대로 옮겨왔다.
+
+**영상 + "맵 지명" 조합 방어를 paste 시점에서 타일 시점으로 이동**: 기존 `startVideoFlow()`는 `modalTag === '맵 지명'`이면 영상 붙여넣기 자체를 막았는데, 새 흐름에서는 붙여넣기 시점에 태그가 아직 없어(`modalTag`가 `null`) 이 가드가 항상 무의미해진다(죽은 코드이므로 제거). 대신 `enterAddTargetStep()`이 영상을 붙여넣은 경우(`modalType === 'vid'`) "맵 지명" 타일 자체를 목록에서 제외하고, `confirmAddTarget()`에도 방어적으로 동일 조건의 에러 메시지를 남겨 이중으로 막는다.
+
+**Cropper.js/유튜브 플레이어 생성 시점을 media 단계로 지연**: 기존에는 `startVideoFlow()`/`startImageFlow()`가 붙여넣기 직후 곧바로 `loadClipPlayer()`/`loadImageIntoCropper()`를 호출했다. 새 흐름에서는 그 사이에 `target` 단계가 끼어들며 `#videoWrap`/`#imageWrap`이 `display:none` 상태이므로, 이 시점에 그대로 생성하면 Cropper.js가 숨겨진 컨테이너의 크기를 잘못 읽어 크롭 영역이 깨진다. 그래서 이미지 파일은 `pendingImageFile` 전역에 잠시 보관하고, 실제 `loadImageIntoCropper()`/`loadClipPlayer()` 호출은 `confirmAddTarget()`이 `showModalStep('media')`로 전환해 해당 wrap이 보이는 시점으로 옮겼다.
+
+**임시저장(draft) — 맵·태그 미선택 상태의 draft 지원**: `hasModalUnsavedInput()`은 `modalStep === 'paste'`일 때만 "입력 없음"으로 보므로, 붙여넣기 완료 후 `target` 단계에서 모달을 닫아도(맵·태그 미선택) 이미 채워진 영상/이미지 값 때문에 정상적으로 "입력 있음"으로 판정되어 코드 변경이 필요 없었다. 다만 이 상태로 저장된 draft는 `mapId`/`tag`가 모두 `null`이므로, `resumeContentDraft()`가 이를 이어서 열 때 `draft.tag`가 있으면 기존처럼 바로 `media` 단계(+클립 구간 복원)로, 없으면 `pendingDraftClipRange`에 클립 구간만 잠시 보관해두고 `target` 단계로 복원한 뒤 사용자가 태그를 다시 확정(`confirmAddTarget()`)하면 그 시점에 클립 구간을 이어서 복원하도록 분기를 추가했다. 이미지 draft는(맵·태그 유무와 무관하게) 원본 파일을 저장하지 않는 기존 정책 그대로 `paste` 단계에 머무르며 재업로드를 요구한다 — 이번 변경 전과 동일.
+
+**뒤로가기 전이 규칙**: `target`→`paste`, `media`→`target`, `details`→`media` 3단계로 확장했다(기존은 `media`→`paste`, `details`→`media` 2단계). 수정 모드(`modalMode==='edit'`)는 애초에 `target`/`paste`를 거치지 않으므로 영향 없음.
+
 **popstate 복원 시 조회 기록 중복 방지**: 오버레이 상태 복원은 `openOverlay(itemId, false)`로 호출한다. `trackView` 인자를 생략하면 뒤로가기로 같은 항목을 다시 볼 때마다 조회수·최근 본 컨텐츠가 다시 기록되기 때문이다.

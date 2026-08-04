@@ -263,6 +263,13 @@
         <textarea class="paste-fallback" id="pasteFallback" placeholder="여기에 Ctrl+V로 붙여넣어주세요" style="display:none;"></textarea>
       </div>
 
+      <div id="targetStep" style="display:none;">
+        <label for="targetMapSelect">맵 선택</label>
+        <select id="targetMapSelect"></select>
+        <label>태그 선택</label>
+        <div class="paste-choices" id="targetTagTiles"></div>
+      </div>
+
       <div id="titleWrap" style="display:none;">
         <label>제목</label>
         <input type="text" id="mTitle" placeholder="예: 박스 뒤 몸샷 위폭" maxlength="17" oninput="updateTextCounters()">

@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-08-05 — 홈 "컨텐츠 추가" 맵 자유 텍스트 입력 → 드롭다운 + 태그 타일
+
+- `openHomeAdd()`의 `prompt()` 맵 이름/태그 자유 텍스트 입력 제거. "컨텐츠 추가" 클릭 시 모달이 맵을 먼저 묻지 않고 바로 붙여넣기 단계로 열림
+- 붙여넣기(영상 링크/이미지) 완료 직후 새 `target` 단계(맵 드롭다운 + 태그 타일 `.paste-box` 스타일 재사용) 추가, 관리자만 "맵 지명" 타일 노출(F-6a 재사용), 영상을 붙여넣은 경우 "맵 지명" 타일 숨김
+- 태그 타일 클릭이 맵 선택 검증을 통과한 직후에만 `currentMap`/`currentMapName`/`modalTag` 확정(드롭다운 `onchange` 아님)
+- `openAddModal()`은 태그 없이(`null`) 열 수 있도록 모달 제목 한 줄만 최소 수정, `submitItem()`은 무수정
+- Cropper.js/유튜브 클립 플레이어 생성 시점을 `target` 단계 이후 `media` 단계로 지연(숨겨진 컨테이너에서 생성 시 크기 계산 오류 방지)
+- 임시저장: 맵·태그 미선택 상태(target 단계)에서 닫은 draft도 이어서 작성 시 target 단계로 정상 복원(영상 클립 구간 포함), 이미지 draft는 기존과 동일하게 재업로드 필요
+- 뒤로가기 단계 확장: `target`→`paste`, `media`→`target`, `details`→`media`
+
 ## 2026-08-04 — 브라우저 뒤로가기(History API) 지원
 
 - 홈/전체 맵/맵 상세/항목 오버레이/Master 5개 화면 진입 함수에 `pushViewState()`로 history 상태 push 추가(URL은 불변, 상태 객체만 push)

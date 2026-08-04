@@ -5,8 +5,15 @@ const app = fs.readFileSync('app.js', 'utf8');
 const between = (start, end) => app.slice(app.indexOf(start), app.indexOf(end, app.indexOf(start) + start.length));
 
 const homeAdd = between('function openHomeAdd', '\nfunction renderMyItems');
-assert.match(homeAdd, /isAdminUser \? tagOrder : tagOrder\.filter\(tag => tag !== '맵 지명'\)/);
-assert.match(homeAdd, /allowedTags\.includes\(tag\)/);
+assert.match(homeAdd, /openAddModal\(null\)/);
+
+const enterTarget = between('function enterAddTargetStep', '\nfunction confirmAddTarget');
+assert.match(enterTarget, /isAdminUser \? tagOrder : tagOrder\.filter\(t => t !== '맵 지명'\)/);
+assert.match(enterTarget, /modalType === 'vid'/);
+
+const confirmTarget = between('function confirmAddTarget', '\nfunction showPasteFallback');
+assert.match(confirmTarget, /'맵 지명' && !isAdminUser/);
+assert.match(confirmTarget, /'맵 지명' && modalType === 'vid'/);
 
 const addModal = between('function openAddModal', '\nfunction openEditModal');
 const submit = between('async function submitItem', '\n\/\/ --- 컨텐츠 추가 임시저장');

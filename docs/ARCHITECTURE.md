@@ -62,7 +62,7 @@ CDN으로 불러오는 외부 자원: `@supabase/supabase-js@2`, `cropperjs@1.6.
 - `#viewGrid`: 맵 선택 화면 — 맵 선택 문구와 전체 제목 검색창(`#globalTitleSearch`) 아래 `#mapGrid`에 맵 타일 또는 검색 결과 카드 표시
 - `#viewDetail`: 맵 상세 화면 — 상단 `map-head detail-toolbar` 안에 뒤로가기 버튼(왼쪽)과 제목 검색창(`#titleSearch`, 오른쪽), 그 아래 맵 제목·RED/BLUE 팀 토글과 `#cardGrid`
 - `#overlay`: 영상/이미지 재생 오버레이 — 실제 미디어(iframe/img)는 `#overlayMediaContent`에만 그리고, 그 위에 뜨는 재생/일시정지 버튼(`#overlayPlayPause`)과 클립 항목 전용 "전체 영상 보기" 버튼(`#overlayFullBtn`)은 형제 요소로 분리해 `innerHTML` 교체로 지워지지 않게 함
-- `#addModal`: 컨텐츠 추가/수정 모달(홈에서 진입) — `#pasteStep` → `#videoWrap/#imageWrap` → `#titleWrap` 3단계 화면 전환. 유튜브 URL/이미지를 자동 판별하고, 이미지는 Cropper.js, 영상은 `#clipTools`(버튼 + 슬라이더)로 연결. "맵 지명" 태그는 이미지 고정이며 관리자만 추가 가능
+- `#addModal`: 컨텐츠 추가/수정 모달(홈에서 진입) — `#pasteStep` → `#targetStep`(맵 드롭다운 + 태그 타일) → `#videoWrap/#imageWrap` → `#titleWrap` 4단계 화면 전환. 유튜브 URL/이미지를 자동 판별하고, 이미지는 Cropper.js, 영상은 `#clipTools`(버튼 + 슬라이더)로 연결. "맵 지명" 태그는 이미지 고정이며 관리자만 추가 가능
 - `#mapImgInput`: 맵 이미지 업로드용 숨김 `<input type=file>`
 - `#viewMaster`: 관리자 전용 Master 대시보드 — `.master-sidebar`(통계/항목 관리/맵 관리/댓글/승인 대기 5탭) + `.master-content`(탭별 `.master-pane`, `switchMasterTab()`으로 표시만 전환하고 DOM은 항상 유지). 항목 관리는 `masterItemsView`로 활성/휴지통을 전환
 - `</body>` 직전 `/app.js`: DOM이 모두 만들어진 뒤 기존 전역 스크립트를 같은 시점에 실행. 인라인 `onclick` 42개가 전역 함수 선언에 의존하므로 `type="module"`을 사용하지 않음
@@ -256,7 +256,7 @@ sequenceDiagram
 - **승인 대기**: 일반 사용자가 등록한 `pending` 컨텐츠를 맵·태그 조합으로 필터링하고 결과 수·작성자·맵·태그·미리보기를 확인한 뒤 승인하거나 사유를 입력해 반려. 관리자 미리보기는 클릭수·최근 본 항목에 포함되지 않음(그룹 F-4)
 
 ### 항목 추가/수정 모달 (레거시 Admin에서 이식, 홈에서 진입)
-- **붙여넣기 우선 3단계 모달** — `paste → media → details` 순서로 같은 모달 안에서 화면만 전환한다. 첫 화면은 `readAddClipboard()` 버튼과 이미지 업로드 링크만 노출하고, 자동 판별된 유튜브 URL은 기존 `loadClipPlayer()`, 이미지는 기존 Cropper.js 흐름으로 보낸다. media/details 단계에는 뒤로가기를 제공한다.
+- **붙여넣기 우선 4단계 모달** — `paste → target(맵·태그 선택) → media → details` 순서로 같은 모달 안에서 화면만 전환한다. 첫 화면은 `readAddClipboard()` 버튼과 이미지 업로드 링크만 노출하고, 자동 판별된 유튜브 URL/이미지는 각각 `modalType`만 정한 뒤 `enterAddTargetStep()`으로 넘어간다(영상 클립 플레이어는 `loadClipPlayer()`, 이미지 크롭은 Cropper.js를 media 단계 진입 시점에 생성 — 숨겨진 컨테이너에서 만들면 크기 계산이 틀어지기 때문). `target` 단계는 `maps[]`를 드롭다운으로, 태그는 F-6a 권한 로직을 그대로 재사용한 타일 버튼(`.paste-box` 스타일 재사용)으로 노출하고, 영상을 붙여넣은 경우 "맵 지명" 타일은 이미지 전용이라 숨긴다. 태그 타일 클릭(`confirmAddTarget()`)이 맵 선택 검증을 통과한 직후에만 `currentMap`/`currentMapName`/`modalTag`를 확정한다(드롭다운 `onchange`가 아님 — 단순 선택만으로 전역 내비게이션 상태가 바뀌는 것을 피하기 위해, Master 2단계와 동일한 논리). target/media/details 단계에는 뒤로가기를 제공한다(`target`→`paste`, `media`→`target`, `details`→`media`).
 - **클립보드 자동 판별 + 폴백** — 사용자 클릭 안에서 `navigator.clipboard.read()`를 우선 호출해 `text/plain`은 `parseYouTube()`로 검증하고 이미지 MIME은 Cropper로 전달한다. API 미지원·권한 거부·빈 클립보드는 전용 입력 영역에 포커스를 주고 네이티브 `paste` 이벤트로 Ctrl+V를 받는다. "맵 지명"에서 URL을 붙여넣으면 이미지 전용 오류를 표시한다.
 - **모든 태그의 이미지 업로드** — 붙여넣기 또는 "붙여넣지 않고 업로드" → Cropper.js로 크롭 → jpg blob 변환 → Storage `media`의 `items/{userId}/{timestamp}.jpg`에 업로드 → `img_url` 저장. 파일 선택은 `accept="image/*"`를 유지하고 GIF는 선택/붙여넣기 직후 명시적으로 거부한다.
 - `submitItem()`이 `isMapLabel` 전용 분기가 아니라 레거시처럼 `modalType`(vid/img) 기준으로 일반화됨
