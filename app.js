@@ -218,6 +218,99 @@ function matchesSearch(fields, query){
   return fields.some(f => String(f ?? '').toLowerCase().includes(query));
 }
 
+const SEARCH_DROPDOWN_LIMIT = 6;
+const SEARCH_DROPDOWN_DEBOUNCE_MS = 200;
+const searchDropdownState = {
+  globalTitleSearch: { timer: null, matches: [], activeIndex: -1 },
+  titleSearch: { timer: null, matches: [], activeIndex: -1 }
+};
+function searchDropdownElId(inputId){ return inputId === 'globalTitleSearch' ? 'globalSearchDropdown' : 'teamSearchDropdown'; }
+function searchDropdownCandidates(inputId){ return inputId === 'globalTitleSearch' ? publicItems() : currentTeamItems(); }
+
+function searchDropdownItemHtml(inputId, it, index){
+  const mapName = maps.find(m => m.id === it.map_id)?.name || '';
+  const sub = [mapName, it.channel_name].filter(Boolean).join(' · ');
+  return `<div class="search-dropdown-item" id="searchDropdownOption-${inputId}-${index}" role="option" aria-selected="false" onclick="selectSearchDropdownItem('${it.id}')">
+    <div>${escapeHtml(it.title || '')}</div>
+    ${sub ? `<div class="sub">${escapeHtml(sub)}</div>` : ''}
+  </div>`;
+}
+
+function renderSearchDropdown(inputId){
+  const state = searchDropdownState[inputId];
+  const input = document.getElementById(inputId);
+  const dropdown = document.getElementById(searchDropdownElId(inputId));
+  const query = input.value.trim().toLowerCase();
+  if(!query){ closeSearchDropdown(inputId); return; }
+  state.matches = searchDropdownCandidates(inputId)
+    .filter(it => matchesSearch([it.title, it.channel_name, it.note, it.contributor_name], query))
+    .slice(0, SEARCH_DROPDOWN_LIMIT);
+  state.activeIndex = -1;
+  input.removeAttribute('aria-activedescendant');
+  dropdown.innerHTML = state.matches.length
+    ? state.matches.map((it, i) => searchDropdownItemHtml(inputId, it, i)).join('')
+    : `<div class="search-dropdown-empty">일치하는 항목이 없어요.</div>`;
+  dropdown.classList.add('open');
+  input.setAttribute('aria-expanded', 'true');
+}
+
+function closeSearchDropdown(inputId){
+  const state = searchDropdownState[inputId];
+  clearTimeout(state.timer);
+  state.matches = [];
+  state.activeIndex = -1;
+  const dropdown = document.getElementById(searchDropdownElId(inputId));
+  dropdown.classList.remove('open');
+  dropdown.innerHTML = '';
+  const input = document.getElementById(inputId);
+  input.setAttribute('aria-expanded', 'false');
+  input.removeAttribute('aria-activedescendant');
+}
+function closeAllSearchDropdowns(){ Object.keys(searchDropdownState).forEach(closeSearchDropdown); }
+
+function onSearchDropdownInput(inputId){
+  const state = searchDropdownState[inputId];
+  clearTimeout(state.timer);
+  if(!document.getElementById(inputId).value.trim()){ closeSearchDropdown(inputId); return; }
+  // 디바운스 대기 중에는 이전 검색어의 매칭 결과를 선택할 수 없게 즉시 무효화한다
+  state.matches = [];
+  state.activeIndex = -1;
+  document.getElementById(inputId).removeAttribute('aria-activedescendant');
+  state.timer = setTimeout(() => renderSearchDropdown(inputId), SEARCH_DROPDOWN_DEBOUNCE_MS);
+}
+
+function moveSearchDropdownActive(inputId, delta){
+  const state = searchDropdownState[inputId];
+  const len = state.matches.length;
+  if(!len) return;
+  state.activeIndex = ((state.activeIndex + delta) % len + len) % len;
+  const input = document.getElementById(inputId);
+  const dropdown = document.getElementById(searchDropdownElId(inputId));
+  Array.from(dropdown.children).forEach((el, i) => {
+    el.classList.toggle('active', i === state.activeIndex);
+    el.setAttribute('aria-selected', String(i === state.activeIndex));
+  });
+  input.setAttribute('aria-activedescendant', `searchDropdownOption-${inputId}-${state.activeIndex}`);
+}
+
+function onSearchDropdownKeydown(e, inputId){
+  const state = searchDropdownState[inputId];
+  if(e.key === 'Escape'){ closeSearchDropdown(inputId); return; }
+  if(!state.matches.length) return;
+  if(e.key === 'ArrowDown'){ e.preventDefault(); moveSearchDropdownActive(inputId, 1); }
+  else if(e.key === 'ArrowUp'){ e.preventDefault(); moveSearchDropdownActive(inputId, -1); }
+  else if(e.key === 'Enter' && state.activeIndex >= 0){ e.preventDefault(); selectSearchDropdownItem(state.matches[state.activeIndex].id); }
+}
+
+function selectSearchDropdownItem(id){
+  closeAllSearchDropdowns();
+  openOverlay(id);
+}
+
+document.addEventListener('click', e => {
+  if(!e.target.closest('.search-wrap')) closeAllSearchDropdowns();
+});
+
 function renderGlobalTitleSearch(){
   const query = document.getElementById('globalTitleSearch').value.trim().toLowerCase();
   if(!query){ renderMapGrid(); return; }
@@ -672,8 +765,8 @@ function setTeam(t){
   renderCards();
 }
 
-function clearTitleSearch(){ document.getElementById('titleSearch').value = ''; }
-function clearGlobalTitleSearch(){ document.getElementById('globalTitleSearch').value = ''; }
+function clearTitleSearch(){ document.getElementById('titleSearch').value = ''; closeSearchDropdown('titleSearch'); }
+function clearGlobalTitleSearch(){ document.getElementById('globalTitleSearch').value = ''; closeSearchDropdown('globalTitleSearch'); }
 
 function favoriteRow(id){ return favorites.find(f => f.item_id === id); }
 function sortFavorites(list){
@@ -807,12 +900,16 @@ let ytReady = false, ytPlayer = null;
 })();
 window.onYouTubeIframeAPIReady = function(){ ytReady = true; };
 
-function renderCards(){
-  const query = document.getElementById('titleSearch').value.trim().toLowerCase();
+function currentTeamItems(){
   const mapItems = publicItems().filter(i => i.map_id === currentMap);
-  const teamItems = currentTeam === 'total' ? mapItems
+  return currentTeam === 'total' ? mapItems
     : currentTeam === 'favorite' ? mapItems.filter(i => favoriteRow(i.id))
     : mapItems.filter(i => i.team === currentTeam);
+}
+
+function renderCards(){
+  const query = document.getElementById('titleSearch').value.trim().toLowerCase();
+  const teamItems = currentTeamItems();
   const filtered = query ? teamItems.filter(i => matchesSearch([i.title, i.channel_name, i.note, i.contributor_name], query)) : teamItems;
   document.getElementById('detailCount').textContent = '(' + filtered.length + ')';
 

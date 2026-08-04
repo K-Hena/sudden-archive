@@ -4,6 +4,15 @@
 
 ---
 
+## 2026-08-04 — 검색 고도화 3단계: 자동완성 드롭다운
+
+- 전체 검색·맵/팀 내 검색 두 입력 모두에 입력 중 최대 6개 미리보기를 보여주는 자동완성 드롭다운 추가(200ms 디바운스, `matchesSearch()` 재사용으로 초성 검색 포함)
+- 드롭다운 항목 클릭/탭 시 `openOverlay(id)`로 상세 오버레이 즉시 오픈(카드 클릭과 동일 동작)
+- PC 방향키(↑/↓)·Enter 선택·Esc 닫기, 외부 클릭 시 닫기, 검색어 삭제(직접 입력·화면/팀 전환 모두) 시 즉시 닫기 지원
+- `renderCards()`의 map_id+team 필터 로직을 `currentTeamItems()`로 추출해 드롭다운과 공유(중복 제거)
+- 접근성: combobox/listbox/option ARIA 속성 추가
+- 검색어 입력 전 인기/최근 추천(4단계 후보)은 이번 범위 아님
+
 ## 2026-08-04 — 검색 고도화 2단계: 초성 검색
 
 - 검색어가 순수 초성(`ㄱ`~`ㅎ`만으로 구성)일 때 `title`/`channel_name`/`note`/`contributor_name` 네 필드를 초성 기준으로 매칭하는 `toChosung()`/`isPureChosung()`/`matchesSearch()` 추가

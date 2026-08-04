@@ -11,7 +11,7 @@ assert.match(globalSearch, /matchesSearch\(\[it\.title, it\.channel_name, it\.no
 const cardsSearch = between('function renderCards', '\nfunction ');
 assert.match(cardsSearch, /matchesSearch\(\[i\.title, i\.channel_name, i\.note, i\.contributor_name\], query\)/);
 
-const source = between('const CHOSUNG_LIST', '\nfunction renderGlobalTitleSearch');
+const source = between('const CHOSUNG_LIST', '\nconst SEARCH_DROPDOWN_LIMIT');
 const context = { console };
 vm.createContext(context);
 vm.runInContext(source, context);

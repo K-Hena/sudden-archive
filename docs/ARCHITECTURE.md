@@ -168,6 +168,20 @@ sequenceDiagram
 - `toChosung()`은 완성형 한글 음절(가~힣, U+AC00~U+D7A3)만 초성으로 변환하고, 그 외 문자(자음 낱자, 영문, 숫자, 공백 등)는 원문 그대로 통과시킨다.
 - 네 필드 모두 `null`이면 두 분기 모두에서 자연히 매칭에서 제외된다 — 맵 지명 항목은 `note`가 항상 `null`로 저장되고, 레거시 항목은 `contributor_name`이 `null`일 수 있다.
 
+## 자동완성 드롭다운 (3단계)
+
+두 검색 입력 모두 입력창 아래 `.search-wrap > .search-dropdown`에 실시간 미리보기 드롭다운을 갖는다. 메인 결과 목록(`renderGlobalTitleSearch`/`renderCards`)의 즉시 필터링은 그대로 유지되고, 드롭다운은 별도 경로(`onSearchDropdownInput` → 약 200ms 디바운스 → `renderSearchDropdown`)로 갱신된다.
+
+- 후보 목록: 전체 검색 드롭다운은 `publicItems()`, 맵·팀 내 검색 드롭다운은 `renderCards()`와 동일한 `currentTeamItems()`(현재 map_id+team 필터, 즐겨찾기 포함)를 재사용한다.
+- 매칭은 `matchesSearch()`를 그대로 재사용한다(초성 검색 포함, 새 매칭 로직 없음). 최대 6개(`SEARCH_DROPDOWN_LIMIT`)까지만 보여주고, 결과 0건이면 메인 목록과 동일한 "일치하는 항목이 없어요." 문구를 표시한다.
+- 항목에는 제목과 보조 정보(맵 이름 + `channel_name`, 있는 것만)를 `escapeHtml()` 처리해 표시한다.
+- 항목 클릭/탭 시 `selectSearchDropdownItem(id)` → 모든 드롭다운을 닫고 `openOverlay(id)`로 상세 오버레이를 바로 연다(카드 클릭과 동일 동작). 이 앱에는 별도 "검색 실행/제출" 동작이 없어 필터링·스크롤 방식은 채택하지 않았다(`docs/DECISIONS.md` 참고).
+- PC: `ArrowDown`/`ArrowUp`으로 활성 항목 이동(기본 스크롤 동작은 `preventDefault()`로 막음), `Enter`로 선택, `Esc`로 드롭다운만 닫기(검색어는 유지).
+- 모바일: 별도 키보드 네비게이션 없이 탭으로 바로 선택(클릭 이벤트로 통일 처리, 터치 전용 분기 없음).
+- 검색어를 지우면(직접 입력이든 `clearTitleSearch()`/`clearGlobalTitleSearch()`를 통한 화면·팀 전환이든) 드롭다운은 예약된 디바운스 타이머까지 취소하고 즉시 닫힌다.
+- 드롭다운 바깥 클릭 시 문서 레벨 클릭 리스너(`.search-wrap`에 속하지 않은 클릭)가 열려 있는 모든 드롭다운을 닫는다.
+- 접근성: 입력에 `role="combobox"`/`aria-expanded`/`aria-controls`/`aria-activedescendant`, 드롭다운에 `role="listbox"`, 항목에 `role="option"`/`aria-selected`를 부여한다.
+
 ## 전체 맵 화면의 전체 검색
 
 ```

@@ -129,7 +129,7 @@ header{
 .section-label::after{content:'';flex:1;height:1px;background:var(--line);}
 .map-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px;}
 .map-head .section-label{flex:1;margin-bottom:0;}
-.map-head .detail-search{margin-bottom:0;}
+.map-head .search-wrap{margin-bottom:0;}
 .detail-toolbar .back-btn{margin-bottom:0;}
 
 .map-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;}
@@ -165,14 +165,24 @@ header{
 .team-toggle button.on-blue{color:var(--blue);background:var(--blue-dim);}
 .team-toggle button.on-total{color:var(--text);background:var(--panel-hi);}
 .team-toggle button.on-favorite{color:var(--amber);background:var(--panel-hi);}
+.search-wrap{position:relative;width:100%;max-width:420px;margin-bottom:20px;}
 .detail-search{
-  display:block;width:100%;max-width:420px;box-sizing:border-box;margin-bottom:20px;padding:10px 12px;
+  display:block;width:100%;box-sizing:border-box;padding:10px 12px;
   background:var(--panel);color:var(--text);border:1px solid var(--line);font:13px 'Pretendard',sans-serif;
 }
 .detail-search:focus{outline:none;border-color:var(--hover-invert);}
+.search-dropdown{
+  display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:20;
+  background:var(--panel);border:1px solid var(--line);max-height:320px;overflow-y:auto;
+}
+.search-dropdown.open{display:block;}
+.search-dropdown-item{padding:9px 12px;cursor:pointer;font-size:13px;color:var(--text);}
+.search-dropdown-item:hover,.search-dropdown-item.active{background:var(--panel-hi);}
+.search-dropdown-item .sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.search-dropdown-empty{padding:10px 12px;font-size:12px;color:var(--muted);}
 @media(max-width:600px){
   .map-head{align-items:stretch;flex-direction:column;}
-  .map-head .detail-search{max-width:none;}
+  .map-head .search-wrap{max-width:none;}
   .detail-toolbar .back-btn{align-self:flex-start;}
   .paste-choices{flex-direction:column;}
   #savePreviewWrap{flex-direction:column;}
