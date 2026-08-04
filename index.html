@@ -103,7 +103,7 @@
 
 <div class="view" id="viewDetail">
   <div class="map-head detail-toolbar">
-    <button class="back-btn" onclick="showMapGrid()">← 전체 맵으로</button>
+    <button class="back-btn" onclick="history.back()">← 전체 맵으로</button>
     <div class="search-wrap">
       <input type="search" id="titleSearch" class="detail-search" placeholder="제목 또는 채널 검색" aria-label="제목 또는 채널 검색"
         role="combobox" aria-expanded="false" aria-controls="teamSearchDropdown"
@@ -137,7 +137,7 @@
       <div class="master-pane active" id="masterPaneStats">
         <div class="map-head">
           <div class="section-label">통계</div>
-          <button class="back-btn" onclick="showMapGrid()">← 일반 화면으로</button>
+          <button class="back-btn" onclick="history.back()">← 이전 화면으로</button>
         </div>
         <div class="master-summary">
           <div class="master-stat"><b id="statTotalClicks">-</b><span>전체 클릭수</span></div>
@@ -149,7 +149,7 @@
       <div class="master-pane" id="masterPaneItems">
         <div class="map-head">
           <div class="section-label">항목 관리</div>
-          <button class="back-btn" onclick="showMapGrid()">← 일반 화면으로</button>
+          <button class="back-btn" onclick="history.back()">← 이전 화면으로</button>
         </div>
         <div class="master-view-switch" role="group" aria-label="항목 상태">
           <button type="button" id="masterItemsActiveBtn" class="master-view-toggle active" aria-pressed="true" onclick="setMasterItemsView('active')">활성 항목</button>
@@ -173,7 +173,7 @@
       <div class="master-pane" id="masterPaneMaps">
         <div class="map-head">
           <div class="section-label">맵 관리</div>
-          <button class="back-btn" onclick="showMapGrid()">← 일반 화면으로</button>
+          <button class="back-btn" onclick="history.back()">← 이전 화면으로</button>
         </div>
         <button class="btn-primary" onclick="addMap()">새 맵 추가</button>
         <div class="master-table-wrap" id="masterMapsTableWrap"></div>
@@ -181,7 +181,7 @@
       <div class="master-pane" id="masterPaneComments">
         <div class="map-head">
           <div class="section-label">댓글 관리</div>
-          <button class="back-btn" onclick="showMapGrid()">← 일반 화면으로</button>
+          <button class="back-btn" onclick="history.back()">← 이전 화면으로</button>
         </div>
         <div class="master-add-row">
           <select id="masterCommentsMapFilter" class="master-select" onchange="renderMasterCommentsTable()"></select>
@@ -193,7 +193,7 @@
       <div class="master-pane" id="masterPaneApprovals">
         <div class="map-head">
           <div class="section-label">승인 대기 컨텐츠</div>
-          <button class="back-btn" onclick="showHome()">← 홈으로</button>
+          <button class="back-btn" onclick="history.back()">← 이전 화면으로</button>
         </div>
         <div class="master-add-row">
           <select id="masterApprovalsMapFilter" class="master-select" aria-label="승인 대기 맵 필터" onchange="renderMasterApprovals()"></select>
@@ -225,7 +225,7 @@
       <div class="note" id="overlayNote"></div>
       <div style="display:flex;gap:10px;align-items:center;">
         <button class="btn-ghost" id="overlayFullBtn" onclick="showFullVideo()" style="display:none;">전체 영상 보기</button>
-        <div class="overlay-close" onclick="closeOverlay()">닫기 ✕</div>
+        <div class="overlay-close" onclick="history.back()">닫기 ✕</div>
       </div>
     </div>
     <div class="overlay-comments" id="overlayComments" style="display:none;">

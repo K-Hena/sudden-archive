@@ -409,6 +409,17 @@ document.getElementById('mapImgInput').addEventListener('change', async function
   pendingMapId = null; e.target.value = ''; await loadAll();
 });
 
+// 브라우저 히스토리(뒤로가기) 지원: 5개 화면(홈/전체 맵/맵 상세/항목 오버레이/Master) 진입 함수가
+// pushViewState()로 상태를 쌓는다. popstate 복원 중에는 restoringFromHistory를 true로 세팅해
+// 같은 함수들을 재사용하면서도 새 history 항목이 쌓이지 않게 막는다.
+let restoringFromHistory = false;
+function pushViewState(state){
+  if(restoringFromHistory) return;
+  const cur = history.state;
+  if(cur && JSON.stringify(cur) === JSON.stringify(state)) return;
+  history.pushState(state, '', location.href);
+}
+
 function showMapGrid(){
   clearTitleSearch();
   clearGlobalTitleSearch();
@@ -419,6 +430,7 @@ function showMapGrid(){
   document.getElementById('masterBtn').classList.remove('active');
   document.getElementById('crumbMap').style.display = 'none';
   document.getElementById('crumbSep').style.display = 'none';
+  pushViewState({ view: 'grid' });
   renderMapGrid();
   void refreshPublicDataIfStale(false);
 }
@@ -433,6 +445,7 @@ function showHome(){
   document.getElementById('masterBtn').classList.remove('active');
   document.getElementById('crumbMap').style.display = 'none';
   document.getElementById('crumbSep').style.display = 'none';
+  pushViewState({ view: 'home' });
   renderHome();
   void refreshPublicDataIfStale(false);
 }
@@ -450,6 +463,7 @@ function openMap(id, name){
   document.getElementById('crumbSep').style.display = 'inline';
   document.getElementById('crumbMap').textContent = name;
   document.getElementById('detailTitle').innerHTML = name + ' <span id="detailCount"></span>';
+  pushViewState({ view: 'detail', mapId: id, mapName: name, team: 'total' });
   setTeam('total');
 }
 
@@ -464,6 +478,7 @@ function openMaster(){
   document.getElementById('masterBtn').classList.add('active');
   document.getElementById('crumbMap').style.display = 'none';
   document.getElementById('crumbSep').style.display = 'none';
+  pushViewState({ view: 'master' });
   switchMasterTab('stats');
 }
 
@@ -763,6 +778,8 @@ function setTeam(t){
   document.getElementById('btnBlue').className = t==='blue' ? 'on-blue' : '';
   document.getElementById('btnFavorite').className = t==='favorite' ? 'on-favorite' : '';
   renderCards();
+  // 팀 전환은 별도 history 항목이 아니라 현재 맵 상세 항목의 상태만 갱신한다(범위 확정 참고)
+  if(!restoringFromHistory) history.replaceState({ view: 'detail', mapId: currentMap, mapName: currentMapName, team: t }, '', location.href);
 }
 
 function clearTitleSearch(){ document.getElementById('titleSearch').value = ''; closeSearchDropdown('titleSearch'); }
@@ -1072,6 +1089,7 @@ function toggleOverlayMute(){
 function openOverlay(id, trackView){
   const it = items.find(i => i.id === id);
   if(!it) return;
+  pushViewState({ view: 'overlay', itemId: id });
   if(trackView !== false){ void trackClick(id); recordRecentItem(id); }
   const media = document.getElementById('overlayMediaContent');
   const playPauseBtn = document.getElementById('overlayPlayPause');
@@ -2403,7 +2421,13 @@ async function renderAuthArea(session){
   }
   isAdminUser = isAdmin;
   document.getElementById('masterBtn').style.display = isAdminUser ? 'inline-flex' : 'none';
-  if(!isAdminUser && document.getElementById('viewMaster').classList.contains('active')) showMapGrid();
+  if(!isAdminUser && document.getElementById('viewMaster').classList.contains('active')){
+    // 세션 만료 등으로 관리자 권한을 잃은 경우의 강제 이탈 — 새 history 항목을 쌓지 않고 현재 항목을 grid로 교체한다
+    restoringFromHistory = true;
+    showMapGrid();
+    restoringFromHistory = false;
+    history.replaceState({ view: 'grid' }, '', location.href);
+  }
   refreshCommentAuthUI(); // 오버레이가 열려 있는 채로 로그인/로그아웃하면 댓글 입력·삭제 아이콘 상태도 즉시 갱신
   if(previousUserId !== userId) await loadAll();
   else rerenderCurrentView();
@@ -2434,6 +2458,7 @@ async function initAuth(){
   });
 }
 
+history.replaceState({ view: 'home' }, '', location.href); // 첫 진입(홈) 상태를 심어 popstate가 항상 유효한 이전 상태를 참조하게 함
 renderThemeToggle();
 initImageZoomPan();
 initAuth();
@@ -2445,4 +2470,39 @@ setInterval(() => {
 }, PUBLIC_REFRESH_MS);
 document.addEventListener('visibilitychange', () => {
   if(document.visibilityState === 'visible') void refreshPublicDataIfStale(true);
+});
+// 오버레이는 4개 기본 화면(.view) 위에 겹쳐 뜨는 독립 레이어라, 오버레이를 열고 닫아도 그 아래 화면의 DOM은 전혀 바뀌지 않는다.
+// 그래서 popstate가 기본 화면으로 복원될 때 그 화면이 "이미 그대로 표시 중"이면(오버레이만 닫히는 경우) 다시 열 필요가 없다 —
+// 특히 Master는 다시 열면 항상 통계 탭으로 리셋되므로, Master 안에서 연 오버레이를 닫았을 뿐인데 탭이 바뀌어버리는 것을 막는다.
+function isBaseViewAlreadyActive(state){
+  if(state.view === 'home') return document.getElementById('viewHome').classList.contains('active');
+  if(state.view === 'grid') return document.getElementById('viewGrid').classList.contains('active');
+  if(state.view === 'master') return document.getElementById('viewMaster').classList.contains('active');
+  if(state.view === 'detail') return document.getElementById('viewDetail').classList.contains('active') && currentMap === state.mapId;
+  return false;
+}
+window.addEventListener('popstate', event => {
+  restoringFromHistory = true;
+  try {
+    // 모달은 history에 없으므로, popstate가 뜨는 시점엔 이미 배경 화면이 바뀌는 게 확정 — 실제로 열려 있을 때만 정리한다
+    // (hasModalUnsavedInput()은 모달이 열려 있는지 자체는 보지 않으므로, 닫힌 뒤에도 남아있는 값 때문에 무관한 탐색에서 임시저장 프롬프트가 뜨는 것을 막는다)
+    if(document.getElementById('addModal').classList.contains('active')) requestCloseModal();
+    const state = event.state || { view: 'home' };
+    if(state.view !== 'overlay') closeOverlay();
+    if(state.view === 'overlay'){ openOverlay(state.itemId, false); return; }
+    // 권한 재확인은 "이미 표시 중"인지와 무관하게 항상 먼저 한다 — Master가 이미 열려 있어도 그사이 권한을 잃었으면 grid로 내보내야 한다
+    if(state.view === 'master' && !isAdminUser){
+      showMapGrid();
+      // showMapGrid()의 pushViewState는 restoringFromHistory 중이라 아무것도 안 하므로, 화면과 어긋난 채 남는 무효 master 항목을 여기서 직접 grid로 교체한다
+      history.replaceState({ view: 'grid' }, '', location.href);
+      return;
+    }
+    if(isBaseViewAlreadyActive(state)) return;
+    if(state.view === 'grid') showMapGrid();
+    else if(state.view === 'detail'){ openMap(state.mapId, state.mapName); setTeam(state.team || 'total'); }
+    else if(state.view === 'master') openMaster();
+    else showHome();
+  } finally {
+    restoringFromHistory = false;
+  }
 });

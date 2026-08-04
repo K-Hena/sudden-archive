@@ -101,6 +101,18 @@ Master에서 실제로 어떤 CRUD가 이식/미이식 상태인지는 아래 "6
 전부 `#viewMaster`(Master 대시보드) 안에서만 발생하며, Supabase에 쓴 뒤 항상 `loadAll()`로
 전체 목록을 다시 불러와 화면을 갱신하는 패턴을 공유한다 (부분 갱신 없음, 아래 "7. 데이터베이스 흐름" 참고).
 
+## 브라우저 히스토리(뒤로가기)
+
+홈/전체 맵/맵 상세/항목 오버레이/Master 5개 화면을 각각 하나의 `history` 항목으로 취급한다. URL은 바뀌지 않는다 — `pushState(state, '', location.href)`로 상태 객체만 쌓는 방식이라 딥링크(주소로 특정 화면 바로 열기)는 지원하지 않는다.
+
+- 진입 함수(`showHome`/`showMapGrid`/`openMap`/`openMaster`/`openOverlay`)가 각자 `pushViewState({view:'...', ...})`를 호출해 상태를 쌓는다. `pushViewState()`는 `history.state`와 새 상태가 완전히 같으면(같은 화면을 다시 연 경우, 예: 홈에서 로고를 다시 클릭) push를 생략해 중복 항목을 막는다.
+- 맵 상세(`detail`) 상태에는 `mapId`/`mapName`/`team`을 함께 담는다. 팀 전환(`setTeam()`)은 범위 확정에 따라 별도 항목이 아니라 `history.replaceState()`로 현재 맵 상세 항목의 `team`만 갱신한다 — `openMap()`이 먼저 push한 뒤 `setTeam('total')`을 호출하는 순서라, `setTeam()`은 항상 이미 push된 detail 항목을 replace한다.
+- Master 대시보드 내부 탭 전환(`switchMasterTab()`)은 history를 건드리지 않는다 — Master 진입/이탈만 한 단계다.
+- `window.addEventListener('popstate', ...)`가 `event.state`를 읽고 같은 진입 함수를 재사용해 화면을 복원한다. 복원 중에는 모듈 플래그 `restoringFromHistory`를 true로 세팅해(try/finally로 보장) 각 함수 내부의 `pushViewState`/`replaceState` 호출이 다시 history를 쌓지 않게 막는다. `overlay` 상태 복원은 반드시 `openOverlay(itemId, false)`로 호출해 조회수·최근 본 컨텐츠 기록이 중복되지 않게 한다.
+- popstate가 뜨면 먼저 `#addModal`이 실제로 열려 있는 경우에만 `requestCloseModal()`을 호출해 정리한다(모달은 히스토리에 없으므로 "모달만 닫고 화면 유지"는 불가능하고, popstate 시점엔 이미 배경 화면이 바뀌는 게 확정이다 — 작성 중 입력이 있으면 기존과 동일하게 임시저장 여부를 묻는다). `hasModalUnsavedInput()`은 모달이 열려 있는지 자체를 보지 않고 필드 값·모드만 보므로, 모달이 닫힌 뒤에도 정리되지 않은 이전 입력값이 남아 있으면 이 호출을 무조건 하는 경우 무관한 화면 전환에서까지 임시저장 프롬프트가 뜨거나 유령 임시저장이 생길 수 있다 — 그래서 `active` 클래스를 먼저 확인한다. 그다음 `state.view`가 `overlay`가 아니면 `closeOverlay()`로 오버레이도 정리한 뒤 대상 화면을 복원한다.
+- "뒤로가기류" UI(오버레이 "닫기 ✕", 맵 상세 "← 전체 맵으로", Master 각 탭의 "← 이전 화면으로")는 화면 전환 함수를 직접 호출하는 대신 `history.back()`을 호출한다. 직접 호출로 두면(예: 닫기 버튼이 `closeOverlay()`를 직접 호출) 버튼 클릭과 브라우저 뒤로가기가 서로 다른 항목을 소비/생성해 스택이 어긋난다(버튼으로 닫은 뒤 뒤로가기를 누르면 방금 닫은 화면이 다시 열리는 등). Master의 "← 일반 화면으로"/"← 홈으로" 버튼은 Master가 home/grid/detail 어디서든 진입 가능해 고정 목적지를 보장할 수 없어 라벨을 "← 이전 화면으로"로 바꿨다(`docs/DECISIONS.md` 참고). 헤더 로고("홈으로 이동")는 back-btn류가 아니라 항상 홈으로 가는 유틸리티라 `showHome()` 직접 호출을 그대로 유지한다.
+- 세션 만료 등으로 관리자 권한을 잃어 Master에서 강제 이탈시키는 기존 안전장치(`renderAuthArea()`의 `!isAdminUser && viewMaster.active` 분기)는 `showMapGrid()`를 `restoringFromHistory=true`로 감싸 호출한 뒤 현재 항목을 `{view:'grid'}`로 `replaceState`한다 — 실제 사용자 탐색이 아니므로 새 항목을 쌓지 않는다.
+
 ---
 
 # 4. 인증(Auth) 흐름
