@@ -159,6 +159,15 @@ sequenceDiagram
 
 # 5. 탐색/검색 흐름
 
+## 공용 매칭 함수: `matchesSearch()`
+
+전체 검색(`renderGlobalTitleSearch`)과 맵·팀 내 검색(`renderCards`) 모두 `matchesSearch(fields, query)`(2단계 도입) 하나를 공유한다. 두 경로 모두 대상 필드를 `[title, channel_name, note, contributor_name]` 배열로 넘긴다.
+
+- `isPureChosung(query)`가 `true`(검색어가 `ㄱ`~`ㅎ`(U+3131~U+314E) 자음 문자로만 구성된 "순수 초성"인 경우)이면, 네 필드 각각을 `toChosung()`으로 초성만 추출한 뒤 검색어와 부분 일치시킨다. 완성형 글자나 숫자/영문이 하나라도 섞이면 순수 초성이 아니므로 이 분기는 시도하지 않는다.
+- 그 외(순수 초성이 아닌 모든 검색어)에는 기존 1단계 로직 그대로 — 대소문자 무시, 부분 일치.
+- `toChosung()`은 완성형 한글 음절(가~힣, U+AC00~U+D7A3)만 초성으로 변환하고, 그 외 문자(자음 낱자, 영문, 숫자, 공백 등)는 원문 그대로 통과시킨다.
+- 네 필드 모두 `null`이면 두 분기 모두에서 자연히 매칭에서 제외된다 — 맵 지명 항목은 `note`가 항상 `null`로 저장되고, 레거시 항목은 `contributor_name`이 `null`일 수 있다.
+
 ## 전체 맵 화면의 전체 검색
 
 ```
@@ -166,12 +175,12 @@ sequenceDiagram
   → #viewGrid
 #globalTitleSearch 입력
   → renderGlobalTitleSearch()
-  → 전체 items.title OR items.channel_name OR items.note OR items.contributor_name 부분 일치 필터
+  → matchesSearch([title, channel_name, note, contributor_name], query) 필터
   → #mapGrid에 조회 전용 카드 렌더링
   → 카드 클릭 → openOverlay(id)
 ```
 
-- 검색어는 `title`, `channel_name`(영상 항목만), `note`, `contributor_name` 중 하나라도 부분 일치하면 결과에 포함한다(그룹 E 2~3단계, 1단계 필드 확장). 네 필드 모두 `null`이면 자연히 제외된다 — 맵 지명 항목은 `note`가 항상 `null`로 저장되고, 레거시 항목은 `contributor_name`이 `null`일 수 있다.
+- 검색어는 `title`, `channel_name`(영상 항목만), `note`, `contributor_name` 중 하나라도 (순수 초성이면 초성 기준으로, 아니면 부분 일치 기준으로) 매칭되면 결과에 포함한다(그룹 E 2~3단계, 1·2단계 필드 확장·초성 검색).
 - 결과 카드에는 기존 썸네일·유형 배지·제목·설명과 `maps` 배열에서 찾은 맵 이름, 진영을 표시한다. 영상이고 `channel_name`이 있으면 썸네일 좌하단에 채널 배지(`escapeHtml()` 처리)도 표시한다.
 - 위폭·팁 결과에는 즐겨찾기 별 버튼을 표시하고, 즐겨찾기를 먼저(즐겨찾기끼리는 최신순) 정렬한다. 나머지 결과 순서는 유지한다.
 - 검색어가 없으면 `renderMapGrid()`가 기존 맵 타일만 렌더링한다(관리자·비관리자 동일, 액션 아이콘 없음 — 맵 CRUD는 Master "맵 관리" 탭에서만 가능). 검색 결과 카드도 동일하게 액션이 없다.
@@ -186,13 +195,13 @@ sequenceDiagram
   → 제목 또는 채널 입력 (#titleSearch, input 이벤트)
   → renderCards()
       1. 현재 map_id + team 필터
-      2. 검색어가 있으면 items.title OR items.channel_name OR items.note OR items.contributor_name 부분 일치 필터
+      2. 검색어가 있으면 matchesSearch([title, channel_name, note, contributor_name], query) 필터
       3. 태그별 그룹핑 후 카드 렌더링
   → 카드 클릭 → openOverlay(id)
 ```
 
-- 검색 범위는 현재 선택한 맵과 팀 안의 `items.title`, `items.channel_name`, `items.note`, `items.contributor_name`이다(그룹 E 2~3단계, 1단계 필드 확장). 태그, 맵 이름, 영상 URL은 여전히 검색하지 않는다.
-- 검색어의 앞뒤 공백을 제거하고 네 필드와 함께 소문자로 변환해 부분 일치시킨다. 필드가 `null`이어도 빈 문자열로 처리한다.
+- 검색 범위는 현재 선택한 맵과 팀 안의 `items.title`, `items.channel_name`, `items.note`, `items.contributor_name`이다(그룹 E 2~3단계, 1·2단계 필드 확장·초성 검색). 태그, 맵 이름, 영상 URL은 여전히 검색하지 않는다.
+- 검색어의 앞뒤 공백을 제거하고 소문자로 변환한다(초성 판별·초성 변환은 대소문자와 무관). 순수 초성이면 초성 기준, 아니면 소문자 부분 일치 기준으로 네 필드를 비교한다. 필드가 `null`이어도 빈 문자열로 처리한다.
 - `detailCount`는 검색 후 실제 표시되는 카드 수다.
 - 검색어가 없고 데이터가 없으면 `이 진영에 등록된 항목이 없어요.`, 검색 결과가 없으면 `일치하는 항목이 없어요.`를 표시한다.
 - 다른 맵을 열거나 팀을 바꾸거나 전체 맵 화면으로 돌아가면 검색어를 초기화한다. Master에서 항목을 추가·수정·삭제한 뒤의 `loadAll()` 재렌더링에서는 유지한다.

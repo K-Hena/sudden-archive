@@ -4,6 +4,13 @@
 
 ---
 
+## 2026-08-04 — 검색 고도화 2단계: 초성 검색
+
+- 검색어가 순수 초성(`ㄱ`~`ㅎ`만으로 구성)일 때 `title`/`channel_name`/`note`/`contributor_name` 네 필드를 초성 기준으로 매칭하는 `toChosung()`/`isPureChosung()`/`matchesSearch()` 추가
+- 완성형·숫자·영문이 섞인 검색어는 초성 매칭을 시도하지 않고 기존 부분일치만 동작(회귀 없음)
+- 두 검색 경로(`renderGlobalTitleSearch`, `renderCards`)의 중복 필터 로직을 `matchesSearch()`로 통합
+- 자동완성(3단계)은 이번 범위 아님
+
 ## 2026-08-04 — 검색 고도화 1단계: 검색 대상 필드 확장
 
 - 전체 검색(`renderGlobalTitleSearch`)과 맵·팀 내 검색(`renderCards`)의 매칭 대상을 `title`/`channel_name`에서 `note`(설명)·`contributor_name`(작성자명)까지 네 필드로 확장

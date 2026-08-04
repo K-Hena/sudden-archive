@@ -202,10 +202,26 @@ function renderMapGrid(){
   grid.innerHTML = tilesHtml || `<div class="loading">등록된 맵이 없어요.</div>`;
 }
 
+const CHOSUNG_LIST = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+function toChosung(str){
+  return String(str).split('').map(ch => {
+    const code = ch.codePointAt(0) - 0xAC00;
+    if(code < 0 || code > 11171) return ch;
+    return CHOSUNG_LIST[Math.floor(code / (21 * 28))];
+  }).join('');
+}
+function isPureChosung(query){
+  return /^[ㄱ-ㅎ]+$/.test(query);
+}
+function matchesSearch(fields, query){
+  if(isPureChosung(query)) return fields.some(f => toChosung(f ?? '').includes(query));
+  return fields.some(f => String(f ?? '').toLowerCase().includes(query));
+}
+
 function renderGlobalTitleSearch(){
   const query = document.getElementById('globalTitleSearch').value.trim().toLowerCase();
   if(!query){ renderMapGrid(); return; }
-  const filtered = sortFavorites(publicItems().filter(it => String(it.title ?? '').toLowerCase().includes(query) || String(it.channel_name ?? '').toLowerCase().includes(query) || String(it.note ?? '').toLowerCase().includes(query) || String(it.contributor_name ?? '').toLowerCase().includes(query)));
+  const filtered = sortFavorites(publicItems().filter(it => matchesSearch([it.title, it.channel_name, it.note, it.contributor_name], query)));
   const grid = document.getElementById('mapGrid');
   grid.className = 'card-grid-inner';
   grid.innerHTML = filtered.map(it => {
@@ -797,7 +813,7 @@ function renderCards(){
   const teamItems = currentTeam === 'total' ? mapItems
     : currentTeam === 'favorite' ? mapItems.filter(i => favoriteRow(i.id))
     : mapItems.filter(i => i.team === currentTeam);
-  const filtered = query ? teamItems.filter(i => String(i.title ?? '').toLowerCase().includes(query) || String(i.channel_name ?? '').toLowerCase().includes(query) || String(i.note ?? '').toLowerCase().includes(query) || String(i.contributor_name ?? '').toLowerCase().includes(query)) : teamItems;
+  const filtered = query ? teamItems.filter(i => matchesSearch([i.title, i.channel_name, i.note, i.contributor_name], query)) : teamItems;
   document.getElementById('detailCount').textContent = '(' + filtered.length + ')';
 
   const groups = {};
