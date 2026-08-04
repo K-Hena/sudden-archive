@@ -1916,9 +1916,16 @@ function renderSavePreview(){
   }
 }
 
-// paste 완료 직후 진입하는 "맵·태그 선택" 단계. 태그 타일은 기존 F-6a 권한 로직을 그대로
-// 재사용하고, 영상을 붙여넣은 경우 "맵 지명" 태그는 이미지 전용이라 타일 자체를 숨긴다.
+// paste 완료 직후(또는 media 단계에서 뒤로가기로) 진입하는 "맵·태그 선택" 단계. 태그 타일은
+// 기존 F-6a 권한 로직을 그대로 재사용하고, 영상을 붙여넣은 경우 "맵 지명" 태그는 이미지
+// 전용이라 타일 자체를 숨긴다. 재진입할 때마다 매번 여기서 확정 전 상태로 되돌리므로(아래
+// 세 줄), media 단계에서 뒤로 왔다가 그대로 임시저장해도 직전에 확정했던 맵·태그가 아니라
+// "미선택" 상태로 정확히 저장된다 — 태그 타일 클릭(confirmAddTarget)은 이 시점의 드롭다운
+// 값을 다시 읽어 재확정하므로 정상 진행에는 영향이 없다.
 function enterAddTargetStep(){
+  modalTag = null;
+  currentMap = null;
+  currentMapName = '';
   const sel = document.getElementById('targetMapSelect');
   sel.innerHTML = '<option value="">맵을 선택해주세요</option>' + maps.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
   sel.value = '';
@@ -2173,7 +2180,10 @@ function goBackModal(){
     return;
   }
   if(modalStep === 'details') return showModalStep('media');
-  if(modalStep === 'media') return showModalStep('target');
+  // target 단계 DOM(드롭다운/타일)과 확정 전 상태 모두 enterAddTargetStep()이 함께 되돌린다.
+  // draft를 이어서 작성해 target 단계를 건너뛰고 바로 media로 온 경우에도 이 DOM이 아직
+  // 채워진 적이 없을 수 있어, showModalStep('target')만 부르면 빈 화면이 된다.
+  if(modalStep === 'media') return enterAddTargetStep();
   showModalStep('paste');
 }
 function advanceAddModal(){
