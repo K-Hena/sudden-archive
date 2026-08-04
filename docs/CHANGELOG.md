@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-08-04 — 검색 고도화 1단계: 검색 대상 필드 확장
+
+- 전체 검색(`renderGlobalTitleSearch`)과 맵·팀 내 검색(`renderCards`)의 매칭 대상을 `title`/`channel_name`에서 `note`(설명)·`contributor_name`(작성자명)까지 네 필드로 확장
+- 대소문자 무시·부분일치 등 기존 매칭 방식은 그대로 유지, `null` 필드는 안전하게 매칭에서 제외
+- 초성 검색(2단계), 자동완성(3단계)은 이번 범위 아님
+
 ## 2026-08-04 — 구 Admin 사이트·저장소 폐기
 
 - Master 대시보드의 기능 이관과 격차 없음 확인을 근거로 Vercel `sudden-archive-admin` 프로젝트와 전체 배포 삭제

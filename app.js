@@ -205,7 +205,7 @@ function renderMapGrid(){
 function renderGlobalTitleSearch(){
   const query = document.getElementById('globalTitleSearch').value.trim().toLowerCase();
   if(!query){ renderMapGrid(); return; }
-  const filtered = sortFavorites(publicItems().filter(it => String(it.title ?? '').toLowerCase().includes(query) || String(it.channel_name ?? '').toLowerCase().includes(query)));
+  const filtered = sortFavorites(publicItems().filter(it => String(it.title ?? '').toLowerCase().includes(query) || String(it.channel_name ?? '').toLowerCase().includes(query) || String(it.note ?? '').toLowerCase().includes(query) || String(it.contributor_name ?? '').toLowerCase().includes(query)));
   const grid = document.getElementById('mapGrid');
   grid.className = 'card-grid-inner';
   grid.innerHTML = filtered.map(it => {
@@ -232,7 +232,7 @@ function renderGlobalTitleSearch(){
         ${contributorBadge(it)}
       </div>`}
     </div>`;
-  }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">일치하는 제목 또는 채널이 없어요.</div>`;
+  }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">일치하는 항목이 없어요.</div>`;
 }
 
 async function addMap(){
@@ -797,7 +797,7 @@ function renderCards(){
   const teamItems = currentTeam === 'total' ? mapItems
     : currentTeam === 'favorite' ? mapItems.filter(i => favoriteRow(i.id))
     : mapItems.filter(i => i.team === currentTeam);
-  const filtered = query ? teamItems.filter(i => String(i.title ?? '').toLowerCase().includes(query) || String(i.channel_name ?? '').toLowerCase().includes(query)) : teamItems;
+  const filtered = query ? teamItems.filter(i => String(i.title ?? '').toLowerCase().includes(query) || String(i.channel_name ?? '').toLowerCase().includes(query) || String(i.note ?? '').toLowerCase().includes(query) || String(i.contributor_name ?? '').toLowerCase().includes(query)) : teamItems;
   document.getElementById('detailCount').textContent = '(' + filtered.length + ')';
 
   const groups = {};
@@ -851,7 +851,7 @@ function renderCards(){
       </div>
     </div>
   `;
-  }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">${query ? '일치하는 제목 또는 채널이 없어요.' : '이 진영에 등록된 항목이 없어요.'}</div>`;
+  }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">${query ? '일치하는 항목이 없어요.' : '이 진영에 등록된 항목이 없어요.'}</div>`;
 }
 
 function getEffectiveClipRange(it, duration){

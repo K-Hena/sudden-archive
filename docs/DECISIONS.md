@@ -656,3 +656,13 @@ oEmbed 조회 실패는 영상 저장을 막지 않고 `null`로 처리한다. �
 **결정**: 안내 페이지나 리다이렉트를 남기지 않고 Vercel 프로젝트·배포, GitHub 저장소, 로컬 복제본을 모두 삭제했다. Master가 구 Admin의 CRUD·이미지 크롭·클립 구간 지정 기능을 대체했고 F-5에서 기능 격차가 없음을 재확인했기 때문이다.
 
 **검증**: 삭제 후 `github.com/K-Hena/sudden-archive-admin`과 `sudden-archive-admin.vercel.app`이 모두 404를 반환하는지 확인했다. Supabase 데이터와 현재 User 사이트는 삭제 대상에 포함하지 않았다.
+
+---
+
+## 검색 고도화 1단계: `note`/`contributor_name`만 확장, 다른 필드는 제외
+
+**결정**: 전체 검색(`renderGlobalTitleSearch`)과 맵·팀 내 검색(`renderCards`) 모두 기존 `title`/`channel_name` OR 부분일치에 `note`(설명), `contributor_name`(작성자명) 두 필드만 같은 방식으로 추가했다. `tag`, 맵 이름(`maps.name`), `video_url` 등은 이번 범위에서 뺐다.
+
+**이유**: 지시서(`지시서-검색고도화-1단계-필드확장.md`)가 명시적으로 `note`/`contributor_name` 확장만 1단계 범위로 정했다. `tag`는 `'맵 지명'`/`'위폭'`/`'팁'` 셋뿐인 분류값이라 자유 텍스트 검색과 성격이 다르고, 맵 이름은 이미 맵 선택 UI로 탐색되며, `video_url`은 사용자에게 의미 있는 검색어가 아니다.
+
+**null 안전성**: `note`는 `'맵 지명'` 태그 항목에서 항상 `null`로 저장되고(`app.js`의 `note: note || null`), `contributor_name`은 로그인 이전에 등록된 레거시 항목에서 `null`일 수 있다. 두 경우 모두 기존 `channel_name`과 동일하게 `String(value ?? '').toLowerCase().includes(query)` 패턴으로 방어해 에러 없이 매칭에서 자연히 제외된다.
