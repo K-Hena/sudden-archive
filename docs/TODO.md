@@ -51,6 +51,7 @@
 - **한글 타이포그래피 역할 정리** — 본문·일반 UI는 Pretendard, 댓글 영역은 조선굴림체를 적용. 기존 Paperlogy 제목과 Rajdhani/JetBrains Mono의 영문·숫자 역할은 유지하고, 해당 영역의 한글 fallback만 Pretendard로 통일해 `GulimChe` 렌더링을 제거. 사용하지 않던 Gothic A1과 Inter import 삭제. 세부 결정은 `docs/DECISIONS.md` 참고
 - **정적 파일 역할 분리** — 3,061줄 `index.html`의 CSS와 메인 JavaScript를 내용·순서 변경 없이 `styles.css`와 `app.js`로 분리. 빌드 도구·ES Module·새 의존성 없이 Vercel 정적 배포 방식을 유지하고, 인라인 `onclick`과 전역 상태도 그대로 보존. `<head>`의 테마 선적용 스크립트는 화면 깜빡임 방지를 위해 HTML에 유지. 세부 결정은 `docs/DECISIONS.md` 참고
 - **LLM 위키 생성** — code-review-graph를 현재 커밋 기준으로 갱신하고 자동 위키를 생성. 자동 커뮤니티가 단일 전역 `app.js`를 충분히 분류하지 못하는 한계를 보완하기 위해 추적 가능한 `docs/LLM_WIKI.md`에 작업별 함수·문서·검증 경로를 정리하고 Claude Code 진입 문서에 연결
+- **UI 개선: 카드 배지 위계 / 빈 상태 / 아이콘 시스템 통일** — 유형 배지는 브랜드 핑크 실색, 진영 배지는 아웃라인 스타일로 즐겨찾기 버튼 아래 우상단에 재배치. 공용 함수 `emptyStateHtml()`로 홈 3곳·검색 결과 없음 2곳·Master 승인 대기 6곳의 빈 상태를 통일(아이콘+헤드라인+설명+바로가기 버튼). `@tabler/icons-webfont` CDN 도입으로 사이트 전체 이모지·유니코드 기호 아이콘을 아웃라인 스타일로 교체(동적 재생/일시정지/음소거 토글 포함). 세부 결정은 `docs/DECISIONS.md` 참고
 
 # 완료된 그룹
 

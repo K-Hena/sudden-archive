@@ -40,7 +40,7 @@ sudden-archive/                     (이 저장소, User 사이트 — github.co
 
 별도 `sudden-archive-admin` 저장소와 Vercel 프로젝트는 Master 대시보드로 기능을 통합한 뒤 2026-08-04 삭제했다. 현재 배포되는 저장소와 사이트는 `sudden-archive` 하나다.
 
-CDN으로 불러오는 외부 자원: `@supabase/supabase-js@2`, `cropperjs@1.6.1`(이미지 크롭, 레거시 Admin과 동일 버전), YouTube IFrame API(`https://www.youtube.com/iframe_api`, 클립 구간 재생/마킹용), Pretendard와 조선굴림체 웹폰트. Paperlogy는 저장소의 기존 폰트 역할을 유지한다.
+CDN으로 불러오는 외부 자원: `@supabase/supabase-js@2`, `cropperjs@1.6.1`(이미지 크롭, 레거시 Admin과 동일 버전), `@tabler/icons-webfont@3.31.0`(아이콘 시스템 통일, 웹폰트 방식 `<i class="ti ti-이름">`), YouTube IFrame API(`https://www.youtube.com/iframe_api`, 클립 구간 재생/마킹용), Pretendard와 조선굴림체 웹폰트. Paperlogy는 저장소의 기존 폰트 역할을 유지한다.
 
 ---
 
@@ -55,7 +55,7 @@ CDN으로 불러오는 외부 자원: `@supabase/supabase-js@2`, `cropperjs@1.6.
 - 과거 편집모드 전용이었던 `tile-actions`/`add-tile`/`editmode-btn`/`admin-badge`/`card-edit`/`card-del`/`card-fav.with-delete`는 그룹 D-2 4단계에서 기능과 함께 CSS도 완전히 삭제됨
 
 ## HTML (`index.html`)
-- `<head>`: 메타데이터, 파비콘, Supabase/Cropper CDN, `/styles.css`. `sa-theme`을 DOM 렌더 전에 적용하는 짧은 인라인 스크립트는 테마 깜빡임 방지를 위해 의도적으로 유지
+- `<head>`: 메타데이터, 파비콘, Supabase/Cropper/Tabler Icons CDN, `/styles.css`. `sa-theme`을 DOM 렌더 전에 적용하는 짧은 인라인 스크립트는 테마 깜빡임 방지를 위해 의도적으로 유지
 - `header`: 로고, CLIPS/TIPS 카운트, `#authArea`(로그인 상태에 따라 JS가 채움)
 - `.subbar`: 전체 맵 / 현재 맵 이름 breadcrumb
 - `#viewHome`: 로그인 여부와 관계없는 첫 화면 — 승인된 컨텐츠로 가는 전체 맵 CTA, 즐겨찾기·최근 본 컨텐츠, 컨텐츠 추가·임시저장, 내가 추가한 컨텐츠 영역
@@ -229,9 +229,15 @@ sequenceDiagram
 - 검색 범위는 현재 선택한 맵과 팀 안의 `items.title`, `items.channel_name`, `items.note`, `items.contributor_name`이다(그룹 E 2~3단계, 1·2단계 필드 확장·초성 검색). 태그, 맵 이름, 영상 URL은 여전히 검색하지 않는다.
 - 검색어의 앞뒤 공백을 제거하고 소문자로 변환한다(초성 판별·초성 변환은 대소문자와 무관). 순수 초성이면 초성 기준, 아니면 소문자 부분 일치 기준으로 네 필드를 비교한다. 필드가 `null`이어도 빈 문자열로 처리한다.
 - `detailCount`는 검색 후 실제 표시되는 카드 수다.
-- 검색어가 없고 데이터가 없으면 `이 진영에 등록된 항목이 없어요.`, 검색 결과가 없으면 `일치하는 항목이 없어요.`를 표시한다.
+- 검색어가 없고 데이터가 없으면 `이 진영에 등록된 항목이 없어요`, 검색 결과가 없으면 `일치하는 항목이 없어요`를 공용 빈 상태 템플릿(`emptyStateHtml()`)으로 표시한다.
 - 다른 맵을 열거나 팀을 바꾸거나 전체 맵 화면으로 돌아가면 검색어를 초기화한다. Master에서 항목을 추가·수정·삭제한 뒤의 `loadAll()` 재렌더링에서는 유지한다.
 - 위폭·팁 태그 안에서는 즐겨찾기를 먼저, 즐겨찾기끼리는 최신순으로 표시한다. 비즐겨찾기의 기존 순서와 태그 순서는 유지한다.
+
+## 카드 배지 위계 / 빈 상태 / 아이콘
+
+- **카드 배지**: 유형 배지(영상/이미지, `.badge.vid`/`.badge.img`)는 좌상단에 브랜드 핑크(`--edit-accent`) 실색으로, 쇼츠 배지는 그 아래(`top:28px`)에 세로로 쌓인다. 진영/공동 배지(`teamBadge()`, `renderCards()`에서만 호출)는 우상단 즐겨찾기 별 버튼 아래(`top:40px`)에 기존 진영색(RED/BLUE/무채색) 아웃라인 스타일로 표시된다. 전체 제목 검색·자동완성 드롭다운은 진영 정보를 배지가 아니라 텍스트로만 보여주므로 이 배지 재배치 대상이 아니다.
+- **빈 상태**: 공용 함수 `emptyStateHtml(icon, headline, desc, buttonLabel, buttonOnclick)`이 아이콘+헤드라인+보조설명(선택)+바로가기 버튼(선택) 구조를 만든다. 홈 즐겨찾기/최근 본 컨텐츠/내가 추가한 컨텐츠, 전체·상세 검색 결과 없음, Master 승인 대기 없음 6곳에서 재사용한다.
+- **아이콘**: `@tabler/icons-webfont` CDN(`<i class="ti ti-이름">`)으로 통일. 기존 이모지·유니코드 기호(📋🖼👑☆★✕✎⚙🗑🔒💬✅🗺📊🎯💡🔍⏸▶🔊🔇 등)를 전부 교체했고, `textContent`로 텍스트째 갈아끼우던 동적 토글(재생/일시정지, 음소거, 클립 재생 아이콘)은 `innerHTML`로 `<i>` 태그를 교체하는 방식으로 바꿨다. `←`/`−10`/`+10`(텍스트 라벨)과 `confirm()` 경고 문구의 이모지(HTML 렌더 불가)는 예외로 남겨뒀다.
 
 ## 미구현 범위
 

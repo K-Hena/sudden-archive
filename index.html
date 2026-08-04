@@ -19,6 +19,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -29,7 +30,7 @@
       <div class="reticle"></div>
       <h1>서든 <span>아카이브</span></h1>
     </button>
-    <button id="masterBtn" class="master-btn" onclick="openMaster()" style="display:none;"><span class="master-btn-icon">👑</span><span class="master-btn-label">Master</span></button>
+    <button id="masterBtn" class="master-btn" onclick="openMaster()" style="display:none;"><span class="master-btn-icon"><i class="ti ti-crown"></i></span><span class="master-btn-label">Master</span></button>
   </div>
   <div class="status">
     <span class="mono"><b id="clipCount">-</b>&nbsp;CLIPS</span>
@@ -127,11 +128,11 @@
 <div class="view" id="viewMaster">
   <div class="master-shell">
     <nav class="master-sidebar">
-      <button class="master-tab active" data-tab="stats" onclick="switchMasterTab('stats')">📊 통계</button>
-      <button class="master-tab" data-tab="items" onclick="switchMasterTab('items')">🗂 항목 관리</button>
-      <button class="master-tab" data-tab="maps" onclick="switchMasterTab('maps')">🗺 맵 관리</button>
-      <button class="master-tab" data-tab="comments" onclick="switchMasterTab('comments')">💬 댓글</button>
-      <button class="master-tab" data-tab="approvals" onclick="switchMasterTab('approvals')">✅ 승인 대기</button>
+      <button class="master-tab active" data-tab="stats" onclick="switchMasterTab('stats')"><i class="ti ti-chart-bar"></i> 통계</button>
+      <button class="master-tab" data-tab="items" onclick="switchMasterTab('items')"><i class="ti ti-folder"></i> 항목 관리</button>
+      <button class="master-tab" data-tab="maps" onclick="switchMasterTab('maps')"><i class="ti ti-map-2"></i> 맵 관리</button>
+      <button class="master-tab" data-tab="comments" onclick="switchMasterTab('comments')"><i class="ti ti-message-circle"></i> 댓글</button>
+      <button class="master-tab" data-tab="approvals" onclick="switchMasterTab('approvals')"><i class="ti ti-checklist"></i> 승인 대기</button>
     </nav>
     <div class="master-content">
       <div class="master-pane active" id="masterPaneStats">
@@ -215,17 +216,17 @@
   <div class="overlay-box">
     <div class="overlay-media wide" id="overlayMedia">
       <div id="overlayMediaContent">MEDIA PREVIEW</div>
-      <span class="overlay-playpause" id="overlayPlayPause" onclick="toggleOverlayPlay()" style="display:none;">⏸</span>
-      <span class="overlay-volume-btn" id="overlayVolumeBtn" onclick="toggleOverlayMute()" style="display:none;" aria-label="음소거">🔊</span>
+      <span class="overlay-playpause" id="overlayPlayPause" onclick="toggleOverlayPlay()" style="display:none;"><i class="ti ti-player-pause"></i></span>
+      <span class="overlay-volume-btn" id="overlayVolumeBtn" onclick="toggleOverlayMute()" style="display:none;" aria-label="음소거"><i class="ti ti-volume"></i></span>
       <input type="range" id="overlayVolumeSlider" class="overlay-volume-slider" min="0" max="100" step="1" value="50" style="display:none;" aria-label="볼륨" oninput="onOverlayVolumeInput(this.value)">
       <input type="range" id="overlaySeekbar" class="overlay-seekbar" min="0" max="100" step="0.1" value="0" style="display:none;" aria-label="재생 위치" oninput="onOverlaySeekbarInput(this.value)" onpointerdown="overlaySeeking=true" onpointerup="overlaySeeking=false" onpointercancel="overlaySeeking=false">
-      <button type="button" class="overlay-zoom-reset" id="overlayZoomReset" onclick="resetImageZoom(event)" style="display:none;" aria-label="원래 크기로" title="원래 크기로">↺</button>
+      <button type="button" class="overlay-zoom-reset" id="overlayZoomReset" onclick="resetImageZoom(event)" style="display:none;" aria-label="원래 크기로" title="원래 크기로"><i class="ti ti-zoom-cancel"></i></button>
     </div>
     <div class="overlay-meta">
       <div class="note" id="overlayNote"></div>
       <div style="display:flex;gap:10px;align-items:center;">
         <button class="btn-ghost" id="overlayFullBtn" onclick="showFullVideo()" style="display:none;">전체 영상 보기</button>
-        <div class="overlay-close" onclick="history.back()">닫기 ✕</div>
+        <div class="overlay-close" onclick="history.back()">닫기 <i class="ti ti-x"></i></div>
       </div>
     </div>
     <div class="overlay-comments" id="overlayComments" style="display:none;">
@@ -244,18 +245,18 @@
   <div class="modal-box">
     <div class="modal-head">
       <h3 id="modalTitle">항목 추가</h3>
-      <span class="x" onclick="requestCloseModal()">✕</span>
+      <span class="x" onclick="requestCloseModal()"><i class="ti ti-x"></i></span>
     </div>
     <div class="modal-body">
       <div class="paste-step" id="pasteStep">
         <div class="paste-choices">
           <button type="button" class="paste-box" onclick="readAddClipboard()">
-            <div class="paste-box-icon">📋</div>
+            <div class="paste-box-icon"><i class="ti ti-clipboard"></i></div>
             <div class="paste-box-label">붙여넣기</div>
             <div class="paste-box-hint">Ctrl+V</div>
           </button>
           <button type="button" class="paste-box" onclick="document.getElementById('mImageFile').click()">
-            <div class="paste-box-icon">🖼</div>
+            <div class="paste-box-icon"><i class="ti ti-photo"></i></div>
             <div class="paste-box-label">파일 선택</div>
             <div class="paste-box-hint">이미지만</div>
           </button>
@@ -291,7 +292,7 @@
             <div class="clip-transport-center" role="group" aria-label="클립 재생 조작">
               <button type="button" class="clip-transport-skip" onclick="skipClipPreview(-10)" aria-label="10초 전으로 이동">−10</button>
               <button type="button" class="clip-transport-play" id="clipPlayToggle" onclick="toggleClipPreview()" aria-label="구간 재생">
-                <span id="clipPlayIcon" aria-hidden="true">▶</span>
+                <span id="clipPlayIcon" aria-hidden="true"><i class="ti ti-player-play"></i></span>
               </button>
               <button type="button" class="clip-transport-skip" onclick="skipClipPreview(10)" aria-label="10초 후로 이동">+10</button>
             </div>
@@ -338,7 +339,7 @@
           <img id="previewCroppedImg" alt="">
         </div>
         <div id="editChannelWrap" style="display:none;">
-          <label>🔒 채널</label>
+          <label><i class="ti ti-lock"></i> 채널</label>
           <input type="text" id="editChannelValue" readonly>
         </div>
         <div id="teamWrap" style="display:none;">

@@ -109,7 +109,7 @@ function renderHomeItemCard(it){
       <div class="thumb">
         ${thumbUrl ? `<img loading="lazy" src="${escapeHtml(thumbUrl)}" alt="">` : ''}
         <div class="badge ${it.type}">${it.type === 'vid' ? '영상' : '이미지'}</div>
-        ${(p && p.isShort) ? '<div class="badge short" style="left:auto;right:8px;">쇼츠</div>' : ''}
+        ${(p && p.isShort) ? '<div class="badge short">쇼츠</div>' : ''}
         ${channelBadge(it)}
         ${thumbUrl ? (it.type === 'vid' ? '<div class="playicon"></div>' : '') : '<span class="mono" style="font-size:10px;color:#3A4048;">미리보기 없음</span>'}
       </div>
@@ -125,25 +125,25 @@ function renderHome(){
   const addAccess = document.getElementById('homeAddAccess');
   const personal = document.getElementById('homePersonal');
   if(!currentSession){
-    favoriteAccess.innerHTML = `<div><h3>☆ 내 즐겨찾기</h3><p>자주 보는 위폭과 팁을 모으려면 Discord 로그인이 필요해요.</p></div><button type="button" class="btn-ghost" onclick="discordLogin()">Discord 로그인</button>`;
-    addAccess.innerHTML = `<div><h3>＋ 컨텐츠 추가</h3><p>영상과 이미지를 등록하려면 Discord 로그인이 필요해요.</p></div><button type="button" class="btn-ghost" onclick="discordLogin()">Discord 로그인</button>`;
+    favoriteAccess.innerHTML = `<div><h3><i class="ti ti-star"></i> 내 즐겨찾기</h3><p>자주 보는 위폭과 팁을 모으려면 Discord 로그인이 필요해요.</p></div><button type="button" class="btn-ghost" onclick="discordLogin()">Discord 로그인</button>`;
+    addAccess.innerHTML = `<div><h3><i class="ti ti-plus"></i> 컨텐츠 추가</h3><p>영상과 이미지를 등록하려면 Discord 로그인이 필요해요.</p></div><button type="button" class="btn-ghost" onclick="discordLogin()">Discord 로그인</button>`;
     personal.style.display = 'none';
     return;
   }
 
   const nickname = currentSession.user.user_metadata.full_name || currentSession.user.user_metadata.name || '사용자';
-  favoriteAccess.innerHTML = `<div><h3>☆ ${escapeHtml(nickname)}님의 즐겨찾기</h3><p>저장한 컨텐츠 ${favorites.length}개를 홈에서 바로 이어보세요.</p></div><span class="home-lock">${favorites.length} SAVED</span>`;
+  favoriteAccess.innerHTML = `<div><h3><i class="ti ti-star"></i> ${escapeHtml(nickname)}님의 즐겨찾기</h3><p>저장한 컨텐츠 ${favorites.length}개를 홈에서 바로 이어보세요.</p></div><span class="home-lock">${favorites.length} SAVED</span>`;
   addAccess.innerHTML = isAdminUser
-    ? `<div><h3>＋ 컨텐츠 추가</h3><p>관리자 컨텐츠는 등록 즉시 공개됩니다.</p></div><button type="button" class="btn-primary" onclick="openHomeAdd()">등록 시작</button>`
-    : `<div><h3>＋ 컨텐츠 추가</h3><p>등록한 컨텐츠는 관리자 승인 후 전체 맵에 공개됩니다.</p></div><button type="button" class="btn-primary" onclick="openHomeAdd()">등록 시작</button>`;
+    ? `<div><h3><i class="ti ti-plus"></i> 컨텐츠 추가</h3><p>관리자 컨텐츠는 등록 즉시 공개됩니다.</p></div><button type="button" class="btn-primary" onclick="openHomeAdd()">등록 시작</button>`
+    : `<div><h3><i class="ti ti-plus"></i> 컨텐츠 추가</h3><p>등록한 컨텐츠는 관리자 승인 후 전체 맵에 공개됩니다.</p></div><button type="button" class="btn-primary" onclick="openHomeAdd()">등록 시작</button>`;
   personal.style.display = 'block';
 
   renderMyItems();
   renderContentDraftsList();
   const favoriteItems = favorites.map(row => publicItems().find(it => it.id === row.item_id)).filter(Boolean).slice(0, 4);
-  document.getElementById('homeFavorites').innerHTML = favoriteItems.map(renderHomeItemCard).join('') || '<div class="home-empty">아직 저장한 컨텐츠가 없어요.<br>전체 맵에서 별을 눌러 자주 보는 자료를 모아보세요.</div>';
+  document.getElementById('homeFavorites').innerHTML = favoriteItems.map(renderHomeItemCard).join('') || emptyStateHtml('ti-star', '아직 저장한 컨텐츠가 없어요', '전체 맵에서 별을 눌러 자주 보는 자료를 모아보세요.', '전체 맵 둘러보기', 'showMapGrid()');
   const recentItems = loadRecentItems().map(entry => publicItems().find(it => it.id === entry.itemId)).filter(Boolean).slice(0, 4);
-  document.getElementById('homeRecent').innerHTML = recentItems.map(renderHomeItemCard).join('') || '<div class="home-empty">최근 본 컨텐츠가 없어요.<br>전체 맵에서 자료를 열면 여기에 기록됩니다.</div>';
+  document.getElementById('homeRecent').innerHTML = recentItems.map(renderHomeItemCard).join('') || emptyStateHtml('ti-history', '최근 본 컨텐츠가 없어요', '전체 맵에서 자료를 열면 여기에 기록됩니다.', '전체 맵 둘러보기', 'showMapGrid()');
 }
 function openHomeAdd(){
   if(!currentSession){ discordLogin(); return; }
@@ -164,7 +164,7 @@ function renderMyItems(){
     <div class="actions">
       ${item.status !== 'published' ? `<button class="btn-ghost" onclick="openEditModal(event,'${item.id}')">수정</button><button class="btn-ghost" onclick="hideOwnItem('${item.id}')">숨기기</button>` : '<small>승인 후에는 관리자만 삭제할 수 있습니다.</small>'}
     </div>
-  </div>`).join('') || '<div class="home-empty">아직 추가한 컨텐츠가 없습니다.</div>';
+  </div>`).join('') || emptyStateHtml('ti-upload', '아직 추가한 컨텐츠가 없어요', '', '컨텐츠 추가하기', 'openHomeAdd()');
 }
 
 async function hideOwnItem(id){
@@ -324,7 +324,7 @@ function renderGlobalTitleSearch(){
       <div class="thumb">
         ${thumbUrl ? `<img loading="lazy" src="${thumbUrl}" alt="">` : ''}
         <div class="badge ${it.type}">${it.type==='vid' ? '영상' : '이미지'}</div>
-        ${(p && p.isShort) ? '<div class="badge short" style="left:auto;right:8px;">쇼츠</div>' : ''}
+        ${(p && p.isShort) ? '<div class="badge short">쇼츠</div>' : ''}
         ${channelBadge(it)}
         ${thumbUrl
           ? (it.type==='vid' ? '<div class="playicon"></div>' : '')
@@ -337,7 +337,7 @@ function renderGlobalTitleSearch(){
         ${contributorBadge(it)}
       </div>`}
     </div>`;
-  }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">일치하는 항목이 없어요.</div>`;
+  }).join('') || emptyStateHtml('ti-search-off', '일치하는 항목이 없어요', '', '', '');
 }
 
 async function addMap(){
@@ -508,7 +508,7 @@ function renderMasterApprovals(){
     <td>${contributorBadge(item) || '-'}</td><td>${escapeHtml(item.title)}</td><td>${escapeHtml(maps.find(m => m.id === item.map_id)?.name || '-')}</td><td>${escapeHtml(item.tag || '-')}</td>
     <td><button class="btn-ghost" onclick="openOverlay('${item.id}',false)">보기</button></td>
     <td><button class="btn-primary" onclick="reviewItem('${item.id}',true)">승인</button> <button class="btn-ghost" onclick="reviewItem('${item.id}',false)">반려</button></td>
-  </tr>`).join('')}</tbody></table>` : `<div class="loading">${pending.length ? '조건에 맞는 승인 대기 컨텐츠가 없습니다.' : '승인 대기 컨텐츠가 없습니다.'}</div>`;
+  </tr>`).join('')}</tbody></table>` : emptyStateHtml('ti-checklist', pending.length ? '조건에 맞는 승인 대기 컨텐츠가 없어요' : '승인 대기 컨텐츠가 없어요', '', '', '');
 }
 
 async function reviewItem(id, approve){
@@ -591,8 +591,8 @@ function renderMasterItemsTable(){
       <td>${escapeHtml(mapName)}</td>
       <td>${escapeHtml(it.tag||'')}</td>
       <td>${escapeHtml(teamLabel(it.team) || '')}</td>
-      <td><span class="icon-btn" onclick="openEditModal(event,'${it.id}')" title="수정">⚙</span></td>
-      <td><span class="icon-btn del" onclick="moveItemToTrash(event,'${it.id}')" title="휴지통 이동">🗑</span></td>
+      <td><span class="icon-btn" onclick="openEditModal(event,'${it.id}')" title="수정"><i class="ti ti-pencil"></i></span></td>
+      <td><span class="icon-btn del" onclick="moveItemToTrash(event,'${it.id}')" title="휴지통 이동"><i class="ti ti-trash"></i></span></td>
     </tr>`;
   }).join('');
   if(masterItemsView === 'trash'){
@@ -619,9 +619,9 @@ function renderMasterMapsTable(){
       <td class="thumb-cell">${m.img ? `<img loading="lazy" src="${m.img}" alt="">` : ''}</td>
       <td>${escapeHtml(m.name)}</td>
       <td class="num">${count}</td>
-      <td><span class="icon-btn" onclick="pickMapImage(event,'${m.id}')" title="이미지 변경">🖼</span></td>
-      <td><span class="icon-btn" onclick="renameMap(event,'${m.id}','${safe}')" title="이름 변경">✎</span></td>
-      <td><span class="icon-btn del" onclick="deleteMap(event,'${m.id}','${safe}')" title="삭제">✕</span></td>
+      <td><span class="icon-btn" onclick="pickMapImage(event,'${m.id}')" title="이미지 변경"><i class="ti ti-photo"></i></span></td>
+      <td><span class="icon-btn" onclick="renameMap(event,'${m.id}','${safe}')" title="이름 변경"><i class="ti ti-pencil"></i></span></td>
+      <td><span class="icon-btn del" onclick="deleteMap(event,'${m.id}','${safe}')" title="삭제"><i class="ti ti-trash"></i></span></td>
     </tr>`;
   }).join('');
   wrap.innerHTML = `
@@ -693,8 +693,8 @@ function renderMasterCommentsTable(){
       <td>${escapeHtml(r.title)}</td>
       <td>${escapeHtml(r.mapName)}</td>
       <td class="num" title="${abs}">${formatRelativeTime(c.created_at)}</td>
-      <td>${r.it ? `<span class="icon-btn" onclick="openOverlay('${r.it.id}', false)" title="항목 보기">🔍</span>` : ''}</td>
-      <td><span class="icon-btn del" onclick="masterDeleteComment('${c.id}')" title="삭제">✕</span></td>
+      <td>${r.it ? `<span class="icon-btn" onclick="openOverlay('${r.it.id}', false)" title="항목 보기"><i class="ti ti-eye"></i></span>` : ''}</td>
+      <td><span class="icon-btn del" onclick="masterDeleteComment('${c.id}')" title="삭제"><i class="ti ti-trash"></i></span></td>
     </tr>`;
   }).join('');
   wrap.innerHTML = `
@@ -792,7 +792,7 @@ function sortFavorites(list){
 function favoriteButton(it){
   if(it.tag !== '위폭' && it.tag !== '팁') return '';
   const active = !!favoriteRow(it.id);
-  return `<button type="button" class="card-fav${active ? ' on' : ''}" aria-label="즐겨찾기 ${active ? '해제' : '추가'}" onclick="toggleFavorite(event,'${it.id}')">${active ? '★' : '☆'}</button>`;
+  return `<button type="button" class="card-fav${active ? ' on' : ''}" aria-label="즐겨찾기 ${active ? '해제' : '추가'}" onclick="toggleFavorite(event,'${it.id}')"><i class="ti ti-star"></i></button>`;
 }
 function rerenderCurrentView(){
   if(document.getElementById('viewHome').classList.contains('active')) renderHome();
@@ -884,6 +884,16 @@ function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// 사이트 전체 빈 상태(empty state) 공용 템플릿: 아이콘 + 헤드라인 + 보조 설명(선택) + 바로가기 버튼(선택)
+function emptyStateHtml(icon, headline, desc, buttonLabel, buttonOnclick){
+  return `<div class="empty-state">
+    <i class="ti ${icon} empty-state-icon"></i>
+    <div class="empty-state-headline">${headline}</div>
+    ${desc ? `<div class="empty-state-desc">${desc}</div>` : ''}
+    ${buttonLabel ? `<button type="button" class="btn-primary" onclick="${buttonOnclick}">${buttonLabel}</button>` : ''}
+  </div>`;
+}
+
 function teamLabel(team){
   if(team === 'red') return 'RED';
   if(team === 'blue') return 'BLUE';
@@ -895,9 +905,10 @@ function teamBadge(it){
   if(currentTeam !== 'total' && currentTeam !== 'favorite') return '';
   const label = teamLabel(it.team);
   if(!label) return '';
-  const bg = it.team === 'red' ? 'var(--red)' : it.team === 'blue' ? 'var(--blue)' : 'var(--muted)';
-  const color = it.team === 'none' ? 'var(--bg)' : '#fff';
-  return `<div class="badge" style="top:28px;left:8px;background:${bg};color:${color};">${label}</div>`;
+  const color = it.team === 'red' ? 'var(--red)' : it.team === 'blue' ? 'var(--blue)' : 'var(--muted)';
+  // 유형/쇼츠 배지는 좌측에 쌓이고, 즐겨찾기 버튼(top:6px~38px, 우상단)과 겹치지 않도록
+  // 진영 배지는 그 아래(top:40px) 우측에 아웃라인 스타일로 배치한다
+  return `<div class="badge" style="top:40px;left:auto;right:8px;background:transparent;border:1px solid ${color};color:${color};">${label}</div>`;
 }
 function channelBadge(it){
   if(it.type !== 'vid' || !it.channel_name) return '';
@@ -951,7 +962,7 @@ function renderCards(){
         ${list.map(it => {
           const p = it.type === 'vid' ? parseYouTube(it.video_url) : null;
           const thumbUrl = it.type === 'vid' ? ytThumb(it.video_url) : it.img_url;
-          const shortBadge = (p && p.isShort) ? '<div class="badge short" style="left:auto;right:8px;">쇼츠</div>' : '';
+          const shortBadge = (p && p.isShort) ? '<div class="badge short">쇼츠</div>' : '';
           return `
           <div class="card${isMapLabel ? ' map-label-card' : ''}" onclick="openOverlay('${it.id}')">
             ${favoriteButton(it)}
@@ -977,7 +988,9 @@ function renderCards(){
       </div>
     </div>
   `;
-  }).join('') || `<div class="mono" style="color:var(--muted);font-size:12px;">${query ? '일치하는 항목이 없어요.' : '이 진영에 등록된 항목이 없어요.'}</div>`;
+  }).join('') || (query
+    ? emptyStateHtml('ti-search-off', '일치하는 항목이 없어요', '', '', '')
+    : emptyStateHtml('ti-inbox', '이 진영에 등록된 항목이 없어요', '', '', ''));
 }
 
 function getEffectiveClipRange(it, duration){
@@ -1028,7 +1041,7 @@ function updateVolumeUI(volume, muted){
   const btn = document.getElementById('overlayVolumeBtn');
   const slider = document.getElementById('overlayVolumeSlider');
   if(btn){
-    btn.textContent = (muted || volume === 0) ? '🔇' : '🔊';
+    btn.innerHTML = (muted || volume === 0) ? '<i class="ti ti-volume-off"></i>' : '<i class="ti ti-volume"></i>';
     btn.setAttribute('aria-label', muted ? '음소거 해제' : '음소거');
   }
   if(slider && document.activeElement !== slider) slider.value = volume;
@@ -1154,9 +1167,9 @@ function openOverlay(id, trackView){
               onStateChange: (e) => {
                 if(session !== overlaySession) return; // 낡은 세션의 지연된 상태 이벤트가 현재 버튼을 건드리지 않게 함
                 if(e.data === YT.PlayerState.PLAYING){
-                  playPauseBtn.textContent = '⏸';
+                  playPauseBtn.innerHTML = '<i class="ti ti-player-pause"></i>';
                 } else if(e.data === YT.PlayerState.PAUSED){
-                  playPauseBtn.textContent = '▶';
+                  playPauseBtn.innerHTML = '<i class="ti ti-player-play"></i>';
                 }
               }
             }
@@ -1164,7 +1177,7 @@ function openOverlay(id, trackView){
         };
         waitForYT(session, build);
 
-        playPauseBtn.textContent = '⏸';
+        playPauseBtn.innerHTML = '<i class="ti ti-player-pause"></i>';
         playPauseBtn.style.display = 'flex';
         fullBtn.style.display = 'inline-block';
       } else {
@@ -1501,7 +1514,7 @@ function renderCommentsList(){
         <div class="overlay-comment-head">
           <span class="overlay-comment-author">${escapeHtml(c.author_name)}</span>
           <span class="overlay-comment-time">${formatRelativeTime(c.created_at)}</span>
-          ${canDelete ? `<span class="overlay-comment-del" title="삭제" onclick="deleteComment('${c.id}')">🗑</span>` : ''}
+          ${canDelete ? `<span class="overlay-comment-del" title="삭제" onclick="deleteComment('${c.id}')"><i class="ti ti-trash"></i></span>` : ''}
         </div>
         <div class="overlay-comment-body">${escapeHtml(c.body)}</div>
       </div>
@@ -1654,7 +1667,7 @@ function updateClipTransport(currentOverride, playingOverride){
     : (typeof YT !== 'undefined' && (state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING));
   currentEl.textContent = fmtClip(Math.max(0, current));
   durationEl.textContent = fmtClip(clipDuration);
-  icon.textContent = isPlaying ? 'Ⅱ' : '▶';
+  icon.innerHTML = isPlaying ? '<i class="ti ti-player-pause"></i>' : '<i class="ti ti-player-play"></i>';
   toggle.classList.toggle('is-playing', isPlaying);
   toggle.setAttribute('aria-label', isPlaying ? '일시정지' : '구간 재생');
 }
@@ -1930,11 +1943,11 @@ function enterAddTargetStep(){
   sel.innerHTML = '<option value="">맵을 선택해주세요</option>' + maps.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
   sel.value = '';
   const allowedTags = isAdminUser ? tagOrder : tagOrder.filter(t => t !== '맵 지명');
-  const tileIcon = { '맵 지명': '🗺', '위폭': '🎯', '팁': '💡' };
+  const tileIcon = { '맵 지명': 'ti-map-pin', '위폭': 'ti-target', '팁': 'ti-bulb' };
   document.getElementById('targetTagTiles').innerHTML = allowedTags
     .filter(tag => !(tag === '맵 지명' && modalType === 'vid'))
     .map(tag => `<button type="button" class="paste-box" onclick="confirmAddTarget('${tag}')">
-      <div class="paste-box-icon">${tileIcon[tag] || '＋'}</div>
+      <div class="paste-box-icon"><i class="ti ${tileIcon[tag] || 'ti-plus'}"></i></div>
       <div class="paste-box-label">${tag}</div>
     </button>`).join('');
   setModalMsg('');
@@ -2432,7 +2445,7 @@ function renderContentDraftsList(){
           <span class="content-draft-title">${escapeHtml(label)}</span>
           <span class="content-draft-meta">${escapeHtml(mapName)} · ${escapeHtml(d.tag || '')} · ${time}</span>
         </div>
-        <span class="content-draft-del" title="삭제" onclick="event.stopPropagation(); deleteContentDraft('${d.id}')">🗑</span>
+        <span class="content-draft-del" title="삭제" onclick="event.stopPropagation(); deleteContentDraft('${d.id}')"><i class="ti ti-trash"></i></span>
       </div>
     `;
   }).join('');
