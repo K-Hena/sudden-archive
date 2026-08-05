@@ -23,6 +23,9 @@ B2 연구소.jpg
 # Added by code-review-graph
 .code-review-graph/
 
+# 개발자 로컬 절대경로가 박혀있어 다른 환경에서 깨지는 MCP 설정
+.mcp.json
+
 # 미사용 AI 도구 안내 파일 (Claude Code/Codex만 사용, 내용은 code-review-graph 안내와 중복)
 CODEBUDDY.md
 GEMINI.md
