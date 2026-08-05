@@ -233,10 +233,26 @@ sequenceDiagram
 - 다른 맵을 열거나 팀을 바꾸거나 전체 맵 화면으로 돌아가면 검색어를 초기화한다. Master에서 항목을 추가·수정·삭제한 뒤의 `loadAll()` 재렌더링에서는 유지한다.
 - 위폭·팁 태그 안에서는 즐겨찾기를 먼저, 즐겨찾기끼리는 최신순으로 표시한다. 비즐겨찾기의 기존 순서와 태그 순서는 유지한다.
 
+## 홈 히어로
+
+```
+#viewHome
+  → .home-hero (태그 + 헤드라인 + 부제, 좌측 정렬)
+      .home-hero-side (통계 카드 2개 + "전체 보기" 버튼, 한 줄 가로 배치)
+```
+
+- 태그(`.home-kicker`)·헤드라인(`.home-hero h2`)·부제(`.home-hero p`)는 고정 문구다. 헤드라인은 기존과 동일하게 Paperlogy 800(ExtraBold)을 쓴다(`styles.css`에 700은 로드되지 않음). 태그는 Rajdhani/Pretendard로, 처음부터 Paperlogy였던 적은 없다.
+- 통계 카드(`.home-hero-stat`) 2개는 헤더 카운터(`#clipCount`/`#tipCount`)와 같은 시점(`loadAll()`)에 같은 필터 결과를 재사용해 `#heroClipCount`(위폭 클립 수)/`#heroTipCount`(팁 수)를 채운다 — 별도 집계 로직 없음, 항상 헤더 값과 일치한다.
+- "전체 보기" 버튼(`.home-map-cta`)은 기존과 동일하게 `showMapGrid()`로 이동한다(라벨만 "전체 맵 보기"→"전체 보기"로 변경).
+- 배경 장식 원형 그래픽(`.home-hero::after`)은 제거했고, 그 자리를 통계 카드 2개가 대신한다.
+- 모바일(≤700px)에서는 `.home-hero`가 세로로 쌓이고, `.home-hero-side`는 `flex-wrap`으로 통계 카드는 한 줄에, 버튼은 기존 규칙대로 다음 줄에 전체 폭으로 표시된다.
+
 ## 카드 배지 위계 / 빈 상태 / 아이콘
 
 - **카드 배지**: 유형 배지(영상/이미지, `.badge.vid`/`.badge.img`)는 좌상단에 브랜드 핑크(`--edit-accent`) 실색으로, 쇼츠 배지는 그 아래(`top:28px`)에 세로로 쌓인다. 진영/공동 배지(`teamBadge()`, `renderCards()`에서만 호출)는 우상단 즐겨찾기 별 버튼 아래(`top:40px`)에 기존 진영색(RED/BLUE/무채색) 아웃라인 스타일로 표시된다. 전체 제목 검색·자동완성 드롭다운은 진영 정보를 배지가 아니라 텍스트로만 보여주므로 이 배지 재배치 대상이 아니다.
-- **빈 상태**: 공용 함수 `emptyStateHtml(icon, headline, desc, buttonLabel, buttonOnclick)`이 아이콘+헤드라인+보조설명(선택)+바로가기 버튼(선택) 구조를 만든다. 홈 즐겨찾기/최근 본 컨텐츠/내가 추가한 컨텐츠, 전체·상세 검색 결과 없음, Master 승인 대기 없음 6곳에서 재사용한다.
+- **빈 상태**: 공용 함수 `emptyStateHtml(icon, headline, desc, buttonLabel, buttonOnclick, extraClass, boxOnclick)`이 아이콘+헤드라인+보조설명(선택)+바로가기 버튼(선택) 구조를 만든다. `extraClass`/`boxOnclick`은 선택 파라미터로, 지정하지 않으면 기존 4곳(전체·상세 검색 결과 없음, Master 승인 대기 없음)의 마크업·동작은 그대로다.
+  - 홈 하단 3개 섹션(내가 추가한 컨텐츠/내 즐겨찾기/최근 본 컨텐츠)은 `extraClass='home-empty-compact'`로 콘텐츠 카드와 같은 240px 고정 폭 + 36px 원형 회색 배지 스타일을 쓰고, 버튼은 렌더링하지 않는다(`buttonLabel`/`buttonOnclick`을 빈 문자열로 호출).
+  - "내가 추가한 컨텐츠"/"내 즐겨찾기"는 `boxOnclick`(각각 `openHomeAdd()`/`showMapGrid()`)을 지정해 박스 전체를 클릭 가능하게 만들고(`empty-state-clickable` 클래스로 커서를 포인터로 바꿈), "최근 본 컨텐츠"는 `boxOnclick`을 지정하지 않아 클릭에 반응하지 않는다.
 - **아이콘**: `@tabler/icons-webfont` CDN(`<i class="ti ti-이름">`)으로 통일. 기존 이모지·유니코드 기호(📋🖼👑☆★✕✎⚙🗑🔒💬✅🗺📊🎯💡🔍⏸▶🔊🔇 등)를 전부 교체했고, `textContent`로 텍스트째 갈아끼우던 동적 토글(재생/일시정지, 음소거, 클립 재생 아이콘)은 `innerHTML`로 `<i>` 태그를 교체하는 방식으로 바꿨다. `←`/`−10`/`+10`(텍스트 라벨)과 `confirm()` 경고 문구의 이모지(HTML 렌더 불가)는 예외로 남겨뒀다.
 
 ## 미구현 범위

@@ -57,8 +57,12 @@ async function loadAll(){
     }
     maps = mapRows;
     items = itemRows;
-    document.getElementById('clipCount').textContent = publicItems().filter(i=>i.type==='vid').length;
-    document.getElementById('tipCount').textContent = publicItems().filter(i=>i.tag==='팁').length;
+    const clipCount = publicItems().filter(i=>i.type==='vid').length;
+    const tipCount = publicItems().filter(i=>i.tag==='팁').length;
+    document.getElementById('clipCount').textContent = clipCount;
+    document.getElementById('tipCount').textContent = tipCount;
+    document.getElementById('heroClipCount').textContent = clipCount;
+    document.getElementById('heroTipCount').textContent = tipCount;
     lastDataLoadedAt = Date.now();
     renderMapGrid();
     if(document.getElementById('viewHome').classList.contains('active')) renderHome();
@@ -141,9 +145,9 @@ function renderHome(){
   renderMyItems();
   renderContentDraftsList();
   const favoriteItems = favorites.map(row => publicItems().find(it => it.id === row.item_id)).filter(Boolean).slice(0, 4);
-  document.getElementById('homeFavorites').innerHTML = favoriteItems.map(renderHomeItemCard).join('') || emptyStateHtml('ti-star', '아직 저장한 컨텐츠가 없어요', '전체 맵에서 별을 눌러 자주 보는 자료를 모아보세요.', '전체 맵 둘러보기', 'showMapGrid()');
+  document.getElementById('homeFavorites').innerHTML = favoriteItems.map(renderHomeItemCard).join('') || emptyStateHtml('ti-star', '아직 저장한 컨텐츠가 없어요', '', '', '', 'home-empty-compact', 'showMapGrid()');
   const recentItems = loadRecentItems().map(entry => publicItems().find(it => it.id === entry.itemId)).filter(Boolean).slice(0, 4);
-  document.getElementById('homeRecent').innerHTML = recentItems.map(renderHomeItemCard).join('') || emptyStateHtml('ti-history', '최근 본 컨텐츠가 없어요', '전체 맵에서 자료를 열면 여기에 기록됩니다.', '전체 맵 둘러보기', 'showMapGrid()');
+  document.getElementById('homeRecent').innerHTML = recentItems.map(renderHomeItemCard).join('') || emptyStateHtml('ti-history', '최근 본 컨텐츠가 없어요', '', '', '', 'home-empty-compact');
 }
 function openHomeAdd(){
   if(!currentSession){ discordLogin(); return; }
@@ -164,7 +168,7 @@ function renderMyItems(){
     <div class="actions">
       ${item.status !== 'published' ? `<button class="btn-ghost" onclick="openEditModal(event,'${item.id}')">수정</button><button class="btn-ghost" onclick="hideOwnItem('${item.id}')">숨기기</button>` : '<small>승인 후에는 관리자만 삭제할 수 있습니다.</small>'}
     </div>
-  </div>`).join('') || emptyStateHtml('ti-upload', '아직 추가한 컨텐츠가 없어요', '', '컨텐츠 추가하기', 'openHomeAdd()');
+  </div>`).join('') || emptyStateHtml('ti-upload', '아직 추가한 컨텐츠가 없어요', '', '', '', 'home-empty-compact', 'openHomeAdd()');
 }
 
 async function hideOwnItem(id){
@@ -885,8 +889,10 @@ function escapeHtml(str){
 }
 
 // 사이트 전체 빈 상태(empty state) 공용 템플릿: 아이콘 + 헤드라인 + 보조 설명(선택) + 바로가기 버튼(선택)
-function emptyStateHtml(icon, headline, desc, buttonLabel, buttonOnclick){
-  return `<div class="empty-state">
+function emptyStateHtml(icon, headline, desc, buttonLabel, buttonOnclick, extraClass, boxOnclick){
+  const classes = `empty-state${extraClass ? ' ' + extraClass : ''}${boxOnclick ? ' empty-state-clickable' : ''}`;
+  const boxAttrs = boxOnclick ? ` onclick="${boxOnclick}" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"` : '';
+  return `<div class="${classes}"${boxAttrs}>
     <i class="ti ${icon} empty-state-icon"></i>
     <div class="empty-state-headline">${headline}</div>
     ${desc ? `<div class="empty-state-desc">${desc}</div>` : ''}
