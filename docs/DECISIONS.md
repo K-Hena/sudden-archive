@@ -796,3 +796,29 @@ oEmbed 조회 실패는 영상 저장을 막지 않고 `null`로 처리한다. �
 **모달 상단 요약 캡션 미추가**: 박스 힌트 문구만으로 "무엇을 넣어야 하는지"가 충분히 전달된다고 판단해, 모달 제목 아래 별도 캡션 줄은 추가하지 않았다(지시서 확정 사항 그대로 — 중복 방지).
 
 **모달 제목 서체는 추가/수정 모드가 공유 — 의도적으로 함께 적용**: `#modalTitle`은 추가(`openAddModal()`)와 수정(`openEditModal()`) 모드가 같은 `<h3>` DOM과 `.modal-head h3` CSS를 공유한다. 지시서는 "컨텐츠 추가" 제목만 언급했지만, 별도 클래스를 새로 만들어 추가 모드만 구분하는 대신 기존 셀렉터를 그대로 Paperlogy 800으로 바꿔 추가·수정 모달 제목 전부에 적용했다 — 두 모드의 제목 스타일을 다르게 유지할 이유가 없고(둘 다 같은 모달의 헤더), 새 CSS 클래스를 추가하는 것보다 최소 변경이었다. 새 굵기는 로드하지 않고 히어로 헤드라인과 동일한 기존 Paperlogy 800을 재사용했다.
+
+---
+
+## 제작자 문의 기능 (신규)
+
+지시서(`지시서-제작자문의기능.md`)는 `docs/TODO.md`에 예정돼 있던 "제작자 문의(쪽지)"와 "D-2d. 문의함 탭"을 구체화하는 신규 기능이었다. `inquiries` 테이블·RLS·트리거는 되돌릴 수 없는 구조 변경이라 SQL을 먼저 사용자에게 보여주고 확인받은 뒤에만 Supabase MCP로 실행했다(`create_inquiries_table_and_rls`, 2026-08-05).
+
+**일방향(답장 없음)으로 결정**: 지시서가 이미 "사용자가 문의를 보내면 끝, 관리자는 Master에서 읽기만"으로 확정했다. 답장 기능을 넣으려면 알림 전달 경로(이메일/Discord DM/사이트 내 알림 등)를 새로 설계해야 하는데 이번 범위 밖이라, 답장용 컬럼(예: `admin_reply`)이나 UI를 아예 만들지 않았다 — 나중에 필요해지면 별도 지시서로 범위를 다시 정하는 편이 안전하다고 판단했다.
+
+**"읽음" 상태만 추가하고 그 이상의 상태 추적은 넣지 않음**: 지시서가 "답장은 없지만 처리 여부는 추적할 수 있어야 실용적"이라고 명시한 범위 그대로 `is_read` boolean 하나만 두었다. "처리중/완료" 같은 다단계 상태나 담당자 배정 같은 운영 기능은 요청받지 않았고, 관리자가 한 명뿐인 현재 규모에서는 과한 설계라 추가하지 않았다.
+
+**작성자 스냅샷 트리거는 `items`와 별도 함수로 새로 작성**: `items`의 `set_item_contributor()`를 그대로 `inquiries`에 연결하는 문자 그대로의 재사용을 시도했으나, 이 함수가 `NEW.submitted_at`(items 전용 컬럼)을 대입하므로 `submitted_at`이 없는 `inquiries`에 연결하면 컬럼 없음 에러가 난다는 것을 Codex 설계 리뷰와 Supabase 실제 함수 정의 조회로 함께 확인했다. `auth.uid()` 검증과 `raw_user_meta_data` coalesce 로직(핵심 패턴)만 복제하고 `submitted_at` 대입 한 줄만 뺀 `set_inquiry_contributor()`를 새로 만들었다 — "패턴 재사용"이라는 지시서의 의도는 지키되 "동일 함수 재사용"은 기술적으로 불가능했다. `items`와 `inquiries` 공용 함수로 리팩터링하는 대안도 검토했지만, 서로 다른 컬럼 집합을 다루는 조건 분기가 필요해 이번 기능 규모에 비해 과했다.
+
+**RLS UPDATE는 컬럼 단위 권한으로 이중 제한**: 지시서는 "UPDATE(`is_read`만): 관리자만 허용"이라고 적었는데, RLS의 행 단위 정책만으로는 "이 행을 UPDATE할 수 있다/없다"만 강제할 뿐 "어느 컬럼을"까지는 강제하지 못한다는 점을 Codex 커밋 전 리뷰에서 지적받았다 — 즉 RLS만 있으면 관리자 권한으로 `content`/`category`도 API로 직접 바꿀 수 있었다. `revoke update on inquiries from authenticated; grant update (is_read) to authenticated;`로 컬럼 단위 권한을 추가해, `is_read` 외 컬럼은 관리자 세션으로도 DB 레벨에서 UPDATE가 거부되도록 막았다.
+
+**`category`/`content`에 CHECK 외 NOT NULL·길이 제약 추가**: 지시서 스키마 설계는 `category`/`content`에 CHECK만 명시했는데, Postgres의 CHECK 제약은 `NULL` 값을 통과시키므로 그것만으로는 "필수 선택"이 강제되지 않는다는 점을 Codex가 지적했다. `category NOT NULL`을 추가하고, `content`는 `NOT NULL` + `CHECK (length(btrim(content)) > 0 and char_length(content) <= 1000)`로 공백만 입력한 문의와 무제한 길이 입력을 함께 막았다. 1000자는 지시서에 명시가 없었지만, 기존 `comments.body`(300자 CHECK)처럼 자유 텍스트 필드에는 항상 DB 레벨 상한을 두는 이 저장소의 기존 관례를 따라 문의라는 용도에 맞게 여유 있게 잡았다.
+
+**플로팅 버튼(FAB) 전역 배치 + Master에서만 숨김**: 지시서 확정 사항대로 FAB를 `.view` 4개(`#viewHome`/`#viewGrid`/`#viewDetail`/`#viewMaster`) 밖의 body 레벨 고정 요소로 두었다. 숨김 처리는 `showHome()`/`showMapGrid()`/`openMap()`/`openMaster()` 4개 진입 함수를 각각 수정하는 대신, 순수 CSS `body:has(#viewMaster.active) .inquiry-fab{display:none}` 한 줄로 처리했다 — 이 프로젝트가 이미 `:has()` 선택자를 쓰고 있고(검색 카운터 숨김 규칙), 4개 진입 함수 모두 `#viewMaster`의 `active` 클래스를 예외 없이 정확하게 토글하고 있어(popstate 복원 경로 포함) 이 상태를 다시 읽기만 하면 항상 정확하다. 진입 함수를 늘리거나 바꿀 때마다 FAB 숨김 로직을 별도로 유지보수할 필요가 없다.
+
+**로그인 유도는 `openHomeAdd()`와 동일하게 confirm 없이 바로 `discordLogin()`**: 이 저장소에는 로그인 유도 패턴이 두 가지 있다 — `toggleFavorite()`/즐겨찾기 팀 필터처럼 `confirm()` 후 로그인하는 방식과, `openHomeAdd()`처럼 confirm 없이 바로 Discord OAuth로 넘어가는 방식. 지시서는 "즐겨찾기·컨텐츠 추가와 동일한 패턴"이라고 서로 다른 두 패턴을 함께 지칭해 하나로 정해주지 않았다. FAB는 "전역 버튼 클릭 → 콘텐츠 제출 모달 진입"이라는 흐름이 `openHomeAdd()`와 구조적으로 동일하다고 보고 그쪽 패턴(confirm 없음)을 택했다 — Codex 설계 리뷰도 이 판단이 코드 구조상 타당하다고 확인했다.
+
+**모달 셸은 새 CSS 없이 기존 범용 클래스만 재사용**: `.modal`/`.modal-box`/`.modal-head`/`.modal-body`/`.msg-modal`/`.btn-primary`/`.btn-ghost`가 전부 `#addModal` 전용이 아닌 범용 클래스라, 새 `#inquiryModal`을 이 클래스들만으로 새 CSS 없이 만들었다. `requestCloseModal()`/`closeModal()`은 크롭퍼·유튜브 플레이어·임시저장 상태까지 정리하는 `addModal` 전용 로직이라 재사용하지 않고, 단순한 전용 `openInquiryModal()`/`closeInquiryModal()`을 새로 작성했다. "성공 메시지 후 모달 닫기"는 `submitItem()`이 이미 쓰는 패턴(`setModalMsg(...,'ok')` 후 `setTimeout(() => closeModal(), 500)`)을 그대로 재사용해 메시지가 즉시 사라지는 문제 없이 500ms 동안 보여준 뒤 닫히도록 했다.
+
+**Master 6번째 탭은 기존 탭 추가 패턴을 그대로 따름**: 사이드바 버튼 + `.master-pane` + `switchMasterTab()`의 분기 추가라는 기존 5탭과 동일한 3곳을 수정했다. 목록·필터 구조는 성격이 가장 비슷한 "댓글 관리" 탭(맵 필터+검색+테이블)을 본떴지만, 필터는 맵 대신 카테고리+읽음 상태로 바꿨고 삭제 대신 읽음 토글 아이콘을 넣었다. `loadAll()`에도 다섯 탭과 동일하게 "문의함 탭이 열려 있으면 다시 불러온다" 분기를 추가했다 — Codex 리뷰가 이 지점을 빠뜨리기 쉬운 곳으로 짚어줬다. `.master-sidebar`가 세로 스택(`flex-direction:column`)이라 탭이 6개로 늘어도 데스크톱 레이아웃은 깨지지 않고, 모바일(768px 이하 가로+줄바꿈 사이드바)에서도 Playwright로 390px 화면을 실제로 확인해 탭이 두 줄로 자연스럽게 줄바꿈되는 것을 확인했다.
+
+**커밋 전 Codex 리뷰로 발견한 모달 생명주기 결함 2건 수정**: (1) 브라우저 popstate 핸들러가 기존에는 `#addModal`만 정리하고 `#inquiryModal`은 그대로 뒀다 — 문의 모달을 연 채로 뒤로가기를 누르면 배경 화면만 바뀌고 모달이 그 위에 남아있는 문제가 있어, `addModal`과 같은 자리에 `#inquiryModal` 정리 한 줄을 추가했다(임시저장 확인이 필요한 `addModal`과 달리 `inquiryModal`은 상태가 단순해 바로 `closeInquiryModal()`을 호출). (2) 제출 성공 시 500ms 뒤 모달을 닫는 `setTimeout`이, "제출 중 모달을 닫고 다시 열어 새 문의를 작성하는" 상황에서 이전 제출의 지연 콜백이 새로 연 모달을 잘못 닫아버릴 수 있었다 — `openInquiryModal()`이 호출될 때마다 증가하는 `inquiryOpenToken`을 두고, 제출 시점의 토큰과 콜백 실행 시점의 토큰이 같을 때만 닫도록 해서 막았다.

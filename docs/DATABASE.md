@@ -163,6 +163,24 @@ Discord 로그인 사용자의 즐겨찾기. Supabase migration `create_user_fav
 - **`author_name` 서버측 강제 트리거**: `comments_set_trusted_author_name()`(SECURITY DEFINER) + `BEFORE INSERT` 트리거 `comments_set_trusted_author_name`. INSERT RLS 정책이 `user_id`만 검증하고 `author_name`은 검증하지 않아, 클라이언트가 임의의 `author_name`(예: 관리자 사칭)을 보낼 수 있다는 점이 커밋 전 Codex 리뷰에서 지적됐다. 이 트리거가 `NEW.author_name`을 `auth.users.raw_user_meta_data`(`full_name`\|`name`\|`'사용자'`) 기준으로 무조건 덮어써 클라이언트가 보낸 값은 무시된다. 실제로 스푸핑 값을 보내는 INSERT를 실행해 저장된 값이 실제 계정 이름으로 강제 치환됨을 확인했다(2026-08-03)
 - 2026-08-03 실제 Discord 로그인 세션으로 INSERT/DELETE 왕복 검증 완료(본인 댓글 작성 → SELECT로 저장 확인 → 삭제 → SELECT로 삭제 확인, 테스트 데이터는 최종적으로 0건으로 정리됨)
 
+## inquiries
+
+제작자 문의(쪽지). 일방향(사용자→관리자)이며 답장 기능은 없다. Supabase migration `create_inquiries_table_and_rls`로 생성했다(2026-08-05).
+
+| 컬럼 | 자료형/제약 |
+|---|---|
+| id | uuid PK, `gen_random_uuid()` 기본값 |
+| created_by | uuid NOT NULL, `auth.users(id)` FK, ON DELETE CASCADE — 익명 불가 강제(nullable인 `items.created_by`와 달리 NOT NULL이라 `comments`/`favorites`와 동일하게 CASCADE 선택) |
+| contributor_name / contributor_avatar | text, null 가능 — `items`와 동일한 작성자 스냅샷 패턴, 단 전용 트리거로 채움(아래 참고) |
+| category | text NOT NULL, `CHECK (category in ('bug','suggestion','other'))` |
+| content | text NOT NULL, `CHECK (length(btrim(content)) > 0 and char_length(content) <= 1000)` — 공백만 입력 방지 + 최대 1000자 |
+| is_read | boolean NOT NULL DEFAULT false — 관리자 전용 내부 처리 상태(사용자에게는 노출하지 않음) |
+| created_at | timestamptz NOT NULL DEFAULT `now()` |
+
+- RLS 활성화. INSERT는 `authenticated`만, `created_by = (select auth.uid())`로 본인 명의만 허용. SELECT/UPDATE는 관리자만(`exists(select 1 from admins where admins.user_id = (select auth.uid()))`, 다른 테이블과 동일 관용구) — 일반 사용자는 본인이 보낸 문의도 조회 불가(이번 범위에서 "내 문의 내역" 화면 없음). DELETE 정책 없음(이번 범위 제외, 필요 시 `docs/TODO.md`에 후속 아이디어로 기록됨)
+- **UPDATE는 `is_read`만 가능하도록 컬럼 단위 권한으로 추가 제한**: RLS `UPDATE` 정책(행 단위)만으로는 관리자가 `content`/`category` 등 다른 컬럼까지 바꾸는 것을 막지 못한다는 점을 Codex 커밋 전 리뷰에서 지적받아, `revoke update on inquiries from authenticated; grant update (is_read) to authenticated;`로 컬럼 수준 권한을 추가했다. 이제 관리자가 `is_read` 외 컬럼을 UPDATE하면 DB 레벨에서 거부된다.
+- **작성자 스냅샷 트리거는 `items`와 별도 함수**: `set_item_contributor()`(items 전용)는 `items`에만 있는 `submitted_at` 컬럼을 대입하므로 `inquiries`에 그대로 연결하면 없는 컬럼 참조로 에러가 난다. 그래서 동일한 `auth.uid()` 검증 + `raw_user_meta_data` coalesce 로직만 복제하고 `submitted_at` 대입은 뺀 별도 함수 `set_inquiry_contributor()`(`SECURITY DEFINER`) + `BEFORE INSERT` 트리거 `set_inquiry_contributor_before_insert`를 새로 만들었다. 클라이언트가 보낸 `created_by`도 트리거가 무조건 서버 값으로 덮어쓴다(`items`와 동일한 방어 패턴).
+
 ---
 
 # Storage

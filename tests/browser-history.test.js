@@ -78,7 +78,7 @@ const html = fs.readFileSync('index.html', 'utf8');
 assert.match(html, /class="overlay-close" onclick="history\.back\(\)"/);
 assert.match(html, /class="back-btn" onclick="history\.back\(\)">← 전체 맵으로/);
 const masterBackButtons = html.match(/class="back-btn" onclick="history\.back\(\)">← 이전 화면으로/g) || [];
-assert.strictEqual(masterBackButtons.length, 5, `Master back-btn 5개가 모두 history.back()+"← 이전 화면으로"여야 함 (실제: ${masterBackButtons.length}개)`);
+assert.strictEqual(masterBackButtons.length, 6, `Master back-btn 6개가 모두 history.back()+"← 이전 화면으로"여야 함 (실제: ${masterBackButtons.length}개)`);
 // 헤더 로고는 "뒤로가기류"가 아니라 고정 목적지 유틸리티라 showHome() 직접 호출을 유지한다
 assert.match(html, /class="brand-home" onclick="showHome\(\)"/);
 

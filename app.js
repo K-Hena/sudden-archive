@@ -28,6 +28,7 @@ let currentSession = null;
 let favorites = [];
 let isAdminUser = false;
 let masterComments = [];
+let masterInquiries = [];
 let lastDataLoadedAt = 0;
 let masterItemsView = 'active';
 const favoritePending = new Set();
@@ -73,6 +74,7 @@ async function loadAll(){
       else if(activeTab === 'stats') loadMasterStats();
       else if(activeTab === 'comments') loadMasterComments();
       else if(activeTab === 'approvals') renderMasterApprovals();
+      else if(activeTab === 'inquiries') loadMasterInquiries();
     }
   } catch(e){
     const grid = document.getElementById('mapGrid');
@@ -156,6 +158,54 @@ function openHomeAdd(){
   currentMap = null;
   currentMapName = '';
   openAddModal(null);
+}
+
+let inquiryOpenToken = 0; // 모달을 다시 열 때마다 증가시켜, 닫혔다 재사용된 모달을 이전 제출의 지연 콜백이 잘못 닫지 않게 막는다
+
+function openInquiryModal(){
+  if(!currentSession){ discordLogin(); return; }
+  inquiryOpenToken++;
+  document.getElementById('inquiryCategory').value = 'bug';
+  document.getElementById('inquiryContent').value = '';
+  document.getElementById('inquiryMsg').className = 'msg-modal';
+  document.getElementById('inquiryMsg').textContent = '';
+  document.getElementById('inquirySubmitBtn').disabled = false;
+  document.getElementById('inquiryModal').classList.add('active');
+}
+
+function closeInquiryModal(){
+  document.getElementById('inquiryModal').classList.remove('active');
+}
+
+async function submitInquiry(){
+  const openToken = inquiryOpenToken;
+  const content = document.getElementById('inquiryContent').value.trim();
+  const msgEl = document.getElementById('inquiryMsg');
+  if(!content){
+    msgEl.className = 'msg-modal err';
+    msgEl.textContent = '내용을 입력해주세요.';
+    return;
+  }
+  const category = document.getElementById('inquiryCategory').value;
+  const submitBtn = document.getElementById('inquirySubmitBtn');
+  submitBtn.disabled = true;
+  msgEl.className = 'msg-modal';
+  msgEl.textContent = '보내는 중...';
+  const { error } = await sb.from('inquiries').insert({
+    created_by: currentSession.user.id, category, content
+  });
+  if(error){
+    msgEl.className = 'msg-modal err';
+    msgEl.textContent = '전송 실패: ' + error.message;
+    submitBtn.disabled = false;
+    return;
+  }
+  msgEl.className = 'msg-modal ok';
+  msgEl.textContent = '문의가 접수됐어요. 감사합니다!';
+  setTimeout(() => {
+    if(inquiryOpenToken === openToken) closeInquiryModal();
+    submitBtn.disabled = false;
+  }, 500);
 }
 
 function renderMyItems(){
@@ -489,11 +539,13 @@ function switchMasterTab(tab){
   document.getElementById('masterPaneMaps').classList.toggle('active', tab === 'maps');
   document.getElementById('masterPaneComments').classList.toggle('active', tab === 'comments');
   document.getElementById('masterPaneApprovals').classList.toggle('active', tab === 'approvals');
+  document.getElementById('masterPaneInquiries').classList.toggle('active', tab === 'inquiries');
   if(tab === 'stats') loadMasterStats();
   if(tab === 'items') renderMasterItemsTab();
   if(tab === 'maps') renderMasterMapsTable();
   if(tab === 'comments') loadMasterComments();
   if(tab === 'approvals') renderMasterApprovals();
+  if(tab === 'inquiries') loadMasterInquiries();
 }
 
 function renderMasterApprovals(){
@@ -713,6 +765,67 @@ async function masterDeleteComment(commentId){
   if(!ok) return;
   masterComments = masterComments.filter(c => c.id !== commentId);
   renderMasterCommentsTable();
+}
+
+const inquiryCategoryLabel = { bug:'버그 제보', suggestion:'건의', other:'기타' };
+
+async function loadMasterInquiries(){
+  const wrap = document.getElementById('masterInquiriesTableWrap');
+  wrap.innerHTML = '<div class="loading">불러오는 중...</div>';
+  const { data, error } = await sb.from('inquiries')
+    .select('id, category, content, contributor_name, is_read, created_at')
+    .order('created_at', { ascending: false });
+  if(error){
+    wrap.innerHTML = `<div class="loading">문의를 불러오지 못했어요.<br>${escapeHtml(error.message)}</div>`;
+    document.getElementById('masterInquiriesCount').textContent = '';
+    return;
+  }
+  masterInquiries = data || [];
+  renderMasterInquiriesTable();
+}
+
+function renderMasterInquiriesTable(){
+  const wrap = document.getElementById('masterInquiriesTableWrap');
+  const countEl = document.getElementById('masterInquiriesCount');
+  const category = document.getElementById('masterInquiriesCategoryFilter').value;
+  const readFilter = document.getElementById('masterInquiriesReadFilter').value;
+  const filtered = masterInquiries.filter(q =>
+    (!category || q.category === category) &&
+    (!readFilter || (readFilter === 'read' ? q.is_read : !q.is_read))
+  );
+  countEl.textContent = `${filtered.length} / ${masterInquiries.length}개`;
+  if(masterInquiries.length === 0){
+    wrap.innerHTML = '<div class="loading">아직 접수된 문의가 없어요.</div>';
+    return;
+  }
+  if(filtered.length === 0){
+    wrap.innerHTML = '<div class="loading">조건에 맞는 문의가 없어요.</div>';
+    return;
+  }
+  const rows = filtered.map(q => {
+    const abs = escapeHtml(new Date(q.created_at).toLocaleString());
+    return `<tr>
+      <td>${escapeHtml(q.contributor_name || '사용자')}</td>
+      <td>${escapeHtml(inquiryCategoryLabel[q.category] || q.category)}</td>
+      <td>${escapeHtml(q.content)}</td>
+      <td class="num" title="${abs}">${formatRelativeTime(q.created_at)}</td>
+      <td>${q.is_read ? '읽음' : '안읽음'}</td>
+      <td><span class="icon-btn" onclick="toggleInquiryRead('${q.id}', ${!q.is_read})" title="${q.is_read ? '안읽음으로 표시' : '읽음으로 표시'}"><i class="ti ${q.is_read ? 'ti-mail-opened' : 'ti-mail'}"></i></span></td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `
+    <table class="master-table">
+      <thead><tr><th>작성자</th><th>카테고리</th><th>내용</th><th>작성 시각</th><th>상태</th><th>처리</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+async function toggleInquiryRead(id, nextRead){
+  const { error } = await sb.from('inquiries').update({ is_read: nextRead }).eq('id', id);
+  if(error){ alert('처리 실패: ' + error.message); return; }
+  const row = masterInquiries.find(q => q.id === id);
+  if(row) row.is_read = nextRead;
+  renderMasterInquiriesTable();
 }
 
 async function loadMasterStats(){
@@ -2571,6 +2684,7 @@ window.addEventListener('popstate', event => {
     // 모달은 history에 없으므로, popstate가 뜨는 시점엔 이미 배경 화면이 바뀌는 게 확정 — 실제로 열려 있을 때만 정리한다
     // (hasModalUnsavedInput()은 모달이 열려 있는지 자체는 보지 않으므로, 닫힌 뒤에도 남아있는 값 때문에 무관한 탐색에서 임시저장 프롬프트가 뜨는 것을 막는다)
     if(document.getElementById('addModal').classList.contains('active')) requestCloseModal();
+    if(document.getElementById('inquiryModal').classList.contains('active')) closeInquiryModal();
     const state = event.state || { view: 'home' };
     if(state.view !== 'overlay') closeOverlay();
     if(state.view === 'overlay'){ openOverlay(state.itemId, false); return; }

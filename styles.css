@@ -436,6 +436,15 @@ header{
 .modal{display:none;position:fixed;inset:0;background:rgba(6,7,9,.9);z-index:60;align-items:center;justify-content:center;padding:30px;overflow:auto;}
 .modal.active{display:flex;}
 .modal-box{background:var(--panel);border:1px solid var(--line);width:min(560px,95vw);max-height:90vh;overflow:auto;}
+.inquiry-fab{
+  position:fixed;right:24px;bottom:24px;z-index:40;width:56px;height:56px;border-radius:50%;
+  background:var(--edit-accent);color:var(--edit-accent-ink);border:none;cursor:pointer;font-size:22px;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.35);
+}
+.inquiry-fab:hover{filter:brightness(1.08);}
+.inquiry-fab:focus-visible{outline:2px solid var(--edit-accent);outline-offset:3px;}
+body:has(#viewMaster.active) .inquiry-fab{display:none;}
+@media(max-width:600px){.inquiry-fab{right:16px;bottom:16px;width:50px;height:50px;font-size:19px;}}
 @media(max-width:600px){
   .modal{padding:12px;}
   .modal-box{width:min(560px, calc(100vw - 24px));}

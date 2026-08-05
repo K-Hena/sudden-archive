@@ -137,6 +137,7 @@
       <button class="master-tab" data-tab="maps" onclick="switchMasterTab('maps')"><i class="ti ti-map-2"></i> 맵 관리</button>
       <button class="master-tab" data-tab="comments" onclick="switchMasterTab('comments')"><i class="ti ti-message-circle"></i> 댓글</button>
       <button class="master-tab" data-tab="approvals" onclick="switchMasterTab('approvals')"><i class="ti ti-checklist"></i> 승인 대기</button>
+      <button class="master-tab" data-tab="inquiries" onclick="switchMasterTab('inquiries')"><i class="ti ti-message-2"></i> 문의함</button>
     </nav>
     <div class="master-content">
       <div class="master-pane active" id="masterPaneStats">
@@ -211,6 +212,27 @@
         </div>
         <div class="mono" id="masterApprovalsCount" style="font-size:12px;color:var(--muted);margin-bottom:8px;"></div>
         <div class="master-table-wrap" id="masterApprovalsTableWrap"></div>
+      </div>
+      <div class="master-pane" id="masterPaneInquiries">
+        <div class="map-head">
+          <div class="section-label">문의함</div>
+          <button class="back-btn" onclick="history.back()">← 이전 화면으로</button>
+        </div>
+        <div class="master-add-row">
+          <select id="masterInquiriesCategoryFilter" class="master-select" onchange="renderMasterInquiriesTable()">
+            <option value="">카테고리 전체</option>
+            <option value="bug">버그 제보</option>
+            <option value="suggestion">건의</option>
+            <option value="other">기타</option>
+          </select>
+          <select id="masterInquiriesReadFilter" class="master-select" onchange="renderMasterInquiriesTable()">
+            <option value="">전체</option>
+            <option value="unread">안읽음</option>
+            <option value="read">읽음</option>
+          </select>
+        </div>
+        <div class="mono" id="masterInquiriesCount" style="font-size:12px;color:var(--muted);margin-bottom:8px;"></div>
+        <div class="master-table-wrap" id="masterInquiriesTableWrap"></div>
       </div>
     </div>
   </div>
@@ -370,6 +392,32 @@
 </div>
 
 <input type="file" id="mapImgInput" accept="image/*" style="display:none">
+
+<button type="button" class="inquiry-fab" id="inquiryFab" onclick="openInquiryModal()" aria-label="제작자에게 문의하기"><i class="ti ti-message-2"></i></button>
+
+<div class="modal" id="inquiryModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>제작자에게 문의하기</h3>
+      <button type="button" class="x" onclick="closeInquiryModal()" aria-label="닫기"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <label for="inquiryCategory">카테고리</label>
+      <select id="inquiryCategory">
+        <option value="bug">버그 제보</option>
+        <option value="suggestion">건의</option>
+        <option value="other">기타</option>
+      </select>
+      <label for="inquiryContent">내용</label>
+      <textarea id="inquiryContent" maxlength="1000" placeholder="버그나 건의하고 싶은 내용을 자유롭게 적어주세요" style="min-height:120px;"></textarea>
+      <div class="msg-modal" id="inquiryMsg"></div>
+      <div class="modal-actions">
+        <button class="btn-ghost" onclick="closeInquiryModal()">취소</button>
+        <button class="btn-primary" id="inquirySubmitBtn" onclick="submitInquiry()">보내기</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <footer class="site-footer">
   © 서든 아카이브 · 제작 혜나 · 무단 배포 및 상업적 사용을 금지합니다.

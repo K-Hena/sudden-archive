@@ -64,7 +64,8 @@ CDN으로 불러오는 외부 자원: `@supabase/supabase-js@2`, `cropperjs@1.6.
 - `#overlay`: 영상/이미지 재생 오버레이 — 실제 미디어(iframe/img)는 `#overlayMediaContent`에만 그리고, 그 위에 뜨는 재생/일시정지 버튼(`#overlayPlayPause`)과 클립 항목 전용 "전체 영상 보기" 버튼(`#overlayFullBtn`)은 형제 요소로 분리해 `innerHTML` 교체로 지워지지 않게 함
 - `#addModal`: 컨텐츠 추가/수정 모달(홈에서 진입) — `#pasteStep` → `#targetStep`(맵 드롭다운 + 태그 타일) → `#videoWrap/#imageWrap` → `#titleWrap` 4단계 화면 전환. 유튜브 URL/이미지를 자동 판별하고, 이미지는 Cropper.js, 영상은 `#clipTools`(버튼 + 슬라이더)로 연결. "맵 지명" 태그는 이미지 고정이며 관리자만 추가 가능
 - `#mapImgInput`: 맵 이미지 업로드용 숨김 `<input type=file>`
-- `#viewMaster`: 관리자 전용 Master 대시보드 — `.master-sidebar`(통계/항목 관리/맵 관리/댓글/승인 대기 5탭) + `.master-content`(탭별 `.master-pane`, `switchMasterTab()`으로 표시만 전환하고 DOM은 항상 유지). 항목 관리는 `masterItemsView`로 활성/휴지통을 전환
+- `#viewMaster`: 관리자 전용 Master 대시보드 — `.master-sidebar`(통계/항목 관리/맵 관리/댓글/승인 대기/문의함 6탭) + `.master-content`(탭별 `.master-pane`, `switchMasterTab()`으로 표시만 전환하고 DOM은 항상 유지). 항목 관리는 `masterItemsView`로 활성/휴지통을 전환
+- `#inquiryFab`/`#inquiryModal`: 제작자 문의 플로팅 버튼 + 작성 모달. `.view` 4개 밖의 body 레벨 고정 요소라 홈/전체 맵/맵 상세/오버레이 어디서든 노출되고, `body:has(#viewMaster.active)` CSS로 Master 화면에서만 숨겨진다
 - `</body>` 직전 `/app.js`: DOM이 모두 만들어진 뒤 기존 전역 스크립트를 같은 시점에 실행. 인라인 `onclick` 42개가 전역 함수 선언에 의존하므로 `type="module"`을 사용하지 않음
 
 ## JavaScript (`app.js`)
@@ -77,7 +78,8 @@ CDN으로 불러오는 외부 자원: `@supabase/supabase-js@2`, `cropperjs@1.6.
 - 재생: `openOverlay()/closeOverlay()` — 유튜브 IFrame API로 클립 구간 반복 재생 지원, 클립 항목은 `controls:0`으로 컨트롤바를 숨기고 `toggleOverlayPlay()`(커스텀 재생/일시정지)와 `showFullVideo()`(같은 위치에서 이어서 `controls:1` 플레이어로 재생성, 구간 제한 해제)를 제공. 상태는 `overlayVideoId`/`overlayHasClip`에 저장되며 오버레이를 닫으면 초기화됨(전체 모드 전환은 세션 한정, `docs/DECISIONS.md` 참고)
 - 인증·홈: `initAuth()/renderAuthArea()/discordLogin()/loadFavorites()/showHome()/renderHomeDashboard()` — Discord OAuth, 즐겨찾기·최근 본 컨텐츠·임시저장·본인 등록 목록을 로그인 상태에 맞게 렌더링하고 `admins` 조회 결과로 `#masterBtn` 노출 여부 결정
 - 사용자 등록: 일반 사용자는 위폭·팁만 `pending`, 관리자는 맵 지명을 포함해 `published`로 저장. 작성자 표시 정보는 DB 트리거가 Discord 인증 메타데이터로 강제하며, 일반 사용자는 승인 전 항목만 수정·숨김 가능
-- Master 대시보드: `openMaster()/switchMasterTab()` — 통계·항목 관리·맵 관리·댓글·승인 대기 탭 전환. `renderMasterApprovals()/reviewItem()`이 승인·반려를, `moveItemToTrash()/restoreItem()`이 휴지통 이동·원래 상태 복구를 담당
+- Master 대시보드: `openMaster()/switchMasterTab()` — 통계·항목 관리·맵 관리·댓글·승인 대기·문의함 탭 전환. `renderMasterApprovals()/reviewItem()`이 승인·반려를, `moveItemToTrash()/restoreItem()`이 휴지통 이동·원래 상태 복구를, `loadMasterInquiries()/renderMasterInquiriesTable()/toggleInquiryRead()`가 문의 목록 조회·카테고리·읽음 필터·읽음 처리를 담당
+- 제작자 문의: `openInquiryModal()/closeInquiryModal()/submitInquiry()` — 로그인 필수(비로그인은 `openHomeAdd()`와 동일하게 confirm 없이 바로 `discordLogin()`), 카테고리(버그 제보/건의/기타)+내용만 받는 일방향 제출. 작성자 표시 정보는 `items`와 마찬가지로 DB 트리거(`set_inquiry_contributor()`)가 Discord 인증 메타데이터로 강제하며, 일반 사용자는 본인이 보낸 문의도 조회할 수 없다(RLS SELECT는 관리자 전용)
 
 ---
 
@@ -270,12 +272,13 @@ sequenceDiagram
 
 로그인 + `admins` 테이블 등록 여부로 관리자를 판별한다(위 "4. 인증(Auth) 흐름" 참고). 관리자면 헤더에 "Master" 버튼이 노출되고, 클릭하면 `#viewMaster`(사이드바 탭 + 콘텐츠)로 전환된다(`openMaster()`). 일반 사용자가 보는 맵 그리드·카드 그리드 화면에는 CRUD 액션이 전혀 섞여 들어가지 않는다 — **과거에는 같은 화면에서 `editMode` 토글로 액션을 켜고 끄는 방식이었지만, 그룹 D-2 4단계에서 이 방식을 완전히 폐기하고 지금의 별도 Master 대시보드 방식으로 바꿨다.**
 
-### Master 사이드바 탭 (현재 5개)
+### Master 사이드바 탭 (현재 6개)
 - **통계**: 항목별 클릭수·즐겨찾기 집계 테이블(그룹 D-2 1단계)
 - **항목 관리**: 맵/태그/진영 필터 + 제목 검색 + 테이블. `활성 항목/휴지통`을 전환하고 활성 행의 ⚙(수정)/🗑(휴지통 이동), 휴지통 행의 원래 상태·이동 시각·복구를 제공(그룹 D-2 3단계, F-6)
 - **맵 관리**: 맵 목록 테이블, 각 행의 🖼(이미지 변경)/✎(이름 변경)/✕(삭제) 버튼이 기존 `pickMapImage()`/`renameMap()`/`deleteMap()`을 그대로 호출, 상단 "새 맵 추가" 버튼이 `addMap()` 호출(그룹 D-2 4단계)
 - **댓글**: 전체 댓글을 `created_at` 내림차순으로 조회, `items[]`/`maps[]`에서 항목 제목·맵 이름 조회(삭제된 항목은 "삭제된 항목"), 맵 필터·검색(본문/작성자/항목 제목)은 클라이언트 사이드. "항목 보기"는 기존 `openOverlay()` 재사용, 삭제는 `deleteComment()`를 성공 여부(`boolean`) 반환하도록 최소 수정해 재사용(그룹 D-2 5단계)
 - **승인 대기**: 일반 사용자가 등록한 `pending` 컨텐츠를 맵·태그 조합으로 필터링하고 결과 수·작성자·맵·태그·미리보기를 확인한 뒤 승인하거나 사유를 입력해 반려. 관리자 미리보기는 클릭수·최근 본 항목에 포함되지 않음(그룹 F-4)
+- **문의함**: 전역 플로팅 버튼(FAB)으로 로그인 사용자가 보낸 카테고리(버그 제보/건의/기타)+내용을 `created_at` 내림차순으로 조회, 카테고리·읽음 상태 필터는 클라이언트 사이드. 답장 기능은 없고 행마다 읽음/안읽음 토글(`toggleInquiryRead()`)만 제공. RLS SELECT가 관리자 전용이라 이 탭이 문의를 볼 수 있는 유일한 화면이다(제작자 문의 기능, 2026-08-05)
 
 ### 항목 추가/수정 모달 (레거시 Admin에서 이식, 홈에서 진입)
 - **붙여넣기 우선 4단계 모달** — `paste → target(맵·태그 선택) → media → details` 순서로 같은 모달 안에서 화면만 전환한다. 첫 화면은 `readAddClipboard()` 버튼과 이미지 업로드 링크만 노출하고, 자동 판별된 유튜브 URL/이미지는 각각 `modalType`만 정한 뒤 `enterAddTargetStep()`으로 넘어간다(영상 클립 플레이어는 `loadClipPlayer()`, 이미지 크롭은 Cropper.js를 media 단계 진입 시점에 생성 — 숨겨진 컨테이너에서 만들면 크기 계산이 틀어지기 때문). `target` 단계는 `maps[]`를 드롭다운으로, 태그는 F-6a 권한 로직을 그대로 재사용한 타일 버튼(`.paste-box` 스타일 재사용)으로 노출하고, 영상을 붙여넣은 경우 "맵 지명" 타일은 이미지 전용이라 숨긴다. 태그 타일 클릭(`confirmAddTarget()`)이 맵 선택 검증을 통과한 직후에만 `currentMap`/`currentMapName`/`modalTag`를 확정한다(드롭다운 `onchange`가 아님 — 단순 선택만으로 전역 내비게이션 상태가 바뀌는 것을 피하기 위해, Master 2단계와 동일한 논리). target/media/details 단계에는 뒤로가기를 제공한다(`target`→`paste`, `media`→`target`, `details`→`media`).
