@@ -25,8 +25,21 @@ B2 연구소.jpg
 
 # 개발자 로컬 절대경로가 박혀있어 다른 환경에서 깨지는 MCP 설정
 .mcp.json
+opencode.jsonc
+.vscode/mcp.json
+.qoder/
 
-# 미사용 AI 도구 안내 파일 (Claude Code/Codex만 사용, 내용은 code-review-graph 안내와 중복)
+# 미사용 AI 도구 안내 파일/설정 (Claude Code/Codex만 사용, 내용은 code-review-graph 안내와 중복이거나 해당 도구 전용 설정)
 CODEBUDDY.md
 GEMINI.md
 QODER.md
+.codebuddy/
+.gemini/
+.kiro/
+.cursorrules
+.windsurfrules
+.github/code-review-graph.instruction.md
+
+# 로컬 전용 백업/캐시
+.claude/settings.json.bak
+.playwright-cli/
