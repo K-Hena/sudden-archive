@@ -445,7 +445,7 @@ header{
   .team-toggle button{padding:9px 12px;}
 }
 .modal-head{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
-.modal-head h3{font-family:'Rajdhani','Pretendard',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.04em;}
+.modal-head h3{font:800 16px 'Paperlogy',sans-serif;letter-spacing:0.04em;}
 .modal-head .x{cursor:pointer;color:var(--muted);font-family:'JetBrains Mono','Pretendard',monospace;}
 .modal-head .x:hover{color:var(--red);}
 .modal-body{padding:20px;}
